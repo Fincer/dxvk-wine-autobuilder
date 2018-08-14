@@ -37,4 +37,4 @@ All regular user commands have prefix 'cmd' in the main script.
 
 ### LICENSE
 
-This repository uses GPLv3 license. See [LICENSE](https://github.com/Fincer/pol-wine-dxvk/LICENSE) for details.
+This repository uses GPLv3 license. See [LICENSE](https://github.com/Fincer/pol-wine-dxvk/blob/master/LICENSE) for details.
