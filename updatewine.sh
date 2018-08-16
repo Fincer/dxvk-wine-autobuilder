@@ -78,10 +78,10 @@ USER=fincer
 CURDATE=$(date "+%d-%m-%Y %H:%M:%S")
 
 # This variable value is automatically generated. DO NOT CHANGE.
-LASTUPDATE="16-08-2018 15:21:32"
+LASTUPDATE=
 
 # This variable value is automatically generated. DO NOT CHANGE.
-WINE_VERSION="stg.3.13.1.r13.gec47c04a+wine.wine.3.13.r256.gd744f367d2-1"
+WINE_VERSION=
 
 ###########################################################
 
