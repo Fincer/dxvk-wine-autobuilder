@@ -78,10 +78,10 @@ USER=fincer
 CURDATE=$(date "+%d-%m-%Y %H:%M:%S")
 
 # This variable value is automatically generated. DO NOT CHANGE.
-LASTUPDATE=
+LASTUPDATE="16-08-2018 15:21:32"
 
 # This variable value is automatically generated. DO NOT CHANGE.
-WINE_VERSION=
+WINE_VERSION="stg.3.13.1.r13.gec47c04a+wine.wine.3.13.r256.gd744f367d2-1"
 
 ###########################################################
 
@@ -195,11 +195,12 @@ if [[ $NEEDSBUILD -eq 1 ]] && [[ ! -v CHECK ]]; then
 
     # Create wine-staging-git package and install it to the system
     cd "${ORG_CURDIR}"/0-wine-staging-git
-    cmd "updpkgsums && makepkg"
+    cmd "updpkgsums && makepkg ;"
 
-    if [[ $? -eq 0 ]]; then
+    if [[ $(find . -mindepth 1 -maxdepth 1 -type f -iname "wine-*tar.xz" | wc -l) -ne 0 ]]; then
         pacman -U --noconfirm wine-*.tar.xz
     else
+        cmd "rm -rf ./{*.patch,pkg,src}"
         exit 1
     fi
 
@@ -225,11 +226,12 @@ if [[ $NEEDSBUILD -eq 1 ]] && [[ ! -v CHECK ]]; then
 
     # Create dxvk-git package and install it to the system
     cd "${ORG_CURDIR}"/0-dxvk-git
-    cmd "updpkgsums && makepkg"
+    cmd "updpkgsums && makepkg ;"
 
-    if [[ $? -eq 0 ]]; then
+    if [[ $(find . -mindepth 1 -maxdepth 1 -type f -iname "dxvk-git-*tar.xz" | wc -l) -ne 0 ]]; then
         pacman -U --noconfirm dxvk-git*.tar.xz
     else
+        cmd "rm -rf ./{pkg,src}"
         exit 1
     fi
 
