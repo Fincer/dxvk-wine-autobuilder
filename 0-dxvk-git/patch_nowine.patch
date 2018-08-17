@@ -20,20 +20,21 @@
  c_link_args = ['-static', '-static-libgcc']
 --- a/package-release.sh
 +++ b/package-release.sh
-@@ -11,9 +11,6 @@
- DXVK_ARCHIVE_PATH=$(realpath "$2")"/dxvk-$DXVK_VERSION.tar.gz"
+@@ -16,9 +16,7 @@
+ fi
  
  function build_arch {
 -  export WINEARCH="win$1"
 -  export WINEPREFIX="$DXVK_BUILD_DIR/wine.$1"
 -  
++
    cd "$DXVK_SRC_DIR"
  
    meson --cross-file "$DXVK_SRC_DIR/build-win$1.txt"  \
-@@ -31,8 +28,7 @@
+@@ -38,8 +36,7 @@
+   cp "$DXVK_BUILD_DIR/install.$1/bin/d3d10core.dll" "$DXVK_BUILD_DIR/x$1/d3d10core.dll"
    cp "$DXVK_BUILD_DIR/install.$1/bin/d3d11.dll" "$DXVK_BUILD_DIR/x$1/d3d11.dll"
    cp "$DXVK_BUILD_DIR/install.$1/bin/dxgi.dll" "$DXVK_BUILD_DIR/x$1/dxgi.dll"
-   cp "$DXVK_BUILD_DIR/install.$1/bin/setup_dxvk.sh" "$DXVK_BUILD_DIR/x$1/setup_dxvk.sh"
 -  
 -  rm -R "$DXVK_BUILD_DIR/wine.$1"
 +
