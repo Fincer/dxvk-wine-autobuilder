@@ -141,7 +141,7 @@ function gitCheck() {
 
     netCheck
 
-    if [[ -v $FORCE_INSTALL ]]; then
+    if [[ -v FORCE_INSTALL ]]; then
         NEEDSBUILD=1
         return 0
     fi
@@ -188,7 +188,7 @@ fi
 ###########################################################
 
 # Do git check for Wine Staging
-gitCheck ./wine-staging-git Wine
+gitCheck ./0-wine-staging-git/wine-staging-git Wine
 
 # If needs build and --check switch is not used
 if [[ $NEEDSBUILD -eq 1 ]] && [[ ! -v CHECK ]]; then
