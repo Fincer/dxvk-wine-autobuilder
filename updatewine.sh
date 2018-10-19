@@ -18,9 +18,59 @@
 
 ###########################################################
 
+if [[ $UID -ne 0 ]]; then
+    echo "Run as root or sudo"
+    exit 1
+fi
+
+###########################################################
+
 # Your system username (who has PoL profile // existing Wine prefixes)
 # Get it by running 'whoami'
-USER=fincer
+
+read -r -p "Who has PoL profiles // existing Wine prefixes on the system? [username] " username
+
+  function check_username {
+
+  if [[ $username == "" ]]; then
+    echo "Empty username is invalid. Aborting."
+    exit 1
+  fi
+
+  if [[ $username == "root" ]]; then
+    echo "Can't use 'root' user. Aborting."
+    exit 1
+  fi
+
+  local IFS=$'\n'
+  for validname in $(cat /etc/passwd | awk -F : '{print $1}'); do
+    if [[ $validname == $username ]]; then
+      USERNAME=$username
+    fi
+  done
+
+  if [[ ! -n $USERNAME ]]; then
+    echo "Couldn't find user $username. Please check the name and try again."
+    exit 1
+  fi
+
+}
+
+function check_pol {
+
+  # Check existence of PoL default folder in user's homedir
+
+  local USERHOME=$(grep $USERNAME /etc/passwd | awk -F : '{print $(NF-1)}')
+
+  if [[ ! -d "$USERHOME/PlayOnLinux's virtual drives" ]]; then
+    echo "Warning. Couldn't find PoL directories in the homedir of user $USERNAME."
+    NOPOL=
+  fi
+
+}
+
+check_username
+check_pol
 
 ###########################################################
 
@@ -101,28 +151,27 @@ if [[ "${1}" == "--force" ]] || [[ $WINE_VERSION == "" ]] || [[ $LASTUPDATE == "
     FORCE_INSTALL=
 fi
 
-###########################################################
-
-if [[ $UID -ne 0 ]]; then
-    echo "Run as root or sudo"
-    exit 1
+if [[ $LASTUPDATE == "" ]]; then
+    LASTUPDATE="Unknown"
 fi
+
+###########################################################
 
 echo -e "\nLast update: $LASTUPDATE\n"
 
 ORG_CURDIR=$(pwd)
 
 cmd() {
-    sudo -u $USER bash -c "${*}"
+    sudo -u $USERNAME bash -c "${*}"
 }
 
 ###########################################################
 # Check for existing PoL user folder
 
-if [[ ! -d /home/$USER/.PlayOnLinux ]]; then
-    echo "No existing PlayonLinux profiles in $USER's home folder. Aborting"
-    exit 1
-fi
+#if [[ ! -d /home/$USERNAME/.PlayOnLinux ]]; then
+#    echo "No existing PlayonLinux profiles in $USERNAME's home folder. Aborting"
+#    exit 1
+#fi
 
 ###########################################################
 # Check internet connection
@@ -247,8 +296,8 @@ cd ..
 
 # If a new Wine Staging version was installed and 'System' version of Wine has been used in
 # PoL wineprefix configurations, update those existing PoL wineprefixes
-if [[ -v WINE_INSTALL ]]; then
-    for wineprefix in $(find /home/$USER/.PlayOnLinux/wineprefix -mindepth 1 -maxdepth 1 -type d); do
+if [[ -v WINE_INSTALL ]] && [[ ! -v NOPOL ]]; then
+    for wineprefix in $(find /home/$USERNAME/.PlayOnLinux/wineprefix -mindepth 1 -maxdepth 1 -type d); do
         if [[ -d ${wineprefix}/dosdevices ]]; then
 
         # If VERSION string exists, skip updating that prefix.
@@ -263,18 +312,12 @@ if [[ -v WINE_INSTALL ]]; then
             fi
         fi
     done
-
-    # If a new Wine Staging version was installed, update WINE_VERSION string variable in this script file
-    if [[ -v WINE_VERSION_UPDATE ]]; then
-        cmd "sed -i 's/^WINE_VERSION=.*/WINE_VERSION=\"${WINE_VERSION_UPDATE}\"/' $ORG_CURDIR/updatewine.sh"
-    fi
-
 fi
 
 # Install dxvk-git to every PlayOnLinux wineprefix
-if [[ $? -eq 0 ]]; then
+if [[ $? -eq 0 ]] && [[ ! -v NOPOL ]]; then
 
-    for wineprefix in $(find /home/$USER/.PlayOnLinux/wineprefix -mindepth 1 -maxdepth 1 -type d); do
+    for wineprefix in $(find /home/$USERNAME/.PlayOnLinux/wineprefix -mindepth 1 -maxdepth 1 -type d); do
 
         if [[ -d ${wineprefix}/dosdevices ]]; then
 
@@ -291,7 +334,11 @@ if [[ $? -eq 0 ]]; then
         fi
 
     done
+fi
 
+# If a new Wine Staging version was installed, update WINE_VERSION string variable in this script file
+if [[ -v WINE_VERSION_UPDATE ]]; then
+    cmd "sed -i 's/^WINE_VERSION=.*/WINE_VERSION=\"${WINE_VERSION_UPDATE}\"/' $ORG_CURDIR/updatewine.sh"
 fi
 
 # Update LASTUPDATE variable string, if --check switch is not used + a new Wine Staging version is used or NEEDSBUILD variable is set to 1
