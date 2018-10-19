@@ -196,14 +196,16 @@ build() {
         ${staging_patchsets[*]}
     fi
 
-    # Apply all custom patches
-    msg2 "Applying custom patches..."
+    if [[ $(ls "${srcdir}"/*.patch | wc -w) -ne 0 ]]; then
 
-    cd "${srcdir}"/wine-git
-    for i in $srcdir/*.patch
-    do 
-        patch -Np1 < $i
-    done
+      cd "${srcdir}"/wine-git
+      # Apply all custom patches
+      msg2 "Applying custom patches..."
+
+      for i in "${srcdir}"/*.patch; do 
+        patch -Np1 < ${i}
+      done
+    fi
 
     cd "${srcdir}"
 
