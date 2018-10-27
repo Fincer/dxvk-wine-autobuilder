@@ -248,7 +248,7 @@ function netCheck() {
         echo -e "\nInternet connection failed (GitHub). Please check your connection and try again.\n"
         exit 1
     fi
-    rm -f ./index.html.tmp
+    cmd "rm -f ./index.html.tmp"
 }
 
 ###########################################################
