@@ -12,21 +12,13 @@ makedepends=('ninja' 'meson>=0.43' 'glslang' 'mingw-w64-gcc' 'git')
 provides=("dxvk")
 conflicts=("dxvk-bin")
 options=(!strip !buildflags staticlibs)
-source=($pkgname::"git+https://github.com/doitsujin/dxvk.git"
-patch_nowine.patch)
-#patch_revert-attribute_divisor.patch)
+source=($pkgname::"git+https://github.com/doitsujin/dxvk.git")
 md5sums=('SKIP'
          'e44502b2fc7e2db2db0090f779531189')
 
 pkgver() {
         cd "$pkgname"
         git log -1 --format=%cd.%h --date=short|tr -d -
-}
-
-prepare() {
-    cd "$pkgname"
-    patch -p1 < ../patch_nowine.patch
-    #patch -p1 -R < ../patch_revert-attribute_divisor.patch
 }
 
 build() {
