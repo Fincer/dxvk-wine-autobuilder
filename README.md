@@ -1,4 +1,5 @@
 # Wine/Wine Staging & DXVK package builder & auto-installer
+
 Automate installation of the newest DXVK + Wine Staging, and optionally update all your PlayonLinux wineprefixes (Ubuntu/Mint/Arch Linux/Manjaro)
 
 ## About
@@ -13,7 +14,7 @@ I have seen that there is not a clear way to install Wine Staging Git & DXVK, es
 
 Additionally, the benefits of the bleeding-edge Wine/Wine Staging & DXVK versions are quite limited at the moment. Wine Staging is not easily available on Debian-based Linux distributions, and DXVK is practically bundled to Lutris or Steam gaming platform as a form of Proton. We have to keep in mind that not all Windows programs are run under Steam on Linux but many programs are run via PlayOnLinux or without relying on any other third-party management software.
 
-The solution I provide here _is not bundled to any commercial or other Wine management platform_. The latest Wine Staging & DXVK bundle is available system-wide, not just Steam, Lutris or PlayOnLinux.
+The solution I provide here _is not bundled to any commercial or other Wine management platform_. The latest Wine/Wine Staging & DXVK bundle is available system-wide, not just Steam, Lutris or PlayOnLinux.
 
 ----------------
 
@@ -239,6 +240,10 @@ ninja: build stopped: subcommand failed.
 - Remove temp folders in case of failure (meson/glslang/dxvk-git/wine... temp build folders)
 
 - Add support for custom DXVK patches
+
+- Add proper license information for meson, glslang, Wine & DXVK
+
+- Add option (?): do not store compiled packages, just install them
 
 - Better handling for sudo validation loop function
 
