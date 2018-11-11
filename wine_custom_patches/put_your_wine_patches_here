@@ -1,0 +1,4 @@
+Put your custom Wine patches here.
+Valid file suffix formats are: .diff and .patch
+
+These patches are applied during Wine + Wine Staging compilation

@@ -1,6 +1,6 @@
-#!/bin/bash
+#!/bin/env bash
 
-#    getsource - Simple script to set up Wine Staging + DXVK for PoL wineprefixes
+#    DXVK/Wine-Staging scripts dispatcher for various Linux distributions
 #    Copyright (C) 2018  Pekka Helenius
 #
 #    This program is free software: you can redistribute it and/or modify
@@ -16,405 +16,255 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-###########################################################
+##############################################################################
 
-# REQUIREMENTS:
+# Check if we're using bash or sh to run the script. If bash, OK.
+# If another one, ask user to run the script with bash.
 
-# - Arch Linux or equivalent (uses pacman)
-#
-# - Existing PlayonLinux package installation and $HOME/.PlayOnLinux folder
-# with all relevant subfolders
-#
-# - git, sudo, pwd...etc.
-#
-# - dxvk-git and wine-staging-git package dependencies installed
-# (see PKGBUILD files ./PKGBUILD and ./0-dxvk-git/PKGBUILD for details)
-#
-# - Internet connection
-#
-# - GPU Vulkan support and the most recent Nvidia/AMD drivers
+BASH_CHECK=$(ps | grep `echo $$` | awk '{ print $4 }')
 
-###########################################################
-
-# Usage
-
-# Run with sudo
-#
-# # sudo bash ./updatewine.sh
-#
-# NOTE: All commands are executed as user (defined above).
-# Only commands which require root permissions are ones
-# which install packages wine-staging-git and dxvk into
-# your system
-
-# All regular user commands have prefix 'cmd' below
-
-# Switches:
-#
-#   --refresh
-#
-#       Check for new Staging/DXVK releases, update PoL Wine prefixes if needed
-#       Does a comparison between local & remote git repos
-#
-#   --check
-#
-#       Check for new Staging/DXVK releases
-#       Does a comparison between local & remote git repos
-#
-#   --force
-#
-#       Force Wine Staging & DXVK installation
-#
-
-###########################################################
-
-# Get current date
-CURDATE=$(date "+%d-%m-%Y %H:%M:%S")
-
-# This variable value is automatically generated. DO NOT CHANGE.
-LASTUPDATE=
-
-# This variable value is automatically generated. DO NOT CHANGE.
-WINE_VERSION=
-
-###########################################################
-
-if [[ $UID -ne 0 ]]; then
-    echo "Run as root or sudo. This permission is required only for package installation."
+if [ $BASH_CHECK != "bash" ]; then
+    echo  "
+Please run this script using bash (/usr/bin/bash).
+    "
     exit 1
 fi
 
 ###########################################################
-
-# Your system username (who has PoL profile // existing Wine prefixes)
-# Get it by running 'whoami'
-
-unset USERNAME ERRPKGS
-
-read -r -p "Who has PoL profiles // existing Wine prefixes on the system? [username] " username
-  echo ""
-function check_username {
-
-    if [[ $(printf '%s' $username | sed 's/[[:blank:]]//g') == "" ]]; then
-        echo "Empty username is invalid. Aborting."
-        exit 1
-    fi
-
-    if [[ $username == "root" ]]; then
-        echo "Can't use 'root' user. Aborting."
-        exit 1
-    fi
-
-    local IFS=$'\n'
-    for validname in $(cat /etc/passwd | awk -F : '{print $1}'); do
-        if [[ $validname == $username ]]; then
-            USERNAME=$username
-        fi
-    done
-
-    if [[ ! -n $USERNAME ]]; then
-        echo "Couldn't find user '$username'. Please check the name and try again."
-        exit 1
-    fi
-
-}
-
-function check_pol {
-
-    # Check existence of PoL default folder in user's homedir
-
-    local USERHOME=$(grep $USERNAME /etc/passwd | awk -F : '{print $(NF-1)}')
-
-    if [[ ! -d "$USERHOME/PlayOnLinux's virtual drives" ]]; then
-        echo "Warning. Couldn't find PoL directories in the homedir of user $USERNAME."
-        NOPOL=
-    fi
-
-}
-
-check_username
-check_pol
+# Allow interruption of the script at any time (Ctrl + C)
+trap "exit" INT
 
 ###########################################################
 
-# Check package dependencies beforehand, just to avoid
-# annoying situations which could occur later while the script
-# is already running.
+COMMANDS=(
+  groups
+  sudo
+  wget
+  date
+  find
+  grep
+  uname
+  readlink
+)
 
-# Just for "packages which are not found" array <=> ERRPKGS
-# We need to set it outside of checkDepends function
-# because it is a global variable for all checked packages
-l=0
+function checkCommands() {
 
-function checkDepends {
+    if [[ $(which --help 2>/dev/null) ]] && [[ $(echo --help 2>/dev/null) ]]; then
 
-    # The first and the second argument
-    local packagedir=${1}
-    local package=${2}
+        local a=0
+        for command in ${@}; do
+            if [[ ! $(which $command 2>/dev/null) ]]; then
+                COMMANDS_NOTFOUND[$a]=$command
+                let a++
+            fi
+        done
 
-    # We get necessary variables to check from this file
-    local file="./${packagedir}/PKGBUILD"
-
-    # All but the (zero), the first and the second argument
-    # We check the value of these file variables
-    local file_vars=${@:3}
-
-    for var in ${file_vars[*]}; do
-      # Get the variable and set it as a new variable in the current shell
-      # This is applicable only to variable arrays! Do not use if the variable is not an array.
-      local field=$(awk "/^${var}/,/)/" ${file} | sed -r "s/^${var}=|[)|(|']//g")
-
-      local i=0
-      for parse in ${field[*]}; do
-          if [[ ! $parse =~ ^# ]]; then
-              local PKGS[$i]=$(printf '%s' $parse | sed 's/[=|>|<].*$//')
-              let i++
-          fi
-      done
-
-      # Sort list and delete duplicate index values
-      # https://stackoverflow.com/questions/13648410/how-can-i-get-unique-values-from-an-array-in-bash
-      local PKGS_sort=($(printf "${PKGS[*]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
-
-      for pkg in ${PKGS_sort[*]}; do
-
-        if [[ $(printf $(pacman -Q ${pkg} &>/dev/null)$?) -ne 0 ]]; then
-            ERRPKGS[$l]=${pkg}
-            echo -e "\e[91mError:\e[0m Dependency '${pkg}' not found, required by '${package}' (${file} => ${var})"
-            let l++
+        if [[ -n $COMMANDS_NOTFOUND ]]; then
+            echo -e "\nError! The following commands could not be found: ${COMMANDS_NOTFOUND[*]}\nAborting\n"
+            exit 1
         fi
-
-      done
-
-      unset PKGS PKGS_sort var i
-
-    done
-    echo -e " \e[92m=>\e[0m Dependency check for ${package} done.\n"
+    else
+        exit 1
+    fi
 }
 
-checkDepends "0-wine-staging-git" "wine-staging-git" _depends makedepends
-checkDepends "0-dxvk-git" "dxvk-git" depends makedepends
+checkCommands "${COMMANDS[*]}"
 
-if [[ -v ERRPKGS ]]; then
-    echo -e "The following dependencies are missing:\n\e[91m$(for o in ${ERRPKGS[@]}; do printf '%s\n' ${o}; done)\e[0m\n"
+###########################################################
+
+# http://wiki.bash-hackers.org/snipplets/print_horizontal_line#a_line_across_the_entire_width_of_the_terminal
+function INFO_SEP() { printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' - ; }
+
+###########################################################
+
+if [[ $(uname -a | grep -c x86_64) -eq 0 ]]; then
+  echo "This script supports 64-bit architectures only."
+  exit 1
+fi
+
+if [[ $(groups | grep -c sudo) -eq 0 ]]; then
+  echo "You must belong to sudo group."
+  exit 1
+fi
+
+if [[ $UID -eq 0 ]]; then
+  echo "Run as regular user."
+  exit 1
+fi
+
+###########################################################
+
+# Prevent running on pure Debian
+
+# This is just to prevent this script from running on Debian
+# Although the script works quite well on Debian
+# we get conflicting issues between amd64 & i386 Wine
+# buildtime dependency packages
+# These conflicts do not occur on Ubuntu or on Mint
+
+# Additionally, package 'winetricks' is not found on Debian.
+# This is quite trivial to get fixed, though.
+
+if [[ -f /usr/lib/os-release ]]; then
+  distroname=$(grep -oP "(?<=^NAME=\").*(?=\"$)" /usr/lib/os-release)
+else
+  echo -e "\nCould not verify your Linux distribution. Aborting.\n"
+  exit 1
+fi
+
+case "${distroname}" in
+  *Debian*)
+    echo -e "\nSorry, pure Debian is not supported yet. See README for details. Aborting.\n"
+    exit 0
+    ;;
+esac
+
+###########################################################
+
+# Just a title for this script, used in initialization and help page
+
+SCRIPT_TITLE="\e[1mWine/Wine Staging & DXVK package builder & auto-installer\e[0m"
+
+###########################################################
+
+# User-passed arguments for the script
+# We check the values of this array
+# and pass them to the subscripts if supported
+
+unset NO_INSTALL NO_STAGING NO_POL NO_DXVK
+
+i=0
+for arch_arg in ${@}; do
+
+  case ${arch_arg} in
+    --no-staging)
+      # Do not build Wine staging version, just Wine
+      ;;
+    --no-install)
+      # Just build, do not install DXVK or Wine-Staging
+      # Note that some version of Wine is required for DXVK compilation, though!
+      ;;
+    --no-wine)
+      # Skip Wine build & installation process all together
+      ;;
+    --no-dxvk)
+      # Skip DXVK build & installation process all together
+      ;;
+    --no-pol)
+      # Skip PlayOnLinux Wine prefixes update process
+      ;;
+    *)
+      echo -e "\n\
+\
+${SCRIPT_TITLE} by Pekka Helenius (~Fincer), 2018\n\n\
+Usage:\n\nbash updatewine.sh\n\nArguments:\n\n\
+--no-staging\tCompile Wine instead of Wine Staging\n\
+--no-install\tDo not install Wine or DXVK, just compile them. Wine, meson & glslang must be installed for DXVK compilation.\n\
+--no-wine\tDo not compile or install Wine/Wine Staging\n\
+--no-dxvk\tDo not compile or install DXVK\n\
+--no-pol\tDo not update PlayOnLinux Wine prefixes\n\n\
+Compiled packages are installed by default, unless '--no-install' argument is given.\n\
+If '--no-install' argument is given, the script doesn't check or update your PlayOnLinux Wine prefixes.\n"
+      exit 0
+      ;;
+  esac
+
+  args[$i]="${arch_arg}"
+  let i++
+done
+
+###########################################################
+
+function sudoQuestion() {
+  sudo -k
+  echo -e "\e[1mINFO:\e[0m sudo password required\n\nThis script requires elevated permissions for package updates & installations. Please provide your sudo password for these script commands. Sudo permissions are not used for any other purposes.\n"
+  sudo echo "" > /dev/null
+
+  if [[ $? -ne 0 ]]; then
+    echo "Invalid sudo password.\n"
     exit 1
-fi
+  fi
 
-###########################################################
+  # PID of the current main process
+  PIDOF=$$
 
-# Switches
+  # Run sudo timestamp update on the background and continue the script execution
+  # Refresh sudo timestamp while the main process is running
+  function sudo_refresh() {
+    while [[ $(printf $(ps ax -o pid --no-headers | grep -o ${PIDOF} &> /dev/null)$?) -eq 0 ]]; do
+    sudo -nv && sleep 2
+    done
+  }
 
-if [[ "${1}" == "--refresh" ]]; then
-    WINE_INSTALL=
-    CHECK=
-fi
+  sudo_refresh &
 
-if [[ "${1}" == "--check" ]]; then
-    CHECK=
-fi
-
-if [[ "${1}" == "--force" ]] || [[ $WINE_VERSION == "" ]] || [[ $LASTUPDATE == "" ]]; then
-    WINE_INSTALL=
-    FORCE_INSTALL=
-fi
-
-if [[ $LASTUPDATE == "" ]]; then
-    LASTUPDATE="Unknown"
-fi
-
-###########################################################
-
-echo -e "\nLast update: $LASTUPDATE\n"
-
-ORG_CURDIR=$(pwd)
-
-cmd() {
-    sudo -u $USERNAME bash -c "${*}"
 }
 
 ###########################################################
-# Check for existing PoL user folder
 
-#if [[ ! -d /home/$USERNAME/.PlayOnLinux ]]; then
-#    echo "No existing PlayonLinux profiles in $USERNAME's home folder. Aborting"
-#    exit 1
-#fi
-
-###########################################################
-# Check internet connection
-
-function netCheck() {
+function checkInternet() {
     if [[ $(echo $(wget --delete-after -q -T 5 github.com -o -)$?) -ne 0 ]]; then
         echo -e "\nInternet connection failed (GitHub). Please check your connection and try again.\n"
         exit 1
     fi
-    cmd "rm -f ./index.html.tmp"
+    rm -f ./index.html.tmp
 }
 
+checkInternet
+
 ###########################################################
-# Local/Remote git comparisons
 
-function gitCheck() {
+# Date timestamp and random number identifier for compiled 
+# DXVK & Wine Staging builds
+# This variable is known as 'datedir' in other script files
 
-    netCheck
+datesuffix=$(echo $(date '+%Y-%m-%d-%H%M%S'))
 
-    if [[ -v FORCE_INSTALL ]]; then
-        NEEDSBUILD=1
-        return 0
+###########################################################
+# Only Debian & Arch based Linux distributions are currently supported
+
+function determineDistroFamily() {
+
+  # These are default package managers used by the supported Linux distributions
+  pkgmgrs=('dpkg' 'pacman')
+
+  for pkgmgr in ${pkgmgrs[@]}; do
+    if [[ $(printf $(which ${pkgmgr} &> /dev/null)$?) -eq 0 ]]; then
+      pkgmgr_valid=${pkgmgr}
     fi
+  done
 
-    if [[ ! -d "${1}" ]]; then
-        NEEDSBUILD=1
-        return 1
-    fi
+  case ${pkgmgr_valid} in
 
-    echo -e "=> Checking ${2} GIT for changes\n"
-
-    local CURDIR="${PWD}"
-    cd "${1}"
-    local LOCAL_GIT=$(git rev-parse @)
-    local REMOTE_GIT=$(git ls-remote origin -h refs/heads/master | awk '{print $1}')
-
-    echo -e "\t${2}:\n\tlocal git:  $LOCAL_GIT\n\tremote git: $REMOTE_GIT"
-
-    if [[ $LOCAL_GIT != $REMOTE_GIT ]]; then
-        # true
-        echo -e "\e[91m\n\t${2} needs to be updated\e[0m\n"
-        NEEDSBUILD=1
-    else
-        # false
-        echo -e "\e[92m\n\t${2} is updated\e[0m\n"
-        NEEDSBUILD=0
-    fi
-
-    cd "${CURDIR}"
+    dpkg)
+      distro="debian"
+      ;;
+    pacman)
+      distro="arch"
+      ;;
+    default|*)
+        echo -e "Your Linux distribution is not supported. Aborting.\n"
+        exit 1
+      ;;
+  esac
 }
 
-###########################################################
+echo -e "\n${SCRIPT_TITLE}\n\nBuild identifier:\t${datesuffix}\n"
 
-# Remove any existing pkg,src or tar.xz packages left by previous pacman commands
-
-cmd "rm -rf ./*/{pkg,src,*.tar.xz}"
-cmd "rm -f ./0-wine-staging-git/*.patch"
-
-if [[ $? -ne 0 ]]; then
-    echo "Could not remove previous pacman-generated Wine source folders"
-    exit 1
+if [[ -n ${args[*]} ]]; then
+  echo -e "Using arguments:\t${args[*]}\n"
 fi
 
-###########################################################
+determineDistroFamily
 
-# Do git check for Wine Staging
-gitCheck ./0-wine-staging-git/wine-staging-git Wine
+INFO_SEP
+echo -e "\e[1mNOTE: \e[0mDXVK requires very latest Nvidia/AMD drivers to work. Make sure these drivers are available on your Linux distribution.\n\
+This script comes with GPU driver installation scripts for Debian-based Linux distributions.\n"
+INFO_SEP
 
-# If needs build and --check switch is not used
-if [[ $NEEDSBUILD -eq 1 ]] && [[ ! -v CHECK ]]; then
+sudoQuestion
+echo ""
+INFO_SEP
 
-    # Create wine-staging-git package and install it to the system
-    cd "${ORG_CURDIR}"/0-wine-staging-git
-    cmd "updpkgsums && makepkg ;"
+bash -c "cd ${distro} && bash ./updatewine_${distro}.sh \"${datesuffix}\" ${args[*]}"
 
-    if [[ $(find . -mindepth 1 -maxdepth 1 -type f -iname "wine-*tar.xz" | wc -l) -ne 0 ]]; then
-        pacman -U --noconfirm wine-*.tar.xz
-    else
-        cmd "rm -rf ./{*.patch,pkg,src}"
-        exit 1
-    fi
-
-    if [[ $? -eq 0 ]]; then
-        cmd "rm -rf ./{*.patch,pkg,src,*.tar.xz}"
-        WINE_INSTALL=
-        WINE_VERSION_UPDATE=$(pacman -Qi wine-staging-git | grep 'Version' | awk '{print $NF}')
-    else
-        exit 1
-    fi
-
-    cd ..
-
-fi
-
-#############################
-
-# Create dxvk-git package and install it to the system
-gitCheck ./0-dxvk-git/dxvk-git DXVK
-
-# If needs build and --check switch is not used
-if [[ $NEEDSBUILD -eq 1 ]] && [[ ! -v CHECK ]]; then
-
-    # Create dxvk-git package and install it to the system
-    cd "${ORG_CURDIR}"/0-dxvk-git
-    cmd "updpkgsums && makepkg ;"
-
-    if [[ $(find . -mindepth 1 -maxdepth 1 -type f -iname "dxvk-git-*tar.xz" | wc -l) -ne 0 ]]; then
-        pacman -U --noconfirm dxvk-git*.tar.xz
-    else
-        cmd "rm -rf ./{pkg,src}"
-        exit 1
-    fi
-
-    if [[ $? -eq 0 ]]; then
-        cmd "rm -rf ./{pkg,src,dxvk-git*.tar.xz}"
-    else
-        exit 1
-    fi
-
-fi
-
-cd ..
-
-# If a new Wine Staging version was installed and 'System' version of Wine has been used in
-# PoL wineprefix configurations, update those existing PoL wineprefixes
-if [[ -v WINE_INSTALL ]] && [[ ! -v NOPOL ]]; then
-    for wineprefix in $(find /home/$USERNAME/.PlayOnLinux/wineprefix -mindepth 1 -maxdepth 1 -type d); do
-        if [[ -d ${wineprefix}/dosdevices ]]; then
-
-        # If VERSION string exists, skip updating that prefix.
-            if [[ $(printf $(grep -ril "VERSION" ${wineprefix}/playonlinux.cfg &> /dev/null)$?) -ne 0 ]]; then
-
-                # If currently installed Wine version is not same than we just built.
-                if [[ -v WINE_VERSION_UPDATE ]]; then
-                    if [[ "${WINE_VERSION}" != "${WINE_VERSION_UPDATE}" ]]; then
-                        cmd "WINEPREFIX=${wineprefix} wineboot -u"
-                    fi
-                fi
-            fi
-        fi
-    done
-fi
-
-# Install dxvk-git to every PlayOnLinux wineprefix
-if [[ $? -eq 0 ]] && [[ ! -v NOPOL ]]; then
-
-    for wineprefix in $(find /home/$USERNAME/.PlayOnLinux/wineprefix -mindepth 1 -maxdepth 1 -type d); do
-
-        if [[ -d ${wineprefix}/dosdevices ]]; then
-
-            if [[ $(printf $(grep -ril "\"d3d11\"=\"native\"" ${wineprefix}/user.reg &> /dev/null)$?) -ne 0 ]]; then
-                cmd "WINEPREFIX=${wineprefix} setup_dxvk32"
-                cmd "WINEPREFIX=${wineprefix} setup_dxvk64"
-            fi
-
-            # For D3D10 DXVK support
-            if [[ $(printf $(grep -ril "\"\*d3dcompiler_43\"=\"native\"" ${wineprefix}/user.reg &> /dev/null)$?) -ne 0 ]]; then
-                cmd "WINEPREFIX=${wineprefix} winetricks d3dcompiler_43"
-            fi
-
-        fi
-
-    done
-fi
-
-# If a new Wine Staging version was installed, update WINE_VERSION string variable in this script file
-if [[ -v WINE_VERSION_UPDATE ]]; then
-    cmd "sed -i 's/^WINE_VERSION=.*/WINE_VERSION=\"${WINE_VERSION_UPDATE}\"/' $ORG_CURDIR/updatewine.sh"
-fi
-
-# Update LASTUPDATE variable string, if --check switch is not used + a new Wine Staging version is used or NEEDSBUILD variable is set to 1
-if [[ ! -v CHECK ]]; then
-    if [[ -v WINE_INSTALL ]] || [[ $NEEDSBUILD -eq 1 ]]; then
-        cmd "sed -i 's/^LASTUPDATE=.*/LASTUPDATE=\"$CURDATE\"/' $ORG_CURDIR/updatewine.sh"
-    fi
-fi
-
-# Unset various env vars
-unset CHECK WINE_INSTALL FORCE_INSTALL l

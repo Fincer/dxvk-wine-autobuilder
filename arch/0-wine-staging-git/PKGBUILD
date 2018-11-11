@@ -1,0 +1,319 @@
+# Maintainer: Daniel Bermond < yahoo-com: danielbermond >
+# Contributor: Pekka Helenius (~ Fincer) <fincer89@hotmail.com>
+
+# Enable Wine Staging? 1 = yes
+enable_staging=1
+
+# Staging patchsets. Default: all patchsets. Please see Wine Staging patchinstall.sh file for individual patchset names.
+staging_patchsets=(--all) # In order to disable all patchsets, use #(--all) and add desired patchsets individually here 
+
+# Enable 32-bit compilation? 1 = yes
+enable_32=1
+
+# Enable 64-bit compilation? 1 = yes
+enable_64=1
+
+provides=('wine' 'wine-git' 'wine-staging' 'wine-staging-git' 'wine-staging-dxvk-git')
+
+if [[ enable_staging -eq 1 ]]; then
+    pkgname=wine-staging-git
+    pkgdesc="A compatibility layer for running Windows programs (staging branch, Git version)"
+    url="https://github.com/wine-staging/wine-staging/"
+    conflicts=('wine' 'wine-git' 'wine-staging')
+else
+    pkgname=wine-git
+    pkgdesc="A compatibility layer for running Windows programs (Git version)"
+    url="https://source.winehq.org/git/wine.git/"
+    conflicts=('wine' 'wine-staging' 'wine-staging-git')
+
+fi
+
+pkgver=stg.3.19.r9.g566cd55d+wine.wine.3.19.r220.g5e0d1c89ed
+pkgrel=1
+arch=('i686' 'x86_64')
+
+license=('LGPL')
+_depends=(
+  'attr'             'lib32-attr'
+  'fontconfig'       'lib32-fontconfig'
+  'lcms2'            'lib32-lcms2'
+  'libxml2'          'lib32-libxml2'
+  'libxcursor'       'lib32-libxcursor'
+  'libxrandr'        'lib32-libxrandr'
+  'libxdamage'       'lib32-libxdamage'
+  'libxi'            'lib32-libxi'
+  'gettext'          'lib32-gettext'
+  'freetype2'        'lib32-freetype2'
+  'glu'              'lib32-glu'
+  'libsm'            'lib32-libsm'
+  'gcc-libs'         'lib32-gcc-libs'
+  'libpcap'          'lib32-libpcap'
+  'desktop-file-utils'
+  'vulkan-icd-loader' 'lib32-vulkan-icd-loader'
+)
+makedepends=(
+  'git'
+  'autoconf'
+  'ncurses'
+  'bison'
+  'perl'
+  #'fontforge'
+  'flex'
+  'gcc>=4.5.0-2'
+  'giflib'                'lib32-giflib'
+  'libpng'                'lib32-libpng'
+  'gnutls'                'lib32-gnutls'
+  'libxinerama'           'lib32-libxinerama'
+  'libxcomposite'         'lib32-libxcomposite'
+  'libxmu'                'lib32-libxmu'
+  'libxxf86vm'            'lib32-libxxf86vm'
+  'libldap'               'lib32-libldap'
+  'mpg123'                'lib32-mpg123'
+  'openal'                'lib32-openal'
+  'v4l-utils'             'lib32-v4l-utils'
+  'alsa-lib'              'lib32-alsa-lib'
+  'libxcomposite'         'lib32-libxcomposite'
+  'mesa'                  'lib32-mesa'
+  'libgl'                 'lib32-libgl'
+  'opencl-icd-loader'     'lib32-opencl-icd-loader'
+  'libxslt'               'lib32-libxslt'
+  'libpulse'              'lib32-libpulse'
+  'libva'                 'lib32-libva'
+  'gst-plugins-base-libs' 'lib32-gst-plugins-base-libs'
+  'samba'
+  #'opencl-headers'
+  #'gcc-multilib>=4.5.0-2'
+)
+optdepends=(
+  'giflib'                'lib32-giflib'
+  'libpng'                'lib32-libpng'
+  'libldap'               'lib32-libldap'
+  'gnutls'                'lib32-gnutls'
+  'mpg123'                'lib32-mpg123'
+  'openal'                'lib32-openal'
+  'v4l-utils'             'lib32-v4l-utils'
+  'libpulse'              'lib32-libpulse'
+  'alsa-plugins'          'lib32-alsa-plugins'
+  'alsa-lib'              'lib32-alsa-lib'
+  'libjpeg-turbo'         'lib32-libjpeg-turbo'
+  'libxcomposite'         'lib32-libxcomposite'
+  'libxinerama'           'lib32-libxinerama'
+  'ncurses'               'lib32-ncurses'
+  'opencl-icd-loader'     'lib32-opencl-icd-loader'
+  'libxslt'               'lib32-libxslt'
+  'libtxc_dxtn'           'lib32-libtxc_dxtn'
+  'libva'                 'lib32-libva'
+  'gst-plugins-base-libs' 'lib32-gst-plugins-base-libs'
+  'vulkan-icd-loader'     'lib32-vulkan-icd-loader'
+  'cups'
+  'samba'
+  'dosbox'
+)
+# lib32-libtxc_dxtn
+#   'gtk3'             'lib32-gtk3'
+options=('staticlibs')
+
+source=(
+    wine-git::'git://source.winehq.org/git/wine.git'
+    '30-win32-aliases.conf'
+    )
+
+if [[ $(find ./wine-patches -mindepth 1 -maxdepth 1 -regex ".*\.\(patch\|diff\)$") ]]; then
+    cp -r ./wine-patches/*.{patch,diff} ./
+    p=0
+    for patch in $(find . -mindepth 1 -maxdepth 1 -regex ".*\.\(patch\|diff\)$"); do
+        patches[$p]="$(basename ${patch})"
+        let p++
+    done
+    unset p
+    source+=(${source[@]} ${patches[@]})
+fi
+
+if [[ enable_staging -eq 1 ]]; then
+    stagingsrc=wine-staging-git::'git://github.com/wine-staging/wine-staging.git'
+    source+=($stagingsrc)
+fi
+
+if [[ "$CARCH" == "i686" ]]; then
+    # Strip lib32 etc. on i686
+    _depends=(${_depends[@]/*32-*/})
+    makedepends=(${makedepends[@]/*32-*/} ${_depends[@]})
+    makedepends=(${makedepends[@]/*-multilib*/})
+    optdepends=(${optdepends[@]/*32-*/})
+else
+    makedepends=(${makedepends[@]} ${_depends[@]})
+fi
+
+pkgver() {
+
+    msg2 "Setting Wine versions..."
+    if [[ enable_staging -eq 1 ]]; then
+        cd "${srcdir}/wine-staging-git"
+        _staging_tag="$(git tag | sort -Vr | head -n1 | sed 's/-/./g;s/^v//')"
+        _staging_version="stg.$(git describe --long \
+                                    | sed 's/\([^-]*-g\)/r\1/;s/-/./g;s/^v//' \
+                                    | sed "s/^latest.release/${_staging_tag}/")"
+    fi
+
+    cd "${srcdir}/wine-git"
+    _wine_version="wine.$(git describe --long | sed 's/\([^-]*-g\)/r\1/;s/-/./g')"
+
+    if [[ enable_staging -eq 1 ]]; then
+        printf "%s+%s" "$_staging_version" "$_wine_version"
+    else
+        printf "%s" "$_wine_version"
+    fi
+}
+
+prepare() {
+
+    if [[ enable_staging -eq 1 ]]; then
+        cd "$srcdir"/wine-git
+
+        msg2 "Cleaning the wine source code tree..."
+
+        # Restore the wine tree to its git origin state, without wine-staging patches
+        #+(necessary for reapllying wine-staging patches in succedent builds,
+        #+otherwise the patches will fail to be reapplied)
+        git reset --hard HEAD      # Restore tracked files
+        git clean -d -x -f         # Delete untracked files
+
+        # Change back to the wine upstream commit that this version of wine-staging is based on
+        git checkout $(../"$pkgname"/patches/patchinstall.sh --upstream-commit)
+    fi
+}
+
+build() {
+    cd "${srcdir}"
+
+    # Delete old build dirs (from previous builds) and make new ones
+    rm -rf "$pkgname"-{32,64}-build
+    mkdir --parents "$pkgname"-32-build
+
+    if [[ enable_staging -eq 1 ]]; then
+        # Apply all wine-staging patches
+        msg2 "Applying wine-staging patches..."
+        ./wine-staging-git/patches/patchinstall.sh DESTDIR="${srcdir}/wine-git" \
+        ${staging_patchsets[*]}
+    fi
+
+    if [[ $(ls "${srcdir}"/*.patch | wc -w) -ne 0 ]]; then
+
+      cd "${srcdir}"/wine-git
+      # Apply all custom patches
+      msg2 "Applying custom patches..."
+
+      for i in "${srcdir}"/*{.patch,diff}; do 
+        patch -Np1 < ${i}
+      done
+    fi
+
+    cd "${srcdir}"
+
+    # Build wine 64-bit
+    #+(according to the wine wiki this 64-bit/32-bit building order is mandatory)
+
+    if [[ "$CARCH" = "x86_64" ]] && [[ enable_64 -eq 1 ]]; then
+        msg2 "Building Wine-64..."
+
+        mkdir --parents "$pkgname"-64-build
+        cd  "$pkgname"-64-build
+
+        ../wine-git/configure \
+                        --with-x \
+                        --with-gstreamer \
+                        --enable-win64 \
+                        --with-xattr \
+                        --disable-mscoree \
+                        --with-vulkan \
+                        --prefix=/usr \
+                        --libdir=/usr/lib
+        make
+
+        _wine32opts=(
+                --libdir=/usr/lib32
+                --with-wine64="${srcdir}/${pkgname}-64-build"
+                )
+
+        export PKG_CONFIG_PATH="/usr/lib32/pkgconfig"
+    fi
+
+    # Build wine 32-bit
+
+    if [[ enable_32 -eq 1 ]]; then
+        msg2 "Building Wine-32..."
+
+        cd "$srcdir"/"$pkgname"-32-build
+
+        ../wine-git/configure \
+                        --with-x \
+                        --with-gstreamer \
+                        --with-xattr \
+                        --disable-mscoree \
+                        --with-vulkan \
+                        "${_wine32opts[@]}" \
+                        --prefix=/usr
+        make
+    fi
+
+    if [[ ! enable_32 -eq 1 ]] && [[ ! enable_64 -eq 1 ]]; then
+        msg2 "You must define at least one architecture in PKGBUILD! Aborting"
+        exit 1
+    fi
+}
+
+package() {
+    depends=(${_depends[@]})
+
+    # Package wine 32-bit
+    #+(according to the wine wiki this reverse 32-bit/64-bit packaging order is important)
+
+    if [[ $enable_32 -eq 1 ]]; then
+
+        msg2 "Packaging Wine-32..."
+
+        cd "$srcdir"/"$pkgname"-32-build
+
+        if [ "$CARCH" = "i686" ]; then
+
+            make prefix="$pkgdir/usr" install
+
+        else
+            make prefix="${pkgdir}/usr" \
+                 libdir="${pkgdir}/usr/lib32" \
+                 dlldir="${pkgdir}/usr/lib32/wine" install
+        fi
+    fi
+
+    # Package wine 64-bit
+
+    if [[ "$CARCH" == "x86_64" ]] && [[ enable_64 -eq 1 ]]; then
+        msg2 "Packaging Wine-64..."
+
+        cd "$srcdir"/"$pkgname"-64-build
+
+        make prefix="${pkgdir}/usr" \
+             libdir="${pkgdir}/usr/lib" \
+             dlldir="${pkgdir}/usr/lib/wine" install
+
+        if [[ enable_dxvk -eq 1 ]]; then
+            mv "$srcdir"/dxvk-compiled/x64/{d3d11.dll,dxgi.dll} "${pkgdir}/usr/lib/wine/fakedlls/"
+            chmod 644 "${pkgdir}/usr/lib/wine/fakedlls/"{d3d11.dll,dxgi.dll}
+            mv "$srcdir"/dxvk-compiled/x32/{d3d11.dll,dxgi.dll} "${pkgdir}/usr/lib32/wine/fakedlls/"
+            chmod 644 "${pkgdir}/usr/lib32/wine/fakedlls/"{d3d11.dll,dxgi.dll}
+        fi
+
+    fi
+
+    # Font aliasing settings for Win32 applications
+    install -d "$pkgdir"/etc/fonts/conf.{avail,d}
+    install -m644 "${srcdir}/30-win32-aliases.conf" "${pkgdir}/etc/fonts/conf.avail"
+    ln -s ../conf.avail/30-win32-aliases.conf "${pkgdir}/etc/fonts/conf.d/30-win32-aliases.conf"
+}
+md5sums=('SKIP'
+         '1ff4e467f59409272088d92173a0f801'
+         'SKIP'
+         '1ff4e467f59409272088d92173a0f801'
+         'd41d8cd98f00b204e9800998ecf8427e'
+         'd41d8cd98f00b204e9800998ecf8427e'
+         'SKIP')
