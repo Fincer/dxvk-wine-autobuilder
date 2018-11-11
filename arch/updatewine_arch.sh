@@ -231,7 +231,7 @@ function cleanUp() {
 function build_pkg() {
 
   local pkgname=${1}
-  local pkgname_friendly={2}
+  local pkgname_friendly=${2}
   local pkgdir=${3}
   local cleanlist=${4}
 
@@ -271,7 +271,7 @@ function updatePOL() {
   # Check whether we will update user's PoL wine prefixes
   if [[ ! -v NO_POL ]]; then
     # Check existence of PoL default folder in user's homedir
-    if [[ ! -d "$HOME/PlayOnLinux" ]]; then
+    if [[ ! -d "$HOME/.PlayOnLinux" ]]; then
       echo -e "Warning. Couldn't find PoL directories in the user's $USERNAME homedir.\n"
       return 0
     fi
