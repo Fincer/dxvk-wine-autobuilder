@@ -1,4 +1,4 @@
-# pol-wine-dxvk
+# Wine/Wine Staging & DXVK package builder & auto-installer
 Automate installation of the newest DXVK + Wine Staging, and optionally update all your PlayonLinux wineprefixes (Ubuntu/Mint/Arch Linux/Manjaro)
 
 ## About
