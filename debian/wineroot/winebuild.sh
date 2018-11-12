@@ -621,7 +621,7 @@ getWineVersion
 wine64Build
 wine32Build
 
-# Bundle compiled Wine-Staging files
+# Bundle compiled Wine/Wine-Staging files
 mergeWineBuilds
 
 # Bundle and install Debian deb archive
