@@ -132,7 +132,7 @@ bash debian_devpkgremoval.sh
 
 **NOTE:** PlayOnLinux Wine prefixes is checked for current user only.
 
-**1)** Compile Wine Staging & DXVK, make and installable packages for them and install them :
+**1)** Compile Wine Staging & DXVK, and make installable packages for them. Install the packages:
 
 `bash updatewine.sh`
 
@@ -140,27 +140,27 @@ bash debian_devpkgremoval.sh
 
 `bash updatewine.sh --no-wine --no-install`
 
-**3)** Compile Wine Staging and make and installable package for it. Do not install:
+**3)** Compile Wine Staging and make an installable package for it. Do not install:
 
 `bash updatewine.sh --no-dxvk --no-install`
 
-**4)** Compile Wine and make and installable package for it. Do not install:
+**4)** Compile Wine and make an installable package for it. Do not install:
 
 `bash updatewine.sh --no-staging --no-dxvk --no-install`
 
-**5)** Compile Wine & DXVK, and make and installable packages for them. Do not install:
+**5)** Compile Wine & DXVK, and make installable packages for them. Do not install:
 
 `bash updatewine.sh --no-staging --no-install`
 
-**6)** Compile Wine Staging & DXVK, and make and installable packages for them. Do not install:
+**6)** Compile Wine Staging & DXVK, and make installable packages for them. Do not install:
 
 `bash updatewine.sh --no-install`
 
-**7)** Compile Wine & DXVK, make and installable packages for them and install them :
+**7)** Compile Wine & DXVK, and make installable packages for them. Install the packages:
 
 `bash updatewine.sh --no-staging`
 
-**8)** Compile Wine, make and installable packages for it. Install it, do not check PlayOnLinux wineprefixes:
+**8)** Compile Wine, and make an installable package for it. Install the package, do not check PlayOnLinux wineprefixes:
 
 `bash updatewine.sh --no-staging --no-dxvk --no-pol`
 
