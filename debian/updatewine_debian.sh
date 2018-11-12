@@ -71,9 +71,13 @@ done
 
 ########################################################
 
+# Create identifiable directory for this build
+
 mkdir -p ${ROOTDIR}/compiled_deb/${datedir}
 
 ########################################################
+
+# If the script is interrupted (Ctrl+C/SIGINT), do the following
 
 function Deb_intCleanup() {
   cd ${ROOTDIR}
@@ -86,6 +90,8 @@ trap "Deb_intCleanup" INT
 
 ########################################################
 
+# Check existence of ccache package
+
 function ccacheCheck() {
   if [[ $(apt version ccache | wc -w) -eq 0 ]]; then
     echo -e "NOTE: Please consider using 'ccache' for faster compilation times.\nInstall it by typing 'sudo apt install ccache'\n"
@@ -95,6 +101,8 @@ function ccacheCheck() {
 ccacheCheck
 
 ########################################################
+
+# Call Wine compilation & installation subscript in the following function
 
 function wine_install_main() {
 
@@ -108,6 +116,8 @@ Using $(nproc --ignore 1) of $(nproc) available CPU cores for Wine source code c
 }
 
 ########################################################
+
+# General function for question responses
 
 function questionresponse() {
 

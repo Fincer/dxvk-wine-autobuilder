@@ -71,6 +71,8 @@ done
 
 ###########################################################
 
+# If the script is interrupted (Ctrl+C/SIGINT), do the following
+
 function Arch_intCleanup() {
   rm -rf ${ARCH_BUILDROOT}/{0-wine-staging-git/{wine-patches,*.tar.xz},0-dxvk-git/{dxvk-git,*.tar.xz}}
   exit 0
@@ -81,6 +83,8 @@ trap "Arch_intCleanup" INT
 
 ###########################################################
 
+# Check existence of ccache package
+
 function ccacheCheck() {
   if [[ $(pacman -Q | awk '{print $1}' | grep -wE "ccache" | wc -l) -eq 0 ]]; then
     echo -e "NOTE: Please consider using 'ccache' for faster compilation times.\nInstall it by typing 'sudo pacman -S ccache'\n"
@@ -89,7 +93,7 @@ function ccacheCheck() {
 
 ###########################################################
 
-# Validate all files exist
+# Validate all core build files for Wine and/or DXVK exist
 
 function checkFiles() {
 
@@ -209,6 +213,8 @@ $(for o in ${ERRPKGS[@]}; do printf '%s\n' ${o}; done)\
 
 ###########################################################
 
+# Prepare building environment for the current runtime
+
 function prepare_env() {
 
   # Copy Wine patch files
@@ -229,6 +235,8 @@ function cleanUp() {
 }
 
 ###########################################################
+
+# Build & install package
 
 function build_pkg() {
 
@@ -267,6 +275,8 @@ function build_pkg() {
 }
 
 ##########################################################
+
+# Update user's PlayOnLinux Wine prefixes if present
 
 function updatePOL() {
 
@@ -368,4 +378,3 @@ if [[ ! -v NO_POL ]]; then
   echo -e "Updating your PlayOnLinux Wine prefixes.\n"
   updatePOL
 fi
-

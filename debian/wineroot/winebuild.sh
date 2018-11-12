@@ -59,6 +59,8 @@ done
 
 ########################################################
 
+# If the script is interrupted (Ctrl+C/SIGINT), do the following
+
 function Wine_intCleanup() {
   cd ..
   rm -rf winebuild_${datedir}
@@ -82,6 +84,9 @@ fi
 
 function getWine() {
 
+  local wine_url="git://source.winehq.org/git/wine.git"
+  local winestaging_url="git://github.com/wine-staging/wine-staging.git"
+
   function cleanOldBuilds() {
     if [[ $(find . -type d -name "winebuild_*" | wc -l) -ne 0 ]]; then
       echo -e "Removing old Wine build folders. This can take a while.\n"
@@ -98,10 +103,10 @@ function getWine() {
 
   echo -e "Retrieving source code of Wine$(if [[ ! -v NO_STAGING ]]; then echo ' & Wine Staging' ; fi)\n"
 
-  git clone git://source.winehq.org/git/wine.git
+  git clone ${wine_url}
 
   if [[ ! -v NO_STAGING ]]; then
-    git clone git://github.com/wine-staging/wine-staging.git
+    git clone ${winestaging_url}
     WINEDIR_STAGING="${WINEROOT}/wine-staging"
     PKGNAME="wine-staging-git"
   else
@@ -584,7 +589,7 @@ DEBIANCONTROL
 function installDebianArchive() {
   cd "${WINEROOT}"
   # TODO Although the package name ends with 'amd64', this contains both 32 and 64 bit Wine versions
-  echo -e "\nInstalling Wine.\n" # Please provide your sudo password.
+  echo -e "\nInstalling Wine.\n"
   sudo dpkg -i ${PKGNAME}_${wine_version}-1_amd64.deb
 }
 
