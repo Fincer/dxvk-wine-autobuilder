@@ -552,7 +552,7 @@ function buildDebianArchive() {
   cd "${WINEROOT}"
   mv "${WINEDIR_PACKAGE}" "${WINEROOT}/${PKGNAME}-${wine_version}"
   cd "${WINEROOT}/${PKGNAME}-${wine_version}"
-  dh_make --createorig -s -y
+  dh_make --createorig -s -y -c lgpl
   rm debian/*.{ex,EX}
   printf "usr/* /usr" > debian/install
 

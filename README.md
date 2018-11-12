@@ -74,6 +74,16 @@ All supported arguments are:
 
 ----------------
 
+## Custom patches for Wine & DXVK
+
+You can apply your own patches for DXVK & Wine by dropping valid `.patch` or `.diff` files into `dxvk_custom_patches` (DXVK) or `wine_custom_patches` (Wine).
+
+Folders `dxvk_disabled_patches` and `wine_disabled_patches` are just for management purposes, they do not have a role in script at all.
+
+Wine patches are not related to Wine Staging patchset. You can use your patches either with Wine Staging or vanilla Wine.
+
+----------------
+
 ## Compiled packages are stored for later usage
 
 Successfully compiled Wine & DXVK packages are stored as follows:
@@ -238,8 +248,6 @@ ninja: build stopped: subcommand failed.
 - Add compilation scripts for the latest AMDGPU & Nvidia drivers on Arch Linux/Debian/Ubuntu/Mint
 
 - Remove temp folders in case of failure (meson/glslang/dxvk-git/wine... temp build folders)
-
-- Add support for custom DXVK patches
 
 - Add proper license information for meson, glslang, Wine & DXVK
 

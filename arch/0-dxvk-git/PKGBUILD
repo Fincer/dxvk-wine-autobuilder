@@ -1,5 +1,5 @@
 # Maintainer: Adrià Cereto i Massagué <ssorgatem at gmail.com>
-# Contributor: Pekka Helenius <fincer89 at hotmail dot com>
+# Contributor: Pekka Helenius (~Fincer) <fincer89 at hotmail dot com>
 
 pkgname=dxvk-git
 _pkgname=dxvk
@@ -22,6 +22,39 @@ options=(!strip !buildflags staticlibs)
 source=(${pkgname}::"git+https://github.com/doitsujin/dxvk.git")
 sha256sums=('SKIP')
 
+##############################
+# Custom patches, if present
+
+if [[ $(find ./dxvk-patches -mindepth 1 -maxdepth 1 -regex ".*\.\(patch\|diff\)$") ]]; then
+    cp -r ./dxvk-patches/*.{patch,diff} ./
+    p=0
+    for patch in $(find . -mindepth 1 -maxdepth 1 -regex ".*\.\(patch\|diff\)$"); do
+        patches[$p]="$(basename ${patch})"
+        let p++
+    done
+    unset p
+    source+=(${source[@]} ${patches[@]})
+fi
+
+prepare() {
+
+  # Apply patches, if present
+  if [[ $(ls "${srcdir}"/*.{patch,diff} | wc -w) -ne 0 ]]; then
+
+  cd "${srcdir}"/dxvk-git
+  # Apply all custom patches
+  msg2 "Applying custom patches..."
+
+    for i in "${srcdir}"/*.{patch,diff}; do 
+      patch -Np1 < ${i}
+    done
+
+  fi
+
+}
+
+##############################
+
 pkgver() {
     cd "${pkgname}"
     git describe --long | sed 's/\-[a-z].*//; s/\-/\./; s/[a-z]//g'
@@ -40,4 +73,3 @@ package() {
 
     chmod +x "${pkgdir}/usr/bin/setup_dxvk"
 }
-

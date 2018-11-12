@@ -217,8 +217,9 @@ $(for o in ${ERRPKGS[@]}; do printf '%s\n' ${o}; done)\
 
 function prepare_env() {
 
-  # Copy Wine patch files
+  # Copy Wine & DXVK patch files
   cp -rf ${ARCH_BUILDROOT}/../wine_custom_patches ${ARCH_BUILDROOT}/0-wine-staging-git/wine-patches
+  cp -rf ${ARCH_BUILDROOT}/../dxvk_custom_patches ${ARCH_BUILDROOT}/0-dxvk-git/dxvk-patches
 
   # Create identifiable directory for this build
   mkdir -p ${ARCH_BUILDROOT}/compiled_pkg/"${datedir}"
@@ -232,6 +233,7 @@ function prepare_env() {
 function cleanUp() {
   rm -rf ${ARCH_BUILDROOT}/*/{pkg,src,*.tar.xz}
   rm -rf ${ARCH_BUILDROOT}/0-wine-staging-git/{*.patch}
+  rm -rf ${ARCH_BUILDROOT}/0-dxvk-git/{*.patch}
 }
 
 ###########################################################
@@ -316,12 +318,10 @@ function updatePOL() {
 
 ##########################################################
 
-# Clean these temporary folders & files files
+# Clean these temporary folders & files
 
 # TODO Shall we remove git folders or keep them?
-
-dxvk_cleanlist=('pkg' 'src' '*.tar.xz') # dxvk-git
-wine_cleanlist=('*.patch' '*.diff' 'pkg' 'src' 'wine-patches' '*.tar.xz') # wine-*git
+dxvk_wine_cleanlist=('*.patch' '*.diff' 'pkg' 'src' '*-patches' '*.tar.xz') # dxvk-git wine-*git
 
 ##########################################################
 
@@ -363,11 +363,11 @@ check_alldeps
 # are to be built
 
 if [[ ! -v NO_WINE ]]; then
-  build_pkg wine "${wine_name}" "0-wine-staging-git" "${wine_cleanlist[*]}"
+  build_pkg wine "${wine_name}" "0-wine-staging-git" "${dxvk_wine_cleanlist[*]}"
 fi
 
 if [[ ! -v NO_DXVK ]]; then
-  build_pkg dxvk DXVK "0-dxvk-git" "${dxvk_cleanlist[*]}"
+  build_pkg dxvk DXVK "0-dxvk-git" "${dxvk_wine_cleanlist[*]}"
 fi
 
 #########################

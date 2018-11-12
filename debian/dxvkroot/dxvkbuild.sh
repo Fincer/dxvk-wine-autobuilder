@@ -165,7 +165,7 @@ function preparepackage() {
 
       if [[ $(apt version ${pkgdep} | wc -w) -eq 0 ]]; then
 
-        echo -e "Installing ${_pkgname} dependency ${pkgdep} ($(($a + 1 )) / $((${#*} + 1)))\n."
+        echo -e "Installing ${_pkgname} dependency ${pkgdep} ($(($a + 1 )) / $((${#*} + 1))).\n"
         sudo apt install -y ${pkgdep} &> /dev/null
         if [[ $? -eq 0 ]]; then
           let a++
@@ -287,7 +287,7 @@ function meson_install_main() {
     rm -r debian/*.{ex,EX}
 
     # Start deb builder. Do not build either debug symbols or doc files
-    DEB_BUILD_OPTIONS="strip nodocs noddebs" dpkg-buildpackage -rfakeroot -b -us -uc
+    DEB_BUILD_OPTIONS="strip nodocs noddebs nocheck" dpkg-buildpackage -rfakeroot -b -us -uc
 
     # Once compiled, install and store the compiled deb archive
     # We do not make installation optional because this is a core dependency for DXVK
@@ -332,7 +332,7 @@ function glslang_install_main() {
   function glslang_debianbuild() {
 
     # Create debian subdirectory
-    dh_make --createorig -s -y
+    dh_make --createorig -s -y -c bsd
 
     # Set Build dependencies into debian/control file
     sed -ie "s/^Build-Depends:.*$/Build-Depends: debhelper (>=10), $(echo ${_coredeps[*]} | \
@@ -411,7 +411,54 @@ function dxvk_install_main() {
     for package in "${packages[@]}"; do
       local option=$(echo "" | sudo update-alternatives --config "${package}" | grep posix | sed 's@^[^0-9]*\([0-9]\+\).*@\1@')
       echo "${option}" | sudo update-alternatives --config "${package}" &> /dev/null
+
+      if [[ $? -ne 0 ]]; then
+        echo -e "Error occured while running 'update-alternatives' for '${package}'. Aborting\n"
+        exit 1
+      fi
+
     done
+
+  }
+
+  function dxvk_custompatches() {
+
+    # Get our current directory, since we will change it during patching process below
+    # We want to go back here after having applied the patches
+    local CURDIR=${PWD}
+
+    # Check if the following folder exists, and proceed.
+    if [[ -d ${DXVKROOT}/../../dxvk_custom_patches ]]; then
+      cp -r ${DXVKROOT}/../../dxvk_custom_patches/*.{patch,diff} ${DXVKROOT}/${pkgname}/
+
+      local dxvk_builddir=$(ls ${DXVKROOT}/${pkgname}/)
+
+      # Expecting just one folder here. This method doesn't work with multiple dirs present
+      if [[ $(echo ${dxvk_builddir} | wc -l) -gt 1 ]]; then
+        echo "Error: Multiple dxvk build directories detected. Can't decide which one to use. Aborting\n"
+        exit 1
+      fi
+
+      local dxvk_buildpath=$(readlink -f ${dxvk_builddir})
+
+      cd ${dxvk_buildpath}
+      for pfile in ../*.{patch,diff}; do
+        if [[ -f ${pfile} ]]; then
+          echo -e "Applying DXVK patch: ${pfile}\n"
+          patch -Np1 < ${pfile}
+        fi
+
+        if [[ $? -ne 0 ]]; then
+          echo -e "Error occured while applying DXVK patch '${pfile}'. Aborting\n"
+          cd ${CURDIR}
+          exit 1
+        fi
+
+      done
+
+      cd ${CURDIR}
+
+    fi
 
   }
 
@@ -420,8 +467,8 @@ function dxvk_install_main() {
 
     local dxvx_relative_builddir="debian/source/dxvk-master"
 
-    # Create debian subdirectory
-    dh_make --createorig -s -y
+    # Create debian subdirectory, add supplied LICENSE file
+    dh_make --createorig -s -y -c custom --copyrightfile ../LICENSE
 
     # Set Build dependencies into debian/control file
     sed -ie "s/^Build-Depends:.*$/Build-Depends: debhelper (>=10), $(echo ${_coredeps[*]} | \
@@ -490,8 +537,13 @@ DXVK-DEBIANRULES
   }
 
   # Execute above functions
-  preparepackage "${pkgname}" "${pkgdeps_build[*]}" "${pkgurl}" "${pkgver_git}" "${pkgdeps_runtime[*]}" && \
+  # Do not check runtime dependencies as our check method expects exact package name in
+  # function 'preparepackage'. This does not apply to runtime dependency 'wine', which
+  # may be 'wine', 'wine-git', 'wine-staging-git' etc. in truth
+  #
+  preparepackage "${pkgname}" "${pkgdeps_build[*]}" "${pkgurl}" "${pkgver_git}" && \
   dxvk_posixpkgs && \
+  dxvk_custompatches && \
   dxvk_debianbuild
 
 }
