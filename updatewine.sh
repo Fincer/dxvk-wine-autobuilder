@@ -88,7 +88,7 @@ if [[ $(groups | grep -c sudo) -eq 0 ]]; then
 fi
 
 if [[ $UID -eq 0 ]]; then
-  echo "Run as regular user."
+  echo "Run as a regular user."
   exit 1
 fi
 
@@ -121,17 +121,16 @@ esac
 
 ###########################################################
 
-# Just a title for this script, used in initialization and help page
+# Just a title & author for this script, used in initialization and help page
 
 SCRIPT_TITLE="\e[1mWine/Wine Staging & DXVK package builder & auto-installer\e[0m"
+SCRIPT_AUTHOR="Pekka Helenius (~Fincer), 2018"
 
 ###########################################################
 
 # User-passed arguments for the script
 # We check the values of this array
 # and pass them to the subscripts if supported
-
-unset NO_INSTALL NO_STAGING NO_POL NO_DXVK
 
 i=0
 for arch_arg in ${@}; do
@@ -156,7 +155,7 @@ for arch_arg in ${@}; do
     *)
       echo -e "\n\
 \
-${SCRIPT_TITLE} by Pekka Helenius (~Fincer), 2018\n\n\
+${SCRIPT_TITLE} by ${SCRIPT_AUTHOR}\n\n\
 Usage:\n\nbash updatewine.sh\n\nArguments:\n\n\
 --no-staging\tCompile Wine instead of Wine Staging\n\
 --no-install\tDo not install Wine or DXVK, just compile them. Wine, meson & glslang must be installed for DXVK compilation.\n\
@@ -214,7 +213,7 @@ checkInternet
 
 ###########################################################
 
-# Date timestamp and random number identifier for compiled 
+# Date timestamp and random number identifier for compiled
 # DXVK & Wine Staging builds
 # This variable is known as 'datedir' in other script files
 
@@ -267,4 +266,3 @@ echo ""
 INFO_SEP
 
 bash -c "cd ${distro} && bash ./updatewine_${distro}.sh \"${datesuffix}\" ${args[*]}"
-
