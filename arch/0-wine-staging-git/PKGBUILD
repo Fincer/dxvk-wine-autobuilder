@@ -197,7 +197,7 @@ build() {
         ${staging_patchsets[*]}
     fi
 
-    if [[ $(ls "${srcdir}"/*.patch | wc -w) -ne 0 ]]; then
+    if [[ $(ls "${srcdir}"/*.{patch,diff} | wc -w) -ne 0 ]]; then
 
       cd "${srcdir}"/wine-git
       # Apply all custom patches
