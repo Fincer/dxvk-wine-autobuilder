@@ -203,7 +203,7 @@ build() {
       # Apply all custom patches
       msg2 "Applying custom patches..."
 
-      for i in "${srcdir}"/*{.patch,diff}; do 
+      for i in "${srcdir}"/*.{patch,diff}; do 
         patch -Np1 < ${i}
       done
     fi
@@ -211,7 +211,7 @@ build() {
     cd "${srcdir}"
 
     # Build wine 64-bit
-    #+(according to the wine wiki this 64-bit/32-bit building order is mandatory)
+    # According to the wine wiki this 64-bit/32-bit building order is mandatory
 
     if [[ "$CARCH" = "x86_64" ]] && [[ enable_64 -eq 1 ]]; then
         msg2 "Building Wine-64..."
@@ -266,7 +266,7 @@ package() {
     depends=(${_depends[@]})
 
     # Package wine 32-bit
-    #+(according to the wine wiki this reverse 32-bit/64-bit packaging order is important)
+    # According to the wine wiki this reverse 32-bit/64-bit packaging order is important
 
     if [[ $enable_32 -eq 1 ]]; then
 
