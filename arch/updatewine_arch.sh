@@ -22,6 +22,10 @@
 
 ########################################################
 
+# Root directory of this script file
+ARCH_BUILDROOT="${PWD}"
+
+# datedir variable supplied by ../updatewine.sh script file
 datedir="${1}"
 
 ########################################################
@@ -66,8 +70,6 @@ for check in ${args[@]}; do
 done
 
 ###########################################################
-
-ARCH_BUILDROOT="${PWD}"
 
 function Arch_intCleanup() {
   rm -rf ${ARCH_BUILDROOT}/{0-wine-staging-git/{wine-patches,*.tar.xz},0-dxvk-git/{dxvk-git,*.tar.xz}}

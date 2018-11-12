@@ -22,8 +22,11 @@
 
 ########################################################
 
-datedir="${1}"
+# Root directory of this script file
 DXVKROOT="${PWD}"
+
+# datedir variable supplied by ../updatewine_debian.sh script file
+datedir="${1}"
 
 ###########################################################
 

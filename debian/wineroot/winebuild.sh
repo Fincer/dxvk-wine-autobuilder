@@ -22,16 +22,15 @@
 
 ########################################################
 
-# 
+# datedir variable supplied by ../updatewine_debian.sh script file
+datedir="${1}"
+
+########################################################
 
 # Staging patchsets. Default: all patchsets.
 # Applies only if Wine Staging is set to be compiled
 # Please see Wine Staging patchinstall.sh file for individual patchset names.
 staging_patchsets=(--all)
-
-########################################################
-
-datedir="${1}"
 
 ########################################################
 

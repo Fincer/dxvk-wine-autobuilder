@@ -22,7 +22,10 @@
 
 ########################################################
 
+# Root directory of this script file
 ROOTDIR="${PWD}"
+
+# datedir variable supplied by ../updatewine.sh script file
 datedir="${1}"
 
 ########################################################
