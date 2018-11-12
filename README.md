@@ -249,8 +249,6 @@ ninja: build stopped: subcommand failed.
 
 - Remove temp folders in case of failure (meson/glslang/dxvk-git/wine... temp build folders)
 
-- Add proper license information for meson, glslang, Wine & DXVK
-
 - Add option (?): do not store compiled packages, just install them
 
 - Better handling for sudo validation loop function
