@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/env bash
 
 #    Set up Wine Staging + DXVK on Arch Linux & Variants
 #    Copyright (C) 2018  Pekka Helenius
