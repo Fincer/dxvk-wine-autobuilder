@@ -1,5 +1,5 @@
 # Maintainer: Daniel Bermond < yahoo-com: danielbermond >
-# Contributor: Pekka Helenius (~ Fincer) <fincer89@hotmail.com>
+# Contributor: Pekka Helenius (~ Fincer) <fincer89 at hotmail dot com>
 
 # Enable Wine Staging? 1 = yes
 enable_staging=1
