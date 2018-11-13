@@ -1,6 +1,8 @@
 # Wine/Wine Staging & DXVK package builder & auto-installer
 
-Automate installation of the newest DXVK + Wine Staging, and optionally update all your PlayonLinux wineprefixes (Ubuntu/Mint/Arch Linux/Manjaro)
+Automate installation of the newest DXVK + Wine Staging, and optionally update all your PlayonLinux wineprefixes (Ubuntu/Mint/Arch Linux/Manjaro).
+
+In addition, install the newest GPU drivers on supported Debian-based Linux distributions.
 
 ## About
 
@@ -15,6 +17,16 @@ I have seen that there is not a clear way to install Wine Staging Git & DXVK, es
 Additionally, the benefits of the bleeding-edge Wine/Wine Staging & DXVK versions are quite limited at the moment. Wine Staging is not easily available on Debian-based Linux distributions, and DXVK is practically bundled to Lutris or Steam gaming platform as a form of Proton. We have to keep in mind that not all Windows programs are run under Steam on Linux but many programs are run via PlayOnLinux or without relying on any other third-party management software.
 
 The solution I provide here _is not bundled to any commercial or other Wine management platform_. The latest Wine/Wine Staging & DXVK bundle is available system-wide, not just Steam, Lutris or PlayOnLinux.
+
+----------------
+
+## Contents
+
+- Install script for the newest Wine/Wine Staging & DXVK on supported Linux distributions
+
+- Install script for the newest Nvidia drivers on supported Debian-based distributions
+
+- Custom patch folders for Wine & DXVK
 
 ----------------
 
@@ -174,6 +186,16 @@ bash debian_devpkgremoval.sh
 
 `bash updatewine.sh --no-staging --no-dxvk --no-pol`
 
+----------------
+
+## GPU drivers
+
+You should install the latest Nvidia/AMDGPU drivers on your Linux distribution. For that purpose, Arch Linux/Manjaro users can use Arch/AUR package database. Debian/Ubuntu/Mint users should use provided `debian_install_nvidia.sh` script file (run `bash debian_install_nvidia.sh`).
+
+Note that the latest GPU drivers are usually NOT available on official Debian/Ubuntu/Mint package repositories, thus helper script `debian_install_nvidia.sh` is provided in this repository. This helper script uses native methods to install the required GPU driver packages.
+
+But why to bother, anyway? Because DXVK requires bleeding-edge GPU drivers in order to work correctly.
+
 ---------------------------
 
 ### NOTES
@@ -245,7 +267,7 @@ ninja: build stopped: subcommand failed.
 
     - For pure Debian, package 'winetricks' must be compiled, too
 
-- Add compilation scripts for the latest AMDGPU & Nvidia drivers on Arch Linux/Debian/Ubuntu/Mint
+- Add compilation scripts for the latest AMDGPU on Debian/Ubuntu/Mint
 
 - Remove temp folders in case of failure (meson/glslang/dxvk-git/wine... temp build folders)
 
