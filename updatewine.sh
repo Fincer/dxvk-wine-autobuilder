@@ -45,6 +45,7 @@ COMMANDS=(
   grep
   uname
   readlink
+  patch
 )
 
 function checkCommands() {
@@ -54,7 +55,7 @@ function checkCommands() {
         local a=0
         for command in ${@}; do
             if [[ ! $(which $command 2>/dev/null) ]]; then
-                COMMANDS_NOTFOUND[$a]=$command
+                local COMMANDS_NOTFOUND[$a]=${command}
                 let a++
             fi
         done
