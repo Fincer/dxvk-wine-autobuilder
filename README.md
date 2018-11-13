@@ -62,7 +62,7 @@ bash updatewine.sh --no-staging --no-install
 
 All supported arguments are:
 
-- `--no-staging` = Build Wine instead of Wine Staging
+- `--no-staging` = Compile Wine instead of Wine Staging
 
 - `--no-install` = Do not install Wine or DXVK, just compile them. Note that Wine must be installed for DXVK compilation.
 
