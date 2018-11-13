@@ -149,7 +149,6 @@ function preparepackage() {
   echo -e "Starting compilation (& installation) of ${1}\n"
 
   # Set local variables
-  local a=0
   local _pkgname=${1}
   local _pkgdeps=${2}
   local _pkgurl=${3}
@@ -161,21 +160,27 @@ function preparepackage() {
   # Check and install package related dependencies if they are missing
   function pkgdependencies() {
 
-    for pkgdep in ${@}; do
-
-      if [[ $(apt version ${pkgdep} | wc -w) -eq 0 ]]; then
-
-        echo -e "Installing ${_pkgname} dependency ${pkgdep} ($(($a + 1 )) / $((${#*} + 1))).\n"
-        sudo apt install -y ${pkgdep} &> /dev/null
-        if [[ $? -eq 0 ]]; then
-          let a++
-        else
-          echo -e "\nError occured while installing ${pkgdep}. Aborting.\n"
-          exit 1
-        fi
+    # Generate a list of missing dependencies
+    local a=0
+    for p in ${@}; do
+      if [[ $(apt version ${p} | wc -w) -eq 0 ]]; then
+        local list[$a]=${p}
+        let a++
       fi
     done
 
+    # Install missing dependencies, be informative
+    local b=0
+    for pkgdep in ${list[@]}; do
+      echo -e "Installing ${_pkgname} dependency ${pkgdep} ($(( $b + 1 )) / $(( ${#list[*]} ))).\n"
+      sudo apt install -y ${pkgdep} &> /dev/null
+      if [[ $? -eq 0 ]]; then
+        let b++
+      else
+        echo -e "\nError occured while installing ${pkgdep}. Aborting.\n"
+        exit 1
+      fi
+    done
   }
 
   # Get git-based version in order to rename the package main folder
@@ -217,8 +222,8 @@ function preparepackage() {
   }
 
   # Execute above functions
-  pkgdependencies "${_pkgdeps[*]}" && \
-  if [[ -v _pkgdeps_runtime ]]; then pkgdependencies "${_pkgdeps_runtime[*]}"; fi
+  pkgdependencies ${_pkgdeps[*]} && \
+  if [[ -v _pkgdeps_runtime ]]; then pkgdependencies ${_pkgdeps_runtime[*]}; fi
   pkgfoldername
 
   unset _pkgver

@@ -360,23 +360,30 @@ function WineDeps() {
 #    exit 1
 #  fi
 
+  # Check and install package related dependencies if they are missing
   function pkgdependencies() {
 
-    for pkgdep in ${@}; do
-
-      if [[ $(apt version ${pkgdep} | wc -w) -eq 0 ]]; then
-
-        echo -e "Installing ${depsname} dependency ${pkgdep} ($(($a + 1 )) / $((${#*} + 1)))\n."
-        sudo apt install -y ${pkgdep} &> /dev/null
-        if [[ $? -eq 0 ]]; then
-          let a++
-        else
-          echo -e "\nError occured while installing ${pkgdep}. Aborting.\n"
-          exit 1
-        fi
+    # Generate a list of missing dependencies
+    local a=0
+    for p in ${@}; do
+      if [[ $(apt version ${p} | wc -w) -eq 0 ]]; then
+        local list[$a]=${p}
+        let a++
       fi
     done
 
+    # Install missing dependencies, be informative
+    local b=0
+    for pkgdep in ${list[@]}; do
+      echo -e "Installing ${_pkgname} dependency ${pkgdep} ($(( $b + 1 )) / $(( ${#list[*]} ))).\n"
+      sudo apt install -y ${pkgdep} &> /dev/null
+      if [[ $? -eq 0 ]]; then
+        let b++
+      else
+        echo -e "\nError occured while installing ${pkgdep}. Aborting.\n"
+        exit 1
+      fi
+    done
   }
 
   pkgdependencies ${deps[*]}
