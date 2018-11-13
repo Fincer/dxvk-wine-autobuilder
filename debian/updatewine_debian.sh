@@ -148,7 +148,7 @@ questionresponse
 
 if [[ $? -ne 0 ]]; then
   echo -e "Cancelling.\n"
-  exit 2
+  exit 1
 fi
 
 ####################
@@ -169,7 +169,7 @@ Do you really want to continue? [Y/n]"
 
   if [[ $? -ne 0 ]]; then
     echo -e "Cancelling.\n"
-    exit 2
+    exit 1
   fi
 
   unset AVAIL_SPACE REC_SPACE
