@@ -1,64 +1,76 @@
-# Wine/Wine Staging & DXVK package builder & auto-installer
+# Wine/Wine Staging + DXVK package builder & auto-installer
 
-Automate installation of the newest DXVK + Wine Staging, and optionally update all your PlayonLinux wineprefixes (Ubuntu/Mint/Arch Linux/Manjaro).
-
-In addition, install the newest GPU drivers on supported Debian-based Linux distributions.
+Automate installation of [DXVK](https://github.com/doitsujin/dxvk) + [Wine](https://www.winehq.org/)/[Wine Staging](https://github.com/wine-staging/wine-staging/) & update GPU drivers + PlayonLinux wineprefixes (Debian/Ubuntu/Mint/Arch Linux/Manjaro)
 
 ## About
 
-This script bundle offers an easy-way solution to use the bleeding edge Wine Staging & DXVK packages system-wide on Ubuntu/Mint and Arch Linux based Linux distributions.
+One-click solution for accessing bleeding-edge Wine/Wine Staging & DXVK packages _system-widely_ on Debian/Ubuntu/Mint and on Arch Linux/Manjaro.
 
 ## Motivation
 
-**Accessibility, lower the barrier.** My personal motivation to develop this script bundle was to lower the barried to people to get their hands on the latest bleeding-edge Wine / Wine Staging & DXVK versions on major Linux distribution platforms.
+**Accessibility, lower the barrier.** Help people to get their hands on the latest bleeding-edge Wine/Wine Staging & DXVK software on major Linux distribution platforms without hassle or headaches.
 
-I have seen that there is not a clear way to install Wine Staging Git & DXVK, especially on Ubuntu/Mint. Therefore, I decided someone has to do something, so this script bundle was born.
+There is not an easy way to auto-install bleeding-edge Wine/Wine Staging & DXVK, especially on Debian/Ubuntu/Mint. The newest Wine/Wine Staging is not easily accessible on Debian-based Linux distributions, and DXVK is practically bundled to Lutris or Steam gaming platform as a form of Proton. However, not all Windows programs, like MS Office or Adobe Photoshop, could run under Linux Steam client: Many Windows programs actually rely on system-wide Wine installation either possibly via common third-party management software such as PlayOnLinux or Crossover which is why system-wide Wine/Wine Staging & DXVK auto-installation this script offers becomes quite handy.
 
-Additionally, the benefits of the bleeding-edge Wine/Wine Staging & DXVK versions are quite limited at the moment. Wine Staging is not easily available on Debian-based Linux distributions, and DXVK is practically bundled to Lutris or Steam gaming platform as a form of Proton. We have to keep in mind that not all Windows programs are run under Steam on Linux but many programs are run via PlayOnLinux or without relying on any other third-party management software.
+The solution provided here _is independent from Steam client or any other Wine management platform_. The latest Wine/Wine Staging & DXVK bundle will be accessible system-widely, not just via Steam, Lutris or PlayOnLinux. Provided PlayOnLinux prefix update is optional, as well.
 
-The solution I provide here _is not bundled to any commercial or other Wine management platform_. The latest Wine/Wine Staging & DXVK bundle is available system-wide, not just Steam, Lutris or PlayOnLinux.
+----------------
+
+## Adapt system-wide Wine/DXVK to your Steam Windows games
+
+If you want to easily use Wine/Wine Staging and DXVK with your Steam Windows games on Linux, you may want to check out my helper script [steam-launchoptions](https://github.com/Fincer/steam-launchoptions).
+
+With the helper script, you can set launch options for a single game/selected group of games/all games you have on your Steam account. You can customize the launch options for both Windows and Linux games and clean all existing launch options, too.
 
 ----------------
 
 ## Contents
 
-- Install script for the newest Wine/Wine Staging & DXVK on supported Linux distributions
+- **Wine/Wine Staging & DXVK:** Install script for supported Linux distributions
 
-- Install script for the newest Nvidia drivers on supported Debian-based distributions
+- **Nvidia drivers:** Install script for supported Debian-based distributions
 
-- Custom patch folders for Wine & DXVK
+- **Patches:** Possibility to use your custom patches with Wine & DXVK
 
 ----------------
 
 ## Requirements
 
-- Ubuntu, Mint or any other Linux distribution which uses `dpkg` and `àpt` for package management
+- **Time:** it can take between 0.5-2 hours for the script to run. Compiling Wine takes a lot of time. You have been warned.
 
-    - pure Debian is not supported yet
+- Debian, Ubuntu, Mint or any other Linux distribution which uses `dpkg` and `àpt` for package management
 
 - Arch Linux, Manjaro or any other Linux distribution which uses `pacman` for package management
 
-- **Not listed as a hard dependency, but actually required by DXVK**: The latest Nvidia or AMD GPU drivers. Personally, I've used proprietary Nvidia drivers & AMDGPU (not AMDGPU Pro). 
+- **Not listed as a hard dependency, but recommended for DXVK**: The latest Nvidia or AMD GPU drivers (Nvidia proprietary drivers // AMDGPU)
 
 ----------------
 
 ## Why to compile from source?
 
+Latest version of Wine/Wine Staging & DXVK are only available via git as source code which must be compiled before usage. Note that compiling Wine takes a lot of time. Compiling from source has its advantages and disadvantages, some of them listed below.
+
 **Advantages:**
+
 - packages are directly adapted to your system
+
 - packages do not rely on PPAs which may be abandoned in time
+
 - using Git sources provide the latest packages available publicly
 
 **Disadvantages:**
-- takes time & CPU processing
+
+- takes time & CPU processing power
+
 - is unreliable in some cases, the script may break easily due to rapid DXVK development or distro changes
-- may break working already-working versions of the packages (use `--no-install` parameter to avoid installation of DXVK & Wine)
+
+- may break working already-working versions of the packages (use `--no-install` parameter to avoid installation of DXVK & Wine, just as precaution)
 
 ----------------
 
 ## Script usage
 
-For instructions, run:
+For short help instructions, run:
 
 ```
 bash updatewine.sh --help
@@ -88,31 +100,31 @@ All supported arguments are:
 
 ## Custom patches for Wine & DXVK
 
-You can apply your own patches for DXVK & Wine by dropping valid `.patch` or `.diff` files into `dxvk_custom_patches` (DXVK) or `wine_custom_patches` (Wine).
+You can apply your own patches for DXVK & Wine by dropping valid `.patch` or `.diff` files into `dxvk_custom_patches` (DXVK) or `wine_custom_patches` (Wine) folder.
 
-Folders `dxvk_disabled_patches` and `wine_disabled_patches` are just for management purposes, they do not have a role in script at all.
+Folders `dxvk_disabled_patches` and `wine_disabled_patches` are just for management purposes, they do not have a role in script logic at all.
 
-Wine patches are not related to Wine Staging patchset. You can use your patches either with Wine Staging or vanilla Wine.
+Wine patches are not related to Wine Staging patchset. You can use your custom Wine patches either with Wine Staging or vanilla Wine.
 
 ----------------
 
 ## Compiled packages are stored for later usage
 
-Successfully compiled Wine & DXVK packages are stored as follows:
+Successfully compiled Wine & DXVK packages are stored in separate subfolders. Their locations are as follows.
 
-On Ubuntu/Mint:
+On Debian/Ubuntu/Mint:
 
-- `main script folder/debian/compiled_deb/`
+- `main-script-folder/debian/compiled_deb/`
 
 On Arch Linux:
 
-- `main script folder/arch/compiled_pkg/`
+- `main-script-folder/arch/compiled_pkg/`
 
-The subfolders there are generated according to buildtime timestamp, known as `build identifier`
+The actual subfolders which hold compiled programs are generated according to buildtime timestamp, known as `build identifier`.
 
 ## DXVK usage
 
-**NOTE:** DXVK must be installed before applying these steps!
+**NOTE:** DXVK must be installed before applying these steps.
 
 To enable DXVK on existing wineprefixes, just run
 
@@ -134,11 +146,9 @@ where you need to set either `linux-amd64` or `linux-x86` and set `wineversion` 
 
 system-wide `winetricks` executable (`/usr/bin/winetricks`) is required for this command.
 
-### Uninstall temporary development packages (Ubuntu/Mint etc. only):
+### Uninstall temporary development packages (Debian/Ubuntu/Mint):
 
-Development packages can take extra space on your system so you may find useful to uninstall them.
-This package comes with `debian_devpkgremoval.sh` script which is targeted for that purpose.
-It uninstalls majority of Wine-Staging (Git), meson & glslang buildtime dependencies.
+Development packages can take extra space on your system so you may find useful to uninstall them. This package comes with `debian_devpkgremoval.sh` script which is targeted for that purpose. It uninstalls majority of Wine-Staging (Git), meson & glslang buildtime dependencies which may not be longer required.
 
 To use `debian_devpkgremoval.sh`, simply run:
 
@@ -152,7 +162,7 @@ bash debian_devpkgremoval.sh
 
 **NOTE:** If `--no-install` option is given, the script doesn't check for PlayOnLinux Wine prefixes.
 
-**NOTE:** PlayOnLinux Wine prefixes is checked for current user only.
+**NOTE:** PlayOnLinux Wine prefixes are checked for current user only.
 
 **1)** Compile Wine Staging & DXVK, and make installable packages for them. Install the packages:
 
@@ -190,43 +200,53 @@ bash debian_devpkgremoval.sh
 
 ## GPU drivers
 
-You should install the latest Nvidia/AMDGPU drivers on your Linux distribution. For that purpose, Arch Linux/Manjaro users can use Arch/AUR package database. Debian/Ubuntu/Mint users should use provided `debian_install_nvidia.sh` script file (run `bash debian_install_nvidia.sh`).
+For DXVK, it is strongly recommended that you install the latest Nvidia/AMDGPU drivers on your Linux distribution. For that purpose, Arch Linux/Manjaro users can use Arch/AUR package database. Debian/Ubuntu/Mint users should use provided scripts files
 
-Note that the latest GPU drivers are usually NOT available on official Debian/Ubuntu/Mint package repositories, thus helper script `debian_install_nvidia.sh` is provided in this repository. This helper script uses native methods to install the required GPU driver packages.
+### GPU drivers on Debian/Ubuntu/Mint
 
-But why to bother, anyway? Because DXVK requires bleeding-edge GPU drivers in order to work correctly.
+**Nvidia users**
+
+Use `debian_install_nvidia.sh` by running `bash debian_install_nvidia.sh`
+
+**AMD users**
+
+Not a solution provided yet.
+
+**NOTE:** The latest GPU drivers are usually NOT available on official Debian/Ubuntu/Mint package repositories, thus these helper scripts are provided.
+
+**NOTE:** Nvidia & AMD driver installer shell script can be run individually, as well. It is not bundled to the rest of the scripts in this repository, so feel free to grab them for other purposes, as well.
 
 ---------------------------
 
 ### NOTES
 
-**NOTE: Do not pause a virtual machine**. It is not recommended to run this script in a virtualized environment (Oracle VirtualBox, for instance) if you plan to `Pause` the virtual machine during script runtime. This causes an internal sudo validate loop to get nuts. In normal environments and in normal runtime cases, this doesn't happen. Validate loop is required to keep sudo permissions alive for the script since the execution time exceeds default system-wide sudo timeout limit.
+The following section contains important notes about the script usage.
+
+**Do not pause a virtual machine**. It is not recommended to run this script in a virtualized environment (Oracle VirtualBox, for instance) if you plan to `Pause` the virtual machine during script runtime. This causes an internal sudo validate loop to get nuts. In normal environments and in normal runtime cases, this doesn't happen. Validate loop is required to keep sudo permissions alive for the script since the execution time exceeds default system-wide sudo timeout limit (which is a normal case).
 
 ---------------------------
 
-### Test-run validation
+### Script validation test
 
-This is validation test done for the script. This test is to ensure it works as expected. It is mandatory due to rapid development of the packages it handles.
+Validation test done for the script to ensure it works as expected. Occasional test-runs are mandatory due to rapid development of the packages (Wine/DXVK) it handles.
 
-**Latest test-run:** 11th November, 2018
+**Latest test-run:** 13th November, 2018
 
 **Linux Distributions:** 
 
 - Success: Arch Linux, Linux Mint 19
 
-- Failure: Debian 9 (Wine), Ubuntu 18.04 (DXVK)
+- Partial failure: Debian 9 (DXVK), Ubuntu 18.04 (DXVK)
 
 #### Failure reasons:
 
 Debian:
 
-  - conflicting amd64/i386 Wine build time dependency packages, must find workaround for this
-
-  - no winetricks package
+- DXVK uninstallable: no winetricks package available
 
 Ubuntu 18.04:
 
-- during DXVK compilation, the following error appears:
+- DXVK uninstallable: during compilation, the following error appears:
 
 ```
 ...
@@ -261,17 +281,11 @@ ninja: build stopped: subcommand failed.
 
 ### TODO
 
-- Add support for pure Debian. Main issue is conflicting amd64/i386 Wine buildtime packages
+- Provide winetricks package for pure Debian users (DXVK runtime dependency)
 
-    - Workaround must be found, maybe split single Wine deb package into two, with suffixes amd64 & i386?
-
-    - For pure Debian, package 'winetricks' must be compiled, too
-
-- Add compilation scripts for the latest AMDGPU on Debian/Ubuntu/Mint
+- Add compilation/installation script for the latest AMDGPU on Debian/Ubuntu/Mint
 
 - Remove temp folders in case of failure (meson/glslang/dxvk-git/wine... temp build folders)
-
-- Add option (?): do not store compiled packages, just install them
 
 - Better handling for sudo validation loop function
 
