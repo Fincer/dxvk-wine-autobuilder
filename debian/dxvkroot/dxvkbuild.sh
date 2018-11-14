@@ -84,47 +84,15 @@ trap "DXVK_intCleanup" INT
 # http://wiki.bash-hackers.org/snipplets/print_horizontal_line#a_line_across_the_entire_width_of_the_terminal
 function INFO_SEP() { printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' - ; }
 
-########################################################
-
-# Universal core dependencies for package compilation
-_coredeps=('dh-make' 'make' 'gcc' 'build-essential' 'fakeroot')
-
 ##################################
 
-# Update package databases
-# Check existence of necessary commands
-# Check and install core dependencies
+# Update all packages if updateoverride given
 
-function customReqs() {
-
-  if [[ -v updateoverride ]]; then
-    echo -en "Updating package databases." && \
-    if [[ $(printf $(sudo -n uptime &>/dev/null)$?) -ne 0 ]]; then printf " Please provide your sudo password.\n"; else printf "\n\n"; fi
-    sudo apt update
-  fi
-
-  for cmd in git tar wget; do
-    if [[ $(printf $(which ${cmd} &> /dev/null)$?) -ne 0 ]]; then
-      echo -e "Missing ${cmd}. Installing...\n"
-      sudo apt update && sudo apt install -y ${cmd}
-    fi
-  done
-
-  for coredep in ${_coredeps[@]}; do
-
-    if [[ $(apt version ${coredep} | wc -w) -eq 0 ]]; then
-      echo -e "Installing core dependency ${coredep}.\n"
-      sudo apt install -y ${coredep}
-      if [[ $? -ne 0 ]]; then
-        echo -e "Could not install ${coredep}. Aborting.\n"
-        exit 1
-      fi
-    fi
-  done
-
-}
-
-customReqs
+if [[ -v updateoverride ]]; then
+  echo -en "Updating all packages" && \
+  if [[ $(printf $(sudo -n uptime &>/dev/null)$?) -ne 0 ]]; then printf " Please provide your sudo password.\n"; else printf "\n\n"; fi
+  sudo apt update && sudo apt upgrade -y
+fi
 
 ##################################
 
@@ -136,7 +104,7 @@ function pkgcompilecheck() {
   local pkg=${1}
   local install_function=${2}
 
-  if [[ $(apt version ${coredep} | wc -w) -eq 0 ]] || [[ -v updateoverride ]]; then
+  if [[ $(echo $(dpkg -s ${coredep} &>/dev/null)$?) -ne 0 ]] || [[ -v updateoverride ]]; then
     ${install_function}
   fi
 
@@ -163,7 +131,7 @@ function preparepackage() {
     # Generate a list of missing dependencies
     local a=0
     for p in ${@}; do
-      if [[ $(apt version ${p} | wc -w) -eq 0 ]]; then
+      if [[ $(echo $(dpkg -s ${p} &>/dev/null)$?) -ne 0 ]]; then
         local list[$a]=${p}
         let a++
       fi
@@ -172,7 +140,7 @@ function preparepackage() {
     # Install missing dependencies, be informative
     local b=0
     for pkgdep in ${list[@]}; do
-      echo -e "Installing ${_pkgname} dependency ${pkgdep} ($(( $b + 1 )) / $(( ${#list[*]} ))).\n"
+      echo -e "$(( $b + 1 ))/$(( ${#list[*]} )) - Installing ${_pkgname} dependency ${pkgdep}"
       sudo apt install -y ${pkgdep} &> /dev/null
       if [[ $? -eq 0 ]]; then
         let b++

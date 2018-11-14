@@ -1,6 +1,6 @@
 #!/bin/env bash
 
-#    Wine/Wine Staging build script for Ubuntu & variants (amd64)
+#    Wine/Wine Staging build script for Debian & variants (amd64)
 #    Copyright (C) 2018  Pekka Helenius
 #
 #    This program is free software: you can redistribute it and/or modify
@@ -31,6 +31,259 @@ datedir="${1}"
 # Applies only if Wine Staging is set to be compiled
 # Please see Wine Staging patchinstall.sh file for individual patchset names.
 staging_patchsets=(--all)
+
+########################################################
+
+# Wine build dependency lists on Debian
+
+wine_deps_build_common=(
+'make'
+'gcc-multilib'
+'g++-multilib'
+'libxml-simple-perl'
+'libxml-parser-perl'
+'libxml-libxml-perl'
+'lzma'
+'flex'
+'bison'
+'quilt'
+'gettext'
+# 'oss4-dev' # Not available on Debian
+'sharutils'
+'pkg-config'
+'dctrl-tools'
+'khronos-api'
+'unicode-data'
+'freebsd-glue'
+'icoutils'
+'librsvg2-bin'
+'imagemagick'
+'fontforge'
+)
+
+wine_deps_build_amd64=(
+'libxi-dev:amd64'
+'libxt-dev:amd64'
+'libxmu-dev:amd64'
+'libx11-dev:amd64'
+'libxext-dev:amd64'
+'libxfixes-dev:amd64'
+'libxrandr-dev:amd64'
+'libxcursor-dev:amd64'
+'libxrender-dev:amd64'
+'libxkbfile-dev:amd64'
+'libxxf86vm-dev:amd64'
+'libxxf86dga-dev:amd64'
+'libxinerama-dev:amd64'
+'libgl1-mesa-dev:amd64'
+'libglu1-mesa-dev:amd64'
+'libxcomposite-dev:amd64'
+'libpng-dev:amd64'
+'libssl-dev:amd64'
+'libv4l-dev:amd64'
+'libxml2-dev:amd64'
+'libgsm1-dev:amd64'
+'libjpeg-dev:amd64'
+'libkrb5-dev:amd64'
+'libtiff-dev:amd64'
+'libsane-dev:amd64'
+'libudev-dev:amd64'
+'libpulse-dev:amd64'
+'liblcms2-dev:amd64'
+'libldap2-dev:amd64'
+'libxslt1-dev:amd64'
+'unixodbc-dev:amd64'
+'libcups2-dev:amd64'
+'libcapi20-dev:amd64'
+'libopenal-dev:amd64'
+'libdbus-1-dev:amd64'
+'freeglut3-dev:amd64'
+'libmpg123-dev:amd64'
+'libasound2-dev:amd64'
+'libgphoto2-dev:amd64'
+'libosmesa6-dev:amd64'
+'libpcap0.8-dev:amd64'
+'libgnutls28-dev:amd64'
+'libncurses5-dev:amd64'
+'libgettextpo-dev:amd64'
+'libfreetype6-dev:amd64'
+'libfontconfig1-dev:amd64'
+'libgstreamer-plugins-base1.0-dev:amd64'
+'ocl-icd-opencl-dev:amd64'
+'libvulkan-dev:amd64'
+)
+
+wine_deps_build_i386=(
+'libxi-dev:i386'
+'libxt-dev:i386'
+'libxmu-dev:i386'
+'libx11-dev:i386'
+'libxext-dev:i386'
+'libxfixes-dev:i386'
+'libxrandr-dev:i386'
+'libxcursor-dev:i386'
+'libxrender-dev:i386'
+'libxkbfile-dev:i386'
+'libxxf86vm-dev:i386'
+'libxxf86dga-dev:i386'
+'libxinerama-dev:i386'
+'libgl1-mesa-dev:i386'
+'libglu1-mesa-dev:i386'
+'libxcomposite-dev:i386'
+'libpng-dev:i386'
+'libssl-dev:i386'
+'libv4l-dev:i386'
+'libgsm1-dev:i386'
+'libjpeg-dev:i386'
+'libkrb5-dev:i386'
+'libsane-dev:i386'
+'libudev-dev:i386'
+'libpulse-dev:i386'
+'liblcms2-dev:i386'
+'libldap2-dev:i386'
+'unixodbc-dev:i386'
+'libcapi20-dev:i386'
+'libopenal-dev:i386'
+'libdbus-1-dev:i386'
+'freeglut3-dev:i386'
+'libmpg123-dev:i386'
+'libasound2-dev:i386'
+'libgphoto2-dev:i386'
+'libosmesa6-dev:i386'
+'libpcap0.8-dev:i386'
+'libncurses5-dev:i386'
+'libgettextpo-dev:i386'
+'libfreetype6-dev:i386'
+'libfontconfig1-dev:i386'
+'ocl-icd-opencl-dev:i386'
+'libvulkan-dev:i386'
+'libxslt1-dev:i386'
+'libxml2-dev:i386'
+'libicu-dev:i386'
+'libtiff-dev:i386'
+'libcups2-dev:i386'
+'libgnutls28-dev:i386'
+'libgstreamer1.0-dev:i386'
+'libgstreamer-plugins-base1.0-dev:i386'
+)
+
+########################################################
+
+# Wine runtime dependency lists on Debian
+
+wine_deps_runtime_common=(
+'desktop-file-utils'
+)
+
+wine_deps_runtime_i386=(
+'libxcursor1:i386'
+'libxrandr2:i386'
+'libxi6:i386'
+# 'gettext:i386' # Conflicts with amd64 version on multiple distros
+'libsm6:i386'
+'libvulkan1:i386'
+'libasound2:i386'
+'libc6:i386'
+'libfontconfig1:i386'
+'libfreetype6:i386'
+'libgcc1:i386'
+'libglib2.0-0:i386'
+'libgphoto2-6:i386'
+'libgphoto2-port12:i386'
+'liblcms2-2:i386'
+'libldap-2.4-2:i386'
+'libmpg123-0:i386'
+'libncurses5:i386'
+'libopenal1:i386'
+'libpcap0.8:i386'
+'libpulse0:i386'
+'libtinfo5:i386'
+'libudev1:i386'
+'libx11-6:i386'
+'libxext6:i386'
+'libxml2:i386'
+'ocl-icd-libopencl1:i386'
+'zlib1g:i386'
+'libgstreamer-plugins-base1.0-0:i386'
+'libgstreamer1.0-0:i386'
+)
+
+wine_deps_runtime_amd64=(
+'fontconfig:amd64'
+'libxcursor1:amd64'
+'libxrandr2:amd64'
+'libxi6:amd64'
+'gettext:amd64'
+'libsm6:amd64'
+'libvulkan1:amd64'
+'libasound2:amd64'
+'libc6:amd64'
+'libfontconfig1:amd64'
+'libfreetype6:amd64'
+'libgcc1:amd64'
+'libglib2.0-0:amd64'
+'libgphoto2-6:amd64'
+'libgphoto2-port12:amd64'
+'liblcms2-2:amd64'
+'libldap-2.4-2:amd64'
+'libmpg123-0:amd64'
+'libncurses5:amd64'
+'libopenal1:amd64'
+'libpcap0.8:amd64'
+'libpulse0:amd64'
+'libtinfo5:amd64'
+'libudev1:amd64'
+'libx11-6:amd64'
+'libxext6:amd64'
+'libxml2:amd64'
+'ocl-icd-libopencl1:amd64'
+'zlib1g:amd64'
+'libgstreamer-plugins-base1.0-0:amd64'
+'libgstreamer1.0-0:amd64'
+)
+
+########################################################
+
+# Wine staging override list
+# Wine Staging replaces and conflicts with these packages
+# Applies to debian/control file
+
+wine_overr_pkgs=(
+'wine'
+'wine-development'
+'wine64-development'
+'wine1.6'
+'wine1.6-i386'
+'wine1.6-amd64'
+'libwine:amd64'
+'libwine:i386'
+'wine-stable'
+'wine32'
+'wine64'
+'fonts-wine'
+)
+
+############################
+
+# Suggest section in debian/control file
+
+wine_suggested_pkgs=(
+'winbind'
+'winetricks'
+'playonlinux'
+'wine-binfmt'
+'dosbox'
+)
+
+########################################################
+
+# Architecture check. We do not support independent
+# i386 environments
+
+if [[ $(uname -a | grep -c x86_64) -eq 0 ]]; then
+  echo "This script supports 64-bit architectures only."
+  exit 1
+fi
 
 ########################################################
 
@@ -75,7 +328,7 @@ trap "Wine_intCleanup" INT
 # This is specifically for Debian
 # Must be done to install Wine buildtime dependencies on amd64 environment
 #
-if [[ $(dpkg --print-foreign-architectures | grep i386 | wc -l) -eq 0 ]]; then
+if [[ $(dpkg --print-foreign-architectures | grep i386 | wc -w) -eq 0 ]]; then
   sudo dpkg --add-architecture i386
   sudo apt update
 fi
@@ -139,308 +392,94 @@ function getDebianFiles() {
 
 ########################################################
 
-# Wine build dependency list on Debian
-
-wine_deps_build=(
-'make'
-'gcc-multilib'
-'g++-multilib'
-'libxml-simple-perl'
-'libxml-parser-perl'
-'libxml-libxml-perl'
-'lzma'
-'flex'
-'bison'
-'quilt'
-'gettext'
-'oss4-dev'
-'sharutils'
-'pkg-config'
-'dctrl-tools'
-'khronos-api'
-'unicode-data'
-'freebsd-glue'
-'icoutils'
-'librsvg2-bin'
-'imagemagick'
-'fontforge'
-'libxi-dev:amd64'
-'libxt-dev:amd64'
-'libxmu-dev:amd64'
-'libx11-dev:amd64'
-'libxext-dev:amd64'
-'libxfixes-dev:amd64'
-'libxrandr-dev:amd64'
-'libxcursor-dev:amd64'
-'libxrender-dev:amd64'
-'libxkbfile-dev:amd64'
-'libxxf86vm-dev:amd64'
-'libxxf86dga-dev:amd64'
-'libxinerama-dev:amd64'
-'libgl1-mesa-dev:amd64'
-'libglu1-mesa-dev:amd64'
-'libxcomposite-dev:amd64'
-'libpng-dev:amd64'
-'libssl-dev:amd64'
-'libv4l-dev:amd64'
-'libxml2-dev:amd64'
-'libgsm1-dev:amd64'
-'libjpeg-dev:amd64'
-'libkrb5-dev:amd64'
-'libtiff-dev:amd64'
-'libsane-dev:amd64'
-'libudev-dev:amd64'
-'libpulse-dev:amd64'
-'liblcms2-dev:amd64'
-'libldap2-dev:amd64'
-'libxslt1-dev:amd64'
-'unixodbc-dev:amd64'
-'libcups2-dev:amd64'
-'libcapi20-dev:amd64'
-'libopenal-dev:amd64'
-'libdbus-1-dev:amd64'
-'freeglut3-dev:amd64'
-'libmpg123-dev:amd64'
-'libasound2-dev:amd64'
-'libgphoto2-dev:amd64'
-'libosmesa6-dev:amd64'
-'libpcap0.8-dev:amd64'
-'libgnutls28-dev:amd64'
-'libncurses5-dev:amd64'
-'libgettextpo-dev:amd64'
-'libfreetype6-dev:amd64'
-'libfontconfig1-dev:amd64'
-'libgstreamer-plugins-base1.0-dev:amd64'
-'ocl-icd-opencl-dev:amd64'
-'libvulkan-dev:amd64'
-'libxi-dev:i386'
-'libxt-dev:i386'
-'libxmu-dev:i386'
-'libx11-dev:i386'
-'libxext-dev:i386'
-'libxfixes-dev:i386'
-'libxrandr-dev:i386'
-'libxcursor-dev:i386'
-'libxrender-dev:i386'
-'libxkbfile-dev:i386'
-'libxxf86vm-dev:i386'
-'libxxf86dga-dev:i386'
-'libxinerama-dev:i386'
-'libgl1-mesa-dev:i386'
-'libglu1-mesa-dev:i386'
-'libxcomposite-dev:i386'
-'libpng-dev:i386'
-'libssl-dev:i386'
-'libv4l-dev:i386'
-'libgsm1-dev:i386'
-'libjpeg-dev:i386'
-'libkrb5-dev:i386'
-'libsane-dev:i386'
-'libudev-dev:i386'
-'libpulse-dev:i386'
-'liblcms2-dev:i386'
-'libldap2-dev:i386'
-'unixodbc-dev:i386'
-'libcapi20-dev:i386'
-'libopenal-dev:i386'
-'libdbus-1-dev:i386'
-'freeglut3-dev:i386'
-'libmpg123-dev:i386'
-'libasound2-dev:i386'
-'libgphoto2-dev:i386'
-'libosmesa6-dev:i386'
-'libpcap0.8-dev:i386'
-'libncurses5-dev:i386'
-'libgettextpo-dev:i386'
-'libfreetype6-dev:i386'
-'libfontconfig1-dev:i386'
-'ocl-icd-opencl-dev:i386'
-'libvulkan-dev:i386'
-)
-
-# Excluded x86 packages since they conflict with their amd64 counterparts:
-#
-# libxslt1-dev:i386
-# libxml2-dev:i386
-# libicu-dev:i386
-# libtiff-dev:i386
-# libcups2-dev:i386
-# libgnutls28-dev:i386
-# libgstreamer1.0-dev:i386
-# libgstreamer-plugins-base1.0-dev:i386
-
-########################################################
-
-# Wine runtime dependency list on Debian
-
-wine_deps_runtime=(
-'libxcursor1:i386'
-'libxrandr2:i386'
-'libxi6:i386'
-'libsm6:i386'
-'libvulkan1:i386'
-'libasound2:i386'
-'libc6:i386'
-'libfontconfig1:i386'
-'libfreetype6:i386'
-'libgcc1:i386'
-'libglib2.0-0:i386'
-'libgphoto2-6:i386'
-'libgphoto2-port12:i386'
-'liblcms2-2:i386'
-'libldap-2.4-2:i386'
-'libmpg123-0:i386'
-'libncurses5:i386'
-'libopenal1:i386'
-'libpcap0.8:i386'
-'libpulse0:i386'
-'libtinfo5:i386'
-'libudev1:i386'
-'libx11-6:i386'
-'libxext6:i386'
-'libxml2:i386'
-'ocl-icd-libopencl1:i386'
-'zlib1g:i386'
-'fontconfig:amd64'
-'libxcursor1:amd64'
-'libxrandr2:amd64'
-'libxi6:amd64'
-'gettext:amd64'
-'libsm6:amd64'
-'libvulkan1:amd64'
-'libasound2:amd64'
-'libc6:amd64'
-'libfontconfig1:amd64'
-'libfreetype6:amd64'
-'libgcc1:amd64'
-'libglib2.0-0:amd64'
-'libgphoto2-6:amd64'
-'libgphoto2-port12:amd64'
-'liblcms2-2:amd64'
-'libldap-2.4-2:amd64'
-'libmpg123-0:amd64'
-'libncurses5:amd64'
-'libopenal1:amd64'
-'libpcap0.8:amd64'
-'libpulse0:amd64'
-'libtinfo5:amd64'
-'libudev1:amd64'
-'libx11-6:amd64'
-'libxext6:amd64'
-'libxml2:amd64'
-'ocl-icd-libopencl1:amd64'
-'zlib1g:amd64'
-'desktop-file-utils'
-'libgstreamer-plugins-base1.0-0:amd64'
-'libgstreamer1.0-0:amd64'
-)
-
-# Exclude the following i386 runtime dependencies
-# because they conflict with their amd64 counterparts:
-# gettext:i386
-
-########################################################
-
-# Wine dependencies:
+# Wine dependencies removal/installation
 
 function WineDeps() {
 
   local a=0
-  local deps="${1}"
-  local depsname=${2}
+  local method=${1}
+  local deps="${2}"
+  local depsname=${3}
 
-  echo -e "Installing Wine dependencies.\n" # Sudo password may be required.\n"
+  case ${method} in
+    install)
+      local str="Installing"
+      local mgrcmd="sudo apt install -y"
+      ;;
+    remove)
+      local str="Removing"
+      local mgrcmd="sudo apt purge --remove -y"
+      ;;
+    *)
+      echo -e "Error: Unknown package management input method. Aborting\n"
+      exit 1
+  esac
 
-  # TODO should we install all at once, or go iterating the list,
-  # giving better output for user. Iterative method is slower, though.
-  #
-#  sudo apt install -y ${deps[*]}
-#  if [[ $? -ne 0 ]]; then
-#    echo -e "Error while installing Wine dependencies. Aborting\n"
-#    exit 1
-#  fi
+  echo -e "${str} Wine dependencies (${depsname}).\n"
 
-  # Check and install package related dependencies if they are missing
+  # Check and install/remove package related dependencies if they are missing/installed
   function pkgdependencies() {
 
-    # Generate a list of missing dependencies
+    # Get a valid logic for generating 'list' array below
+    case ${method} in
+      install)
+        local checkstatus=0
+        ;;
+      remove)
+        local checkstatus=1
+        ;;
+    esac
+
+    # Generate a list of missing/removable dependencies, depending on the logic
     local a=0
     for p in ${@}; do
-      if [[ $(apt version ${p} | wc -w) -eq 0 ]]; then
+      if [[ $(echo $(dpkg -s ${p} &>/dev/null)$?) -ne ${checkstatus} ]]; then
         local list[$a]=${p}
         let a++
       fi
     done
 
-    # Install missing dependencies, be informative
+    # Install missing/Remove existing dependencies, be informative
     local b=0
     for pkgdep in ${list[@]}; do
-      echo -e "Installing ${_pkgname} dependency ${pkgdep} ($(( $b + 1 )) / $(( ${#list[*]} ))).\n"
-      sudo apt install -y ${pkgdep} &> /dev/null
+      echo -e "$(( $b + 1 ))/$(( ${#list[*]} )) - ${str} ${depsname} dependency ${pkgdep}"
+      eval ${mgrcmd} ${pkgdep} &> /dev/null
       if [[ $? -eq 0 ]]; then
         let b++
       else
-        echo -e "\nError occured while installing ${pkgdep}. Aborting.\n"
+        echo -e "\nError occured while processing ${pkgdep}. Aborting.\n"
         exit 1
       fi
     done
   }
 
-  pkgdependencies ${deps[*]}
+  pkgdependencies "${deps[*]}"
 
 }
 
 ########################################################
 
-# Wine staging override list
-# Wine Staging replaces and conflicts with these packages
-# Applies to debian/control file
-
-wine_over_pkgs=(
-'wine'
-'wine-development'
-'wine64-development'
-'wine1.6'
-'wine1.6-i386'
-'wine1.6-amd64'
-'libwine:amd64'
-'libwine:i386'
-'wine-stable'
-'wine32'
-'wine64'
-)
-
-############################
-
-# Suggest section in debian/control file
-
-wine_suggest_pkgs=(
-'winbind'
-'winetricks'
-'fonts-wine'
-'playonlinux'
-'wine-binfmt'
-'dosbox'
-)
-
-########################################################
-
 # Feed the following data to Wine debian/control file
+
+# If we separate i386 build to be an independent one, this function
+# must be improved, if built with amd64 package together
+# If we just bundle them together, single package description for
+# debian/control file is enough
 
 function feedControlfile() {
 
   local MAINTAINER="$USER"
 
-  sed -ie "s/^Build-Depends:.*$/Build-Depends: debhelper (>=11), $(echo ${wine_deps_build[*]} | sed 's/\s/, /g')/g" debian/control
+  sed -ie "s/^Build-Depends:.*$/Build-Depends: debhelper (>=10), $(echo ${wine_deps_build[*]} | sed 's/\s/, /g')/g" debian/control
   sed -ie "s/^Depends:.*$/Depends: $(echo ${wine_deps_runtime[*]} | sed 's/\s/, /g')/g" debian/control
-  sed -ie "s/^Suggests:.*$/Suggests: $(echo ${wine_suggest_pkgs[*]} | sed 's/\s/, /g')/g" debian/control
+  sed -ie "s/^Suggests:.*$/Suggests: $(echo ${wine_suggested_pkgs[*]} | sed 's/\s/, /g')/g" debian/control
 
   sed -ie "s/^Maintainer:.*$/Maintainer: ${MAINTAINER}/g" debian/control
   sed -ie "s/^Source:.*$/Source: ${PKGNAME}/g" debian/control
   sed -ie "s/^Package:.*$/Package: ${PKGNAME}/g" debian/control
 
   for ctrl_section in Conflicts Breaks Replaces Provides; do
-      sed -ie "s/^${ctrl_section}:.*$/${ctrl_section}: $(echo ${wine_over_pkgs[*]} | sed 's/\s/, /g')/g" debian/control
+      sed -ie "s/^${ctrl_section}:.*$/${ctrl_section}: $(echo ${wine_overr_pkgs[*]} | sed 's/\s/, /g')/g" debian/control
   done
 
 }
@@ -589,6 +628,7 @@ DEBIANCONTROL
 
   feedControlfile
 
+  # Start compilation process
   DEB_BUILD_OPTIONS="strip nodocs noddebs" dpkg-buildpackage -b -us -uc
 
 }
@@ -607,7 +647,7 @@ function storeDebianArchive() {
   rm -rf winebuild_${datedir}
 }
 
-function clearTree() {
+function cleanTree() {
   rm -rf "${WINEROOT}"
 }
 
@@ -616,9 +656,7 @@ function clearTree() {
 # Get Wine (& Wine-Staging) sources
 getWine
 
-# Install Wine dependencies
-WineDeps "${wine_deps_build[*]}" "Wine build time"
-WineDeps "${wine_deps_runtime[*]}" "Wine runtime"
+##########################
 
 # Refresh & sync Wine (+ Wine Staging) git sources
 refreshWineGIT
@@ -629,9 +667,65 @@ patchWineSource
 # Get Wine/Wine Staging version
 getWineVersion
 
+########################################################
+
 # Compile 64 & 32 bit Wine/Wine Staging
-wine64Build
-wine32Build
+
+# WE MUST BUILD 64-BIT FIRST, THEN 32-BIT. THIS ORDER IS MANDATORY!
+
+# We split 64-bit & 32-bit compilation due to two major reasons:
+# - pure Debian has major conflicts between 32/64 bit dev packages
+# - on Mint/Ubuntu, some 32-bit dev packages must be excluded due to conflicts, too
+
+##########################
+
+# Install Wine common buildtime dependencies
+WineDeps install "${wine_deps_build_common[*]}" "Wine common build time"
+
+# Install Wine common runtime dependencies
+WineDeps install "${wine_deps_runtime_common[*]}" "Wine common runtime"
+
+##########################
+
+# TODO If we do architecture separation in the future, add if check for amd64 here
+# Condition would be: if amd64, then
+#
+# Purge amd64 buildtime dependencies
+# On Debian, we can't have them with i386 at the same time
+# i386/amd64 runtime dependencies have been tested and they are able to co-exist on Debian system
+#
+echo -e "Preparing system environment for 64-bit Wine compilation.\n"
+WineDeps remove "${wine_deps_build_i386[*]}" "Wine build time (32-bit)"
+
+WineDeps install "${wine_deps_build_amd64[*]}" "Wine build time (64-bit)"
+WineDeps install "${wine_deps_runtime_amd64[*]}" "Wine runtime (64-bit)"
+wine64Build && \
+echo -e "\nWine 64-bit build process finished.\n"
+
+##########################
+
+# TODO if i386 / amd64
+# TODO If we do architecture separation in the future, add if check for i386 here
+# Condition would be: if i386 or amd64, then
+# 
+# Purge amd64 buildtime dependencies
+# On Debian, we can't have them with i386 at the same time
+# i386/amd64 runtime dependencies have been tested and they are able to co-exist on Debian system
+#
+echo -e "Preparing system environment for 32-bit Wine compilation.\n"
+WineDeps remove "${wine_deps_build_amd64[*]}" "Wine build time (64-bit)"
+
+WineDeps install "${wine_deps_build_i386[*]}" "Wine build time (32-bit)"
+WineDeps install "${wine_deps_runtime_i386[*]}" "Wine runtime (32-bit)"
+wine32Build &&
+echo -e "\nWine 32-bit build process finished.\n"
+
+##########################
+
+# Remove i386 buildtime dependencies after successful compilation process
+WineDeps remove "${wine_deps_build_i386[*]}" "Wine build time (64-bit)"
+
+########################################################
 
 # Bundle compiled Wine/Wine-Staging files
 mergeWineBuilds
@@ -645,6 +739,6 @@ fi
 
 storeDebianArchive
 
-# Clear all temporary files
-clearTree
+# Clean all temporary files
+cleanTree
 

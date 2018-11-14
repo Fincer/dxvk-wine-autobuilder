@@ -93,7 +93,7 @@ trap "Deb_intCleanup" INT
 # Check existence of ccache package
 
 function ccacheCheck() {
-  if [[ $(apt version ccache | wc -w) -eq 0 ]]; then
+  if [[ $(echo $(dpkg -s ccache &>/dev/null)$?) -eq 0 ]]; then
     echo -e "NOTE: Please consider using 'ccache' for faster compilation times.\nInstall it by typing 'sudo apt install ccache'\n"
   fi
 }
@@ -117,53 +117,34 @@ Using $(nproc --ignore 1) of $(nproc) available CPU cores for Wine source code c
 
 ########################################################
 
-# General function for question responses
+function mainQuestions() {
 
-function questionresponse() {
+  # General function for question responses
+  function questionresponse() {
 
-  local response=${1}
+    local response=${1}
 
-  read -r -p "" response
-  if [[ $(echo $response | sed 's/ //g') =~ ^([yY][eE][sS]|[yY])$ ]]; then
-    echo ""
-    return 0
-  else
-    return 1
-  fi
+    read -r -p "" response
+    if [[ $(echo $response | sed 's/ //g') =~ ^([yY][eE][sS]|[yY])$ ]]; then
+      echo ""
+      return 0
+    else
+      return 1
+    fi
 
-}
+  }
 
 ##################################
 
-INFO_SEP
 
-echo -e "\e[1mINFO:\e[0m About installation\n\nThe installation may take long time because many development dependencies may be \
+  INFO_SEP
+
+  echo -e "\e[1mINFO:\e[0m About installation\n\nThe installation may take long time because many development dependencies may be \
 installed and the following packages will be compiled from source (depending on your choise):\n\n\
 \t- Wine/Wine Staging (latest git version)\n\
 \t- DXVK (latest git version)\n\
 \t- meson & glslang (latest git versions; these are build time dependencies for DXVK)\n\n\
 Do you want to continue? [Y/n]"
-
-questionresponse
-
-if [[ $? -ne 0 ]]; then
-  echo -e "Cancelling.\n"
-  exit 1
-fi
-
-####################
-
-AVAIL_SPACE=$(df -h -B MB --output=avail . | sed '1d; s/[A-Z]*//g')
-REC_SPACE=8000
-
-if [[ ${AVAIL_SPACE} -lt ${REC_SPACE} ]]; then
-  INFO_SEP
-
-echo -e "\e[1mWARNING:\e[0m Not sufficient storage space\n\nYou will possibly run out of space while compiling software.\n\
-The script strongly recommends ~\e[1m$((${REC_SPACE} / 1000)) GB\e[0m at least to compile software successfully but you have only\n\
-\e[1m${AVAIL_SPACE} MB\e[0m left on the filesystem the script is currently placed at.\n\n\
-Be aware that the script process may fail because of this, especially while compiling Wine Staging.\n\n\
-Do you really want to continue? [Y/n]"
 
   questionresponse
 
@@ -172,28 +153,80 @@ Do you really want to continue? [Y/n]"
     exit 1
   fi
 
-  unset AVAIL_SPACE REC_SPACE
-fi
+####################
+
+  AVAIL_SPACE=$(df -h -B MB --output=avail . | sed '1d; s/[A-Z]*//g')
+  REC_SPACE=8000
+
+  if [[ ${AVAIL_SPACE} -lt ${REC_SPACE} ]]; then
+    INFO_SEP
+
+  echo -e "\e[1mWARNING:\e[0m Not sufficient storage space\n\nYou will possibly run out of space while compiling software.\n\
+The script strongly recommends ~\e[1m$((${REC_SPACE} / 1000)) GB\e[0m at least to compile software successfully but you have only\n\
+\e[1m${AVAIL_SPACE} MB\e[0m left on the filesystem the script is currently placed at.\n\n\
+Be aware that the script process may fail because of this, especially while compiling Wine Staging.\n\n\
+Do you really want to continue? [Y/n]"
+
+    questionresponse
+
+    if [[ $? -ne 0 ]]; then
+      echo -e "Cancelling.\n"
+      exit 1
+    fi
+
+    unset AVAIL_SPACE REC_SPACE
+  fi
 
 ####################
 
-INFO_SEP
+  INFO_SEP
 
-echo -e "\e[1mINFO:\e[0m Update existing dependencies?\n\nIn a case you have old build time dependencies on your system, do you want to update them?\n\
+  echo -e "\e[1mINFO:\e[0m Update existing dependencies?\n\nIn a case you have old build time dependencies on your system, do you want to update them?\n\
 If you answer 'yes', then those dependencies are updated if needed. Otherwise, already installed\n\
 build time dependencies are not updated. If you don't have 'meson' or 'glslang' installed on your system, they will be compiled, anyway.\n\
 Be aware, that updating these packages may increase total run time used by this script.\n\n\
 Update dependency packages & other system packages? [Y/n]"
 
-questionresponse
+  questionresponse
 
-if [[ $? -eq 0 ]]; then
-  args+=('--updateoverride')
-fi
+  if [[ $? -eq 0 ]]; then
+    args+=('--updateoverride')
+  fi
 
-INFO_SEP
+  INFO_SEP
+
+}
 
 ########################################################
+
+function coredeps_check() {
+
+  # Universal core dependencies for package compilation
+  _coredeps=('dh-make' 'make' 'gcc' 'build-essential' 'fakeroot')
+
+  for coredep in ${_coredeps[@]}; do
+
+    if [[ $(echo $(dpkg -s ${coredep} &>/dev/null)$?) -ne 0 ]]; then
+      echo -e "Installing core dependency ${coredep}.\n"
+      sudo apt install -y ${coredep}
+      if [[ $? -ne 0 ]]; then
+        echo -e "Could not install ${coredep}. Aborting.\n"
+        exit 1
+      fi
+    fi
+  done
+
+}
+
+########################################################
+
+# If either Wine or DXVK is to be installed
+if [[ ! -v NO_WINE ]] || [[ ! -v NO_DXVK ]]; then
+  mainQuestions
+  coredeps_check
+fi
+
+####################
 
 if [[ ! -v NO_WINE ]]; then
   wine_install_main

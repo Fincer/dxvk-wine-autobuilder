@@ -76,6 +76,7 @@ wine_deps=(
 'libgstreamer-plugins-base1.0-dev:amd64'
 'ocl-icd-opencl-dev:amd64'
 'libvulkan-dev:amd64'
+
 'libxi-dev:i386'
 'libxt-dev:i386'
 'libxmu-dev:i386'
@@ -119,6 +120,14 @@ wine_deps=(
 'libfontconfig1-dev:i386'
 'ocl-icd-opencl-dev:i386'
 'libvulkan-dev:i386'
+'libxslt1-dev:i386'
+'libxml2-dev:i386'
+'libicu-dev:i386'
+'libtiff-dev:i386'
+'libcups2-dev:i386'
+'libgnutls28-dev:i386'
+'libgstreamer1.0-dev:i386'
+'libgstreamer-plugins-base1.0-dev:i386'
 )
 
 dxvk_deps=(
@@ -143,7 +152,7 @@ wine_deps_noremove=(
 'bison'
 'quilt'
 'gettext'
-'oss4-dev'
+#'oss4-dev'
 'sharutils'
 'pkg-config'
 'dctrl-tools'

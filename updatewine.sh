@@ -31,21 +31,31 @@ Please run this script using bash (/usr/bin/bash).
 fi
 
 ###########################################################
+
+# Just a title & author for this script, used in initialization and help page
+
+SCRIPT_TITLE="\e[1mWine/Wine Staging & DXVK package builder & auto-installer\e[0m"
+SCRIPT_AUTHOR="Pekka Helenius (~Fincer), 2018"
+
+###########################################################
 # Allow interruption of the script at any time (Ctrl + C)
 trap "exit" INT
 
 ###########################################################
 
 COMMANDS=(
-  groups
-  sudo
-  wget
   date
   find
+  git
   grep
-  uname
-  readlink
+  groups
   patch
+  readlink
+  sudo
+  tar
+  uname
+  wc
+  wget
 )
 
 function checkCommands() {
@@ -95,40 +105,6 @@ fi
 
 ###########################################################
 
-# Prevent running on pure Debian
-
-# This is just to prevent this script from running on Debian
-# Although the script works quite well on Debian
-# we get conflicting issues between amd64 & i386 Wine
-# buildtime dependency packages
-# These conflicts do not occur on Ubuntu or on Mint
-
-# Additionally, package 'winetricks' is not found on Debian.
-# This is quite trivial to get fixed, though.
-
-if [[ -f /usr/lib/os-release ]]; then
-  distroname=$(grep -oP "(?<=^NAME=\").*(?=\"$)" /usr/lib/os-release)
-else
-  echo -e "\nCould not verify your Linux distribution. Aborting.\n"
-  exit 1
-fi
-
-case "${distroname}" in
-  *Debian*)
-    echo -e "\nSorry, pure Debian is not supported yet. See README for details. Aborting.\n"
-    exit 0
-    ;;
-esac
-
-###########################################################
-
-# Just a title & author for this script, used in initialization and help page
-
-SCRIPT_TITLE="\e[1mWine/Wine Staging & DXVK package builder & auto-installer\e[0m"
-SCRIPT_AUTHOR="Pekka Helenius (~Fincer), 2018"
-
-###########################################################
-
 # User-passed arguments for the script
 # We check the values of this array
 # and pass them to the subscripts if supported
@@ -146,9 +122,11 @@ for arch_arg in ${@}; do
       ;;
     --no-wine)
       # Skip Wine build & installation process all together
+      NO_WINE=
       ;;
     --no-dxvk)
       # Skip DXVK build & installation process all together
+      NO_DXVK=
       ;;
     --no-pol)
       # Skip PlayOnLinux Wine prefixes update process
@@ -178,10 +156,10 @@ done
 function sudoQuestion() {
   sudo -k
   echo -e "\e[1mINFO:\e[0m sudo password required\n\nThis script requires elevated permissions for package updates & installations. Please provide your sudo password for these script commands. Sudo permissions are not used for any other purposes.\n"
-  sudo echo "" > /dev/null
+  sudo -v
 
   if [[ $? -ne 0 ]]; then
-    echo "Invalid sudo password.\n"
+    echo -e "Invalid sudo password.\n"
     exit 1
   fi
 
@@ -249,7 +227,11 @@ function determineDistroFamily() {
   esac
 }
 
-echo -e "\n${SCRIPT_TITLE}\n\nBuild identifier:\t${datesuffix}\n"
+if [[ ! -v NO_WINE ]] || [[ ! -v NO_DXVK ]]; then
+  echo -e "\n${SCRIPT_TITLE}\n\nBuild identifier:\t${datesuffix}\n"
+else
+  echo ""
+fi
 
 if [[ -n ${args[*]} ]]; then
   echo -e "Using arguments:\t${args[*]}\n"
@@ -258,12 +240,13 @@ fi
 determineDistroFamily
 
 INFO_SEP
-echo -e "\e[1mNOTE: \e[0mDXVK requires very latest Nvidia/AMD drivers to work. Make sure these drivers are available on your Linux distribution.\n\
+echo -e "\e[1mNOTE: \e[0mDXVK requires very latest Nvidia/AMD drivers to work.\nMake sure these drivers are available on your Linux distribution.\n\
 This script comes with GPU driver installation scripts for Debian-based Linux distributions.\n"
 INFO_SEP
 
-sudoQuestion
-echo ""
-INFO_SEP
+if [[ ! -v NO_WINE ]] || [[ ! -v NO_DXVK ]]; then
+  sudoQuestion
+  echo ""
+fi
 
 bash -c "cd ${distro} && bash ./updatewine_${distro}.sh \"${datesuffix}\" ${args[*]}"

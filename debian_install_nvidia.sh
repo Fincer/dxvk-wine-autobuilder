@@ -32,6 +32,13 @@ fi
 
 ########################################################
 
+# Just a title & author for this script, used in initialization and help page
+
+SCRIPT_TITLE="\e[1mNvidia drivers package builder & installer\e[0m"
+SCRIPT_AUTHOR="Pekka Helenius (~Fincer), 2018"
+
+########################################################
+
 BUILD_MAINDIR=${PWD}/debian_nvidia
 
 ########################################################
@@ -157,11 +164,6 @@ function INFO_SEP() { printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' - ; 
 
 ###########################################################
 
-# Just a title & author for this script, used in initialization and help page
-
-SCRIPT_TITLE="\e[1mNvidia drivers package builder & installer\e[0m"
-SCRIPT_AUTHOR="Pekka Helenius (~Fincer), 2018"
-
 echo -e "\n${SCRIPT_TITLE}\n"
 
 ########################################################
@@ -201,11 +203,12 @@ rm -rf ${WORKDIR}/{${pkgdir}/{debian,NVIDIA-Linux,NVIDIA-Linux-amd64,NVIDIA-Linu
 ###########################################################
 
 COMMANDS=(
-  sudo
-  wget
   apt
+  dpkg
   grep
+  sudo
   wc
+  wget
 )
 
 function checkCommands() {
@@ -311,7 +314,7 @@ function pkgdependencies() {
   # Generate a list of missing dependencies
   local a=0
   for p in ${@}; do
-    if [[ $(apt version ${p} | wc -w) -eq 0 ]]; then
+    if [[ $(echo $(dpkg -s ${p} &>/dev/null)$?) -ne 0 ]]; then
       list[$a]=${p}
       let a++
     fi
@@ -332,7 +335,7 @@ function pkgdependencies() {
   # Install missing dependencies, be informative
   local b=0
   for pkgdep in ${list[@]}; do
-    echo -e "Installing ${_pkgname} dependency ${pkgdep} ($(( $b + 1 )) / $(( ${#list[*]} ))).\n"
+    echo -e "$(( $b + 1 ))/$(( ${#list[*]} )) - Installing ${_pkgname} dependency ${pkgdep}"
     sudo apt install -y ${pkgdep} &> /dev/null
     if [[ $? -eq 0 ]]; then
       let b++
@@ -502,7 +505,7 @@ function compile_nvidia() {
 function install_nvidia() {
 
   for syspkg in ${nvidia_required_packages[@]}; do
-    if [[ $(apt version ${syspkg} | wc -w) -eq 0 ]]; then
+    if [[ $(echo $(dpkg -s ${syspkg} &>/dev/null)$?) -ne 0 ]]; then
       echo -e "Installing missing dependency ${syspkg}\n"
       sudo apt install -y ${syspkg}
       if [[ $? -ne 0 ]]; then
@@ -545,7 +548,7 @@ function install_vulkan() {
   # Vulkan loader
   if [[ $? -eq 0 ]]; then
     local syspkg=libvulkan1
-    if [[ $(apt version ${syspkg} | wc -w) -eq 0 ]]; then
+    if [[ $(echo $(dpkg -s ${syspkg} &>/dev/null)$?) -ne 0 ]]; then
       sudo apt update && sudo apt install -y ${syspkg}
     fi
   fi

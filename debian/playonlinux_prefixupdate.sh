@@ -20,7 +20,7 @@
 
 # Check existence of PoL default folder in user's homedir
 if [[ ! -d "$HOME/.PlayOnLinux" ]]; then
-  echo "Warning. Couldn't find PoL directories in the user $USER homedir."
+  echo -e "Warning: Couldn't find PoL directories in $USER's homedir.\n"
   exit 0
 fi
 
