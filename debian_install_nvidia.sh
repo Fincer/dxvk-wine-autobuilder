@@ -284,7 +284,7 @@ fi
 
 ########################################################
 
-# Premilinary check to see whether Nvidia card is present
+# Auto-install question
 
 echo -e "\nAuto-install Nvidia drivers after compilation? [Y/n]"
 questionresponse
