@@ -63,12 +63,13 @@ done
 
 known_wines=(
 'wine'
+'wine-stable'
 'wine32'
 'wine64'
-'wine-git'
-'wine-staging-git'
 'libwine:amd64'
 'libwine:i386'
+'wine-git'
+'wine-staging-git'
 )
 
 known_winetricks=(
