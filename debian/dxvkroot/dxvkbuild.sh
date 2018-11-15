@@ -61,40 +61,55 @@ done
 # Check presence of Wine. Some version of Wine should
 # be found in the system in order to install DXVK.
 
-function wineCheck() {
+known_wines=(
+'wine'
+'wine32'
+'wine64'
+'wine-git'
+'wine-staging-git'
+'libwine:amd64'
+'libwine:i386'
+)
 
-  # Known Wine package names to check on Debian
-  local known_wines=(
-  'wine'
-  'wine32'
-  'wine64'
-  'wine-git'
-  'wine-staging-git'
-  'libwine:amd64'
-  'libwine:i386'
-  )
+known_winetricks=(
+'winetricks'
+)
+
+function runtimeCheck() {
+
+  # Friendly name for this package
+  local pkgreq_name=${1}
+  # Known package names to check on Debian
+  local known_pkgs=${2}
 
   # Check if any of these Wine packages are present on the system
   i=0
-  for winepkg in ${known_wines[@]}; do
-    if [[ $(echo $(dpkg -s ${winepkg} &>/dev/null)$?) -eq 0 ]]; then
-      winelist[$i]=${winepkg}
+  for pkg in ${known_pkgs[@]}; do
+    if [[ $(echo $(dpkg -s ${pkg} &>/dev/null)$?) -eq 0 ]]; then
+      local pkglist[$i]=${pkg}
       let i++
     fi
   done
 
-  if [[ -z ${winelist[*]} ]] && [[ ! -v NO_INSTALL ]] ; then
-    echo -e "\e[1mWARNING:\e[0m Not installing DXVK because Wine is missing on your system.\n\
-Wine should be installed in order to use DXVK. Just compiling DXVK for later use.\n"
+  if [[ -z ${pkglist[*]} ]]; then
+    echo -e "\e[1mWARNING:\e[0m Not installing DXVK because \e[1m${pkgreq_name}\e[0m is missing on your system.\n\
+${pkgreq_name} should be installed in order to use DXVK. Just compiling DXVK for later use.\n"
 
-    # Force --no-install switch
-    NO_INSTALL=
+    # Do this check separately so we can warn about all missing runtime dependencies above
+    if [[ ! -v NO_INSTALL ]]; then
+      # Force --no-install switch
+      NO_INSTALL=
+    fi
 
   fi
 
 }
 
-wineCheck
+# Check existence of known Wine packages
+runtimeCheck Wine "${known_wines[*]}"
+
+# Check existence of known Winetricks packages
+runtimeCheck Winetricks "${known_winetricks[*]}"
 
 ###########################################################
 
@@ -192,7 +207,7 @@ function preparepackage() {
         exit 1
       fi
     done
-    if [[ -n ${validlist[*]} ]]; then
+    if [[ -n ${validlist[*]} ]]; then
       # Add empty newline
       echo ""
     fi
