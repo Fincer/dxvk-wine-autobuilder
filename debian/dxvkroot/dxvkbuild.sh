@@ -263,6 +263,30 @@ function preparepackage() {
 
 ###################################################
 
+# BUILD DEPENDENCIES REMOVAL
+
+function buildpkg_removal() {
+
+  # Build time dependencies which were installed but no longer needed
+  if [[ -v buildpkglist ]]; then
+    if [[ -v BUILDPKG_RM ]]; then
+      sudo apt purge --remove -y "${buildpkglist[*]}"
+
+      # In some cases, glslang or meson may still be present on the system. Remove them
+      for extrapkg in glslang meson; do
+        if [[ $(echo $(dpkg -s ${extrapkg} &>/dev/null)$?) -eq 0 ]]; then
+          sudo apt purge --remove -y ${extrapkg}
+        fi
+      done
+
+    else
+      echo -e "The following build time dependencies were installed and no longer needed:\n\n$(for l in ${buildpkglist[*]}; do echo -e ${l}; done)\n"
+    fi
+  fi
+}
+
+###################################################
+
 # MESON COMPILATION & INSTALLATION
 # Required by DXVK package
 
@@ -393,6 +417,8 @@ function glslang_install_main() {
       cd ../..
       rm -rf ${pkgname}
     else
+      # If we fail to build DXVK, remove possibly compiled & installed meson + glslang packages
+      buildpkg_removal
       exit 1
     fi
 
@@ -535,7 +561,8 @@ DXVK-DEBIANRULES
     bash ./package-release.sh master debian/source/ --no-package
 
     if [[ $? -ne 0 ]]; then
-      echo "Error while compiling ${pkgname}. Check messages above. Aborting\n"
+      echo -e "Error while compiling ${pkgname}. Check messages above. Aborting\n"
+      buildpkg_removal
       exit 1
     fi
 
@@ -590,22 +617,4 @@ pkgcompilecheck meson meson_install_main
 pkgcompilecheck glslang glslang_install_main
 dxvk_install_main
 
-##########################
-
-# Build time dependencies which were installed but no longer needed
-if [[ -v buildpkglist ]]; then
-  if [[ -v BUILDPKG_RM ]]; then
-    sudo apt purge --remove -y "${buildpkglist[*]}"
-
-    # In some cases, glslang or meson may still be present on the system. Remove them
-    for extrapkg in glslang meson; do
-      if [[ $(echo $(dpkg -s ${extrapkg} &>/dev/null)$?) -eq 0 ]]; then
-        sudo apt purge --remove -y ${extrapkg}
-      fi
-    done
-
-  else
-    echo -e "The following build time dependencies were installed and no longer needed:\n\n$(for l in ${buildpkglist[*]}; do echo -e ${l}; done)\n"
-  fi
-fi
-
+buildpkg_removal
