@@ -250,7 +250,7 @@ Debian:
 
 ### TODO
 
-- Provide winetricks package for pure Debian users (DXVK runtime dependency)
+- winetricks package for pure Debian users (DXVK runtime dependency)
 
 - Add compilation/installation script for the latest AMDGPU on Debian/Ubuntu/Mint
 
@@ -263,6 +263,16 @@ Debian:
     - when interrupting the script, the exit functionality may not be handled correctly?
 
 - The script doesn't handle SIGINT correctly while executing 'pkgdependencies' function
+
+- Add non-interactive mode for Puppet, Ansible, SaltStack and for better automation?
+
+    - Consider the following topics/issues while developing
+
+        - supress any warning messages, or terminate script execution if requirements not met
+
+        - supply sudo password or run as root?
+
+        - sudo validation loop, how to handle correctly?
 
 ---------------------------
 
