@@ -144,7 +144,7 @@ To install DXVK on specific PlayOnLinux wineprefix which uses a different than `
 WINEPREFIX="$HOME/.PlayOnLinux/wineprefix/myprefix" WINEPATH=$HOME/.PlayOnLinux/wine/{linux-amd64,linux-x86}/wineversion/bin" setup_dxvk
 ```
 
-where you need to set either `linux-amd64` or `linux-x86` and set `wineversion` to match a real one, obviously.
+where you need to set either `linux-amd64` or `linux-x86`, and `wineversion` + `myprefix` to match real ones, obviously.
 
 system-wide `winetricks` executable (`/usr/bin/winetricks`) is required for this command.
 
