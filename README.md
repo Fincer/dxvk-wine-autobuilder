@@ -1,6 +1,8 @@
 # Wine/Wine Staging + DXVK package builder & auto-installer
 
-Automate installation of [DXVK](https://github.com/doitsujin/dxvk) + [Wine](https://www.winehq.org/)/[Wine Staging](https://github.com/wine-staging/wine-staging/) & update GPU drivers + PlayonLinux wineprefixes (Debian/Ubuntu/Mint/Arch Linux/Manjaro)
+![](https://i.imgur.com/5WCPioZ.png)
+
+Boost up your Wine experience with a taste of DXVK and automate installation of [DXVK](https://github.com/doitsujin/dxvk) + [Wine](https://www.winehq.org/)/[Wine Staging](https://github.com/wine-staging/wine-staging/) on Debian/Ubuntu/Mint/Arch Linux/Manjaro. Additionally, update your GPU drivers + PlayonLinux wineprefixes to use the latest Wine & DXVK combination available.
 
 ## About
 
@@ -10,7 +12,7 @@ One-click solution for accessing bleeding-edge Wine/Wine Staging & DXVK packages
 
 **Accessibility, lower the barrier.** Help people to get their hands on the latest bleeding-edge Wine/Wine Staging & DXVK software on major Linux distribution platforms without hassle or headaches.
 
-There is not an easy way to auto-install bleeding-edge Wine/Wine Staging & DXVK, especially on Debian/Ubuntu/Mint. The newest Wine/Wine Staging is not easily accessible on Debian-based Linux distributions, and DXVK is practically bundled to Lutris or Steam gaming platform as a form of Proton. However, not all Windows programs, like MS Office or Adobe Photoshop, could run under Linux Steam client: Many Windows programs actually rely on system-wide Wine installation either possibly via common third-party management software such as PlayOnLinux or Crossover which is why system-wide Wine/Wine Staging & DXVK auto-installation this script offers becomes quite handy.
+There is not an easy way to auto-install bleeding-edge Wine/Wine Staging & DXVK, especially on Debian/Ubuntu/Mint. The newest Wine/Wine Staging is not easily accessible on Debian-based Linux distributions, and DXVK is practically bundled to Lutris or Steam gaming platform as a form of Proton. However, not all Windows programs, like MS Office or Adobe Photoshop, could run under Linux Steam client: Many Windows programs actually rely on system-wide Wine installation which is why system-wide Wine/Wine Staging & DXVK auto-installation this script offers becomes quite handy.
 
 The solution provided here _is independent from Steam client or any other Wine management platform_. The latest Wine/Wine Staging & DXVK bundle will be accessible system-widely, not just via Steam, Lutris or PlayOnLinux. Provided PlayOnLinux prefix update is optional, as well.
 
@@ -146,14 +148,14 @@ where you need to set either `linux-amd64` or `linux-x86` and set `wineversion` 
 
 system-wide `winetricks` executable (`/usr/bin/winetricks`) is required for this command.
 
-### Uninstall temporary development packages (Debian/Ubuntu/Mint):
+### Manually uninstall temporary development packages (Debian/Ubuntu/Mint):
 
-Development packages can take extra space on your system so you may find useful to uninstall them. This package comes with `debian_devpkgremoval.sh` script which is targeted for that purpose. It uninstalls majority of Wine-Staging (Git), meson & glslang buildtime dependencies which may not be longer required.
+Development packages can take extra space on your system so you may find useful to uninstall them. The script provides an automatic method for that but you can still use additional `debian_cleanup_devpkgs.sh` script which is targeted for uninstalling build time dependencies manually. The script uninstalls majority of Wine-Staging (Git), meson & glslang buildtime dependencies which may not be longer required. Be aware that while running the script, it doesn't consider if you need a development package for any other package compilation process (out of scope of Wine/DXVK)!
 
-To use `debian_devpkgremoval.sh`, simply run:
+To use `debian_cleanup_devpkgs.sh`, simply run:
 
 ```
-bash debian_devpkgremoval.sh
+bash debian_cleanup_devpkgs.sh
 ```
 
 ---------------------------
@@ -292,6 +294,8 @@ ninja: build stopped: subcommand failed.
     - may cause the terminal output to get nuts
 
     - when interrupting the script, the exit functionality may not be handled correctly?
+
+- The script doesn't handle SIGINT correctly while executing 'pkgdependencies' function
 
 ---------------------------
 
