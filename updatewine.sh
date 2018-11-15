@@ -45,10 +45,12 @@ trap "exit" INT
 
 COMMANDS=(
   date
+  df
   find
   git
   grep
   groups
+  nproc
   patch
   readlink
   sudo

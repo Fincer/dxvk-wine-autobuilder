@@ -315,7 +315,7 @@ function pkgdependencies() {
   local a=0
   for p in ${@}; do
     if [[ $(echo $(dpkg -s ${p} &>/dev/null)$?) -ne 0 ]]; then
-      list[$a]=${p}
+      validlist[$a]=${p}
       let a++
     fi
   done
@@ -334,8 +334,8 @@ function pkgdependencies() {
 
   # Install missing dependencies, be informative
   local b=0
-  for pkgdep in ${list[@]}; do
-    echo -e "$(( $b + 1 ))/$(( ${#list[*]} )) - Installing ${_pkgname} dependency ${pkgdep}"
+  for pkgdep in ${validlist[@]}; do
+    echo -e "$(( $b + 1 ))/$(( ${#validlist[*]} )) - Installing ${_pkgname} dependency ${pkgdep}"
     sudo apt install -y ${pkgdep} &> /dev/null
     if [[ $? -eq 0 ]]; then
       let b++
@@ -344,6 +344,10 @@ function pkgdependencies() {
       exit 1
     fi
   done
+  if [[ -n ${validlist[*]} ]]; then
+    # Add empty newline
+    echo ""
+  fi
 }
 
 ########################################################

@@ -55,6 +55,9 @@ for check in ${args[@]}; do
     --no-wine)
       NO_WINE=
       ;;
+    --no-staging)
+      NO_STAGING=
+      ;;
     --no-dxvk)
       NO_DXVK=
       ;;
@@ -62,6 +65,7 @@ for check in ${args[@]}; do
       NO_POL=
       ;;
     --no-install)
+      NO_INSTALL=
       # If this option is given, do not check PoL wineprefixes
       NO_POL=
       ;;
@@ -93,8 +97,8 @@ trap "Deb_intCleanup" INT
 # Check existence of ccache package
 
 function ccacheCheck() {
-  if [[ $(echo $(dpkg -s ccache &>/dev/null)$?) -eq 0 ]]; then
-    echo -e "NOTE: Please consider using 'ccache' for faster compilation times.\nInstall it by typing 'sudo apt install ccache'\n"
+  if [[ $(echo $(dpkg -s ccache &>/dev/null)$?) -ne 0 ]]; then
+    echo -e "NOTE: Please consider installation of 'ccache' for faster compilation times if you compile repetitively.\nInstall it by typing 'sudo apt install ccache'\n"
   fi
 }
 
@@ -106,12 +110,28 @@ ccacheCheck
 
 function wine_install_main() {
 
-  echo -e "Starting compilation & installation of Wine\n\n\
+  echo -e "Starting compilation & installation of Wine$(if [[ ! -v NO_STAGING ]]; then printf " Staging"; fi)\n\n\
 This can take up to 0.5-2 hours depending on the available CPU cores.\n\n\
 Using $(nproc --ignore 1) of $(nproc) available CPU cores for Wine source code compilation.
 "
 
   bash -c "cd ${ROOTDIR}/wineroot/ && bash ./winebuild.sh \"${datedir}\" \"${args[*]}\""
+
+}
+
+########################################################
+
+# Call DXVK compilation & installation subscript in the following function
+
+function dxvk_install_main() {
+
+  echo -e "Starting compilation & installation of DXVK\n\n\
+This can take up to 10-20 minutes depending on the available CPU cores\n\
+& how many dependencies we need to build.\n\n\
+Using $(nproc --ignore 1) of $(nproc) available CPU cores for Wine source code compilation.
+"
+
+  bash -c "cd ${ROOTDIR}/dxvkroot && bash dxvkbuild.sh \"${datedir}\" \"${args[*]}\""
 
 }
 
@@ -136,11 +156,10 @@ function mainQuestions() {
 
 ##################################
 
-
   INFO_SEP
 
   echo -e "\e[1mINFO:\e[0m About installation\n\nThe installation may take long time because many development dependencies may be \
-installed and the following packages will be compiled from source (depending on your choise):\n\n\
+installed and the following packages may be compiled from source (depending on your choises):\n\n\
 \t- Wine/Wine Staging (latest git version)\n\
 \t- DXVK (latest git version)\n\
 \t- meson & glslang (latest git versions; these are build time dependencies for DXVK)\n\n\
@@ -151,6 +170,18 @@ Do you want to continue? [Y/n]"
   if [[ $? -ne 0 ]]; then
     echo -e "Cancelling.\n"
     exit 1
+  fi
+
+####################
+
+  INFO_SEP
+
+  echo -e "\e[1mQUESTION:\e[0m Do you want to remove unneeded build time dependencies after package build process? [Y/n]"
+
+  questionresponse
+
+  if [[ $? -eq 0 ]]; then
+    args+=('--buildpkg-rm')
   fi
 
 ####################
@@ -179,21 +210,24 @@ Do you really want to continue? [Y/n]"
 
 ####################
 
-  INFO_SEP
+  # This question is relevant only if DXVK stuff is compiled
+  if [[ ! -v NO_DXVK ]]; then
+    INFO_SEP
 
-  echo -e "\e[1mINFO:\e[0m Update existing dependencies?\n\nIn a case you have old build time dependencies on your system, do you want to update them?\n\
+    echo -e "\e[1mQUESTION:\e[0m Update existing dependencies?\n\nIn a case you have old build time dependencies on your system, do you want to update them?\n\
 If you answer 'yes', then those dependencies are updated if needed. Otherwise, already installed\n\
 build time dependencies are not updated. If you don't have 'meson' or 'glslang' installed on your system, they will be compiled, anyway.\n\
 Be aware, that updating these packages may increase total run time used by this script.\n\n\
 Update dependency packages & other system packages? [Y/n]"
 
-  questionresponse
+    questionresponse
 
-  if [[ $? -eq 0 ]]; then
-    args+=('--updateoverride')
+    if [[ $? -eq 0 ]]; then
+      args+=('--updateoverride')
+    fi
+
+    INFO_SEP
   fi
-
-  INFO_SEP
 
 }
 
@@ -220,7 +254,7 @@ function coredeps_check() {
 
 ########################################################
 
-# If either Wine or DXVK is to be installed
+# If either Wine or DXVK is to be compiled
 if [[ ! -v NO_WINE ]] || [[ ! -v NO_DXVK ]]; then
   mainQuestions
   coredeps_check
@@ -228,18 +262,25 @@ fi
 
 ####################
 
+# If Wine is going to be compiled, then
 if [[ ! -v NO_WINE ]]; then
   wine_install_main
 else
-  echo -e "Skipping Wine build & installation process.\n"
+  echo -e "Skipping Wine build$(if [[ ! -v NO_INSTALL ]]; then printf " & installation"; fi) process.\n"
 fi
 
+##########
+
+# If DXVK is going to be installed, then 
 if [[ ! -v NO_DXVK ]]; then
-  bash -c "cd ${ROOTDIR}/dxvkroot && bash dxvkbuild.sh \"${datedir}\" \"${args[*]}\""
+  dxvk_install_main
 else
-  echo -e "Skipping DXVK build & installation process.\n"
+  echo -e "Skipping DXVK build$(if [[ ! -v NO_INSTALL ]]; then printf " & installation"; fi) process.\n"
 fi
 
+##########
+
+# If PlayOnLinux Wine prefixes are going to be updated, then
 if [[ ! -v NO_POL ]]; then
   bash -c "cd ${ROOTDIR} && bash playonlinux_prefixupdate.sh"
 fi

@@ -47,7 +47,10 @@ for check in ${args[@]}; do
       NO_INSTALL=
       ;;
     --updateoverride)
-      updateoverride=
+      UPDATE_OVERRIDE=
+      ;;
+    --buildpkg-rm)
+      BUILDPKG_RM=
       ;;
   esac
 
@@ -55,13 +58,40 @@ done
 
 ###########################################################
 
-# Some version of Wine must be found in the system
-# Warn the user
+# Check presence of Wine. Some version of Wine should
+# be found in the system in order to install DXVK.
 
 function wineCheck() {
-  if [[ ! $(which wine 2>/dev/null) ]]; then
-    echo -e "Warning: You must have Wine installed before DXVK can be compiled.\n"
+
+  # Known Wine package names to check on Debian
+  local known_wines=(
+  'wine'
+  'wine32'
+  'wine64'
+  'wine-git'
+  'wine-staging-git'
+  'libwine:amd64'
+  'libwine:i386'
+  )
+
+  # Check if any of these Wine packages are present on the system
+  i=0
+  for winepkg in ${known_wines[@]}; do
+    if [[ $(echo $(dpkg -s ${winepkg} &>/dev/null)$?) -eq 0 ]]; then
+      winelist[$i]=${winepkg}
+      let i++
+    fi
+  done
+
+  if [[ -z ${winelist[*]} ]] && [[ ! -v NO_INSTALL ]] ; then
+    echo -e "\e[1mWARNING:\e[0m Not installing DXVK because Wine is missing on your system.\n\
+Wine should be installed in order to use DXVK. Just compiling DXVK for later use.\n"
+
+    # Force --no-install switch
+    NO_INSTALL=
+
   fi
+
 }
 
 wineCheck
@@ -86,9 +116,9 @@ function INFO_SEP() { printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' - ; 
 
 ##################################
 
-# Update all packages if updateoverride given
+# Update all packages if UPDATE_OVERRIDE given
 
-if [[ -v updateoverride ]]; then
+if [[ -v UPDATE_OVERRIDE ]]; then
   echo -en "Updating all packages" && \
   if [[ $(printf $(sudo -n uptime &>/dev/null)$?) -ne 0 ]]; then printf " Please provide your sudo password.\n"; else printf "\n\n"; fi
   sudo apt update && sudo apt upgrade -y
@@ -104,7 +134,7 @@ function pkgcompilecheck() {
   local pkg=${1}
   local install_function=${2}
 
-  if [[ $(echo $(dpkg -s ${coredep} &>/dev/null)$?) -ne 0 ]] || [[ -v updateoverride ]]; then
+  if [[ $(echo $(dpkg -s ${pkg} &>/dev/null)$?) -ne 0 ]] || [[ -v UPDATE_OVERRIDE ]]; then
     ${install_function}
   fi
 
@@ -112,15 +142,18 @@ function pkgcompilecheck() {
 
 ###################################################
 
-function preparepackage() {
+# Global variable to track buildtime dependencies
+z=0
 
-  echo -e "Starting compilation (& installation) of ${1}\n"
+function preparepackage() {
 
   # Set local variables
   local _pkgname=${1}
-  local _pkgdeps=${2}
+  local _pkgdeps_build=${2}
   local _pkgurl=${3}
   local _pkgver=${4}
+
+  echo -e "Starting compilation$(if [[ ! -v NO_INSTALL ]] || [[ ${_pkgname} =~ ^meson|glslang$ ]]; then printf " & installation"; fi) of ${1}\n"
 
   # Optional variable for runtime dependencies array
   if [[ -n ${5} ]]; then local _pkgdeps_runtime=${5}; fi
@@ -128,19 +161,29 @@ function preparepackage() {
   # Check and install package related dependencies if they are missing
   function pkgdependencies() {
 
+    local pkglist="${1}"
+    local pkgtype="${2}"
+
     # Generate a list of missing dependencies
     local a=0
-    for p in ${@}; do
+    for p in ${pkglist[@]}; do
       if [[ $(echo $(dpkg -s ${p} &>/dev/null)$?) -ne 0 ]]; then
-        local list[$a]=${p}
+        local validlist[$a]=${p}
         let a++
+
+        # Global array to track installed build dependencies
+        if [[ ${pkgtype} == "buildtime" ]]; then
+          buildpkglist[$z]=${p}
+          let z++
+        fi
+
       fi
     done
 
     # Install missing dependencies, be informative
     local b=0
-    for pkgdep in ${list[@]}; do
-      echo -e "$(( $b + 1 ))/$(( ${#list[*]} )) - Installing ${_pkgname} dependency ${pkgdep}"
+    for pkgdep in ${validlist[@]}; do
+      echo -e "$(( $b + 1 ))/$(( ${#validlist[*]} )) - Installing ${_pkgname} dependency ${pkgdep}"
       sudo apt install -y ${pkgdep} &> /dev/null
       if [[ $? -eq 0 ]]; then
         let b++
@@ -149,6 +192,10 @@ function preparepackage() {
         exit 1
       fi
     done
+    if [[ -n ${validlist[*]} ]]; then
+      # Add empty newline
+      echo ""
+    fi
   }
 
   # Get git-based version in order to rename the package main folder
@@ -190,8 +237,8 @@ function preparepackage() {
   }
 
   # Execute above functions
-  pkgdependencies ${_pkgdeps[*]} && \
-  if [[ -v _pkgdeps_runtime ]]; then pkgdependencies ${_pkgdeps_runtime[*]}; fi
+  pkgdependencies "${_pkgdeps_build[*]}" buildtime && \
+  if [[ -v _pkgdeps_runtime ]]; then pkgdependencies "${_pkgdeps_runtime[*]}" runtime ; fi
   pkgfoldername
 
   unset _pkgver
@@ -254,10 +301,10 @@ function meson_install_main() {
     sed -ir '/rm \-rf \$\$(pwd)\/debian\/meson\/usr\/lib\/python3/d' debian/rules
 
     # Remove deprecated, downloaded patch files
-    rm -r debian/patches
+    rm -rf debian/patches
 
     # Remove irrelevant sample files
-    rm -r debian/*.{ex,EX}
+    rm -rf debian/*.{ex,EX}
 
     # Start deb builder. Do not build either debug symbols or doc files
     DEB_BUILD_OPTIONS="strip nodocs noddebs nocheck" dpkg-buildpackage -rfakeroot -b -us -uc
@@ -315,7 +362,7 @@ function glslang_install_main() {
     printf 'override_dh_usrlocal:' | tee -a debian/rules
 
     # Remove irrelevant sample files
-    rm -r debian/*.{ex,EX}
+    rm -rf debian/*.{ex,EX}
 
     # Start deb builder. Do not build either debug symbols or doc files
     DEB_BUILD_OPTIONS="strip nodocs noddebs" dpkg-buildpackage -rfakeroot -b -us -uc
@@ -402,19 +449,19 @@ function dxvk_install_main() {
 
     # Check if the following folder exists, and proceed.
     if [[ -d ${DXVKROOT}/../../dxvk_custom_patches ]]; then
-      cp -r ${DXVKROOT}/../../dxvk_custom_patches/*.{patch,diff} ${DXVKROOT}/${pkgname}/
+      cp -r ${DXVKROOT}/../../dxvk_custom_patches/*.{patch,diff} ${DXVKROOT}/${pkgname}/ 2>/dev/null
 
-      local dxvk_builddir=$(ls ${DXVKROOT}/${pkgname}/)
+      local dxvk_builddir_name=$(ls ${DXVKROOT}/${pkgname}/)
 
-      # Expecting just one folder here. This method doesn't work with multiple dirs present
-      if [[ $(echo ${dxvk_builddir} | wc -l) -gt 1 ]]; then
-        echo "Error: Multiple dxvk build directories detected. Can't decide which one to use. Aborting\n"
+      # TODO Expecting just one folder here. This method doesn't work with multiple dirs present
+      if [[ $(echo ${dxvk_builddir_name} | wc -l) -gt 1 ]]; then
+        echo "Error: Multiple entries in dxvk build directory detected. Can't decide which one to use. Aborting\n"
         exit 1
       fi
 
-      local dxvk_buildpath=$(readlink -f ${dxvk_builddir})
+      local dxvk_builddir_path="${DXVKROOT}/${pkgname}/${dxvk_builddir_name}"
 
-      cd ${dxvk_buildpath}
+      cd "${dxvk_builddir_path}"
       for pfile in ../*.{patch,diff}; do
         if [[ -f ${pfile} ]]; then
           echo -e "Applying DXVK patch: ${pfile}\n"
@@ -455,7 +502,7 @@ function dxvk_install_main() {
     printf "\n${dxvx_relative_builddir}/bin/* usr/bin/" >> debian/install
 
     # Remove irrelevant sample files
-    rm -r debian/*.{ex,EX}
+    rm -rf debian/*.{ex,EX}
 
 # Overwrite debian/rules file with the following contents
 cat << 'DXVK-DEBIANRULES' > debian/rules
@@ -526,3 +573,23 @@ DXVK-DEBIANRULES
 pkgcompilecheck meson meson_install_main
 pkgcompilecheck glslang glslang_install_main
 dxvk_install_main
+
+##########################
+
+# Build time dependencies which were installed but no longer needed
+if [[ -v buildpkglist ]]; then
+  if [[ -v BUILDPKG_RM ]]; then
+    sudo apt purge --remove -y "${buildpkglist[*]}"
+
+    # In some cases, glslang or meson may still be present on the system. Remove them
+    for extrapkg in glslang meson; do
+      if [[ $(echo $(dpkg -s ${extrapkg} &>/dev/null)$?) -eq 0 ]]; then
+        sudo apt purge --remove -y ${extrapkg}
+      fi
+    done
+
+  else
+    echo -e "The following build time dependencies were installed and no longer needed:\n\n$(for l in ${buildpkglist[*]}; do echo -e ${l}; done)\n"
+  fi
+fi
+

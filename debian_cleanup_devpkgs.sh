@@ -172,6 +172,8 @@ core_deps_noremove=(
 removals_name=('Meson' 'Wine Staging' 'DXVK')
 removals=('${meson_deps[*]}' '${wine_deps[*]}' '${dxvk_deps[*]}')
 
+echo -e "This script removes any development/build time dependencies related to Wine & DXVK\n"
+
 i=0
 for k in ${removals[*]}; do
   echo -e "\nRemoving ${removals_name[$i]} buildtime dependencies\n"
@@ -183,7 +185,7 @@ echo -e "\nThe following Wine Staging buildtime dependencies were not removed:\n
 
 echo -e "\nThe following core buildtime dependencies were not removed:\n$(for o in ${core_deps_noremove[*]}; do echo ${o}; done)\n"
 
-read -r -p "Auto remove packages which are no longer needed? [Y/n] " question
+read -r -p "Show list of auto removable packages which are no longer needed? [Y/n] " question
 
 if [[ $(echo $question | sed 's/ //g') =~ ^([yY][eE][sS]|[yY])$ ]]; then
   sudo apt-get purge --autoremove

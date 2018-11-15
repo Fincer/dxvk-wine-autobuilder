@@ -157,12 +157,13 @@ wine_deps_build_i386=(
 'libfontconfig1-dev:i386'
 'ocl-icd-opencl-dev:i386'
 'libvulkan-dev:i386'
-'libxslt1-dev:i386'
-'libxml2-dev:i386'
 'libicu-dev:i386'
+'libxml2-dev:i386'
+'libxslt1-dev:i386'
 'libtiff-dev:i386'
 'libcups2-dev:i386'
 'libgnutls28-dev:i386'
+'gir1.2-gstreamer-1.0:i386' #required by libgstreamer1.0-dev:i386 (Mint)
 'libgstreamer1.0-dev:i386'
 'libgstreamer-plugins-base1.0-dev:i386'
 )
@@ -306,6 +307,9 @@ for check in ${args[@]}; do
     --no-install)
       NO_INSTALL=
       ;;
+    --buildpkg-rm)
+      BUILDPKG_RM=
+      ;;
   esac
 
 done
@@ -326,12 +330,26 @@ trap "Wine_intCleanup" INT
 ########################################################
 
 # This is specifically for Debian
-# Must be done to install Wine buildtime dependencies on amd64 environment
+# Must be done in order to install Wine i386 buildtime dependencies on amd64 environment
 #
 if [[ $(dpkg --print-foreign-architectures | grep i386 | wc -w) -eq 0 ]]; then
   sudo dpkg --add-architecture i386
   sudo apt update
 fi
+
+########################################################
+
+# If user has gstreamer girl (amd64) package installed on the system
+# before Wine compilation, then reinstall it after the compilation process
+#
+function girl_check() {
+
+  girlpkg="gir1.2-gstreamer-1.0:amd64"
+
+  if [[ $(echo $(dpkg -s ${girlpkg} &>/dev/null)$?) -eq 0 ]]; then
+    GIRL_CHECK=
+  fi
+}
 
 ########################################################
 
@@ -394,12 +412,15 @@ function getDebianFiles() {
 
 # Wine dependencies removal/installation
 
+# Global variable to track buildtime dependencies
+z=0
+
 function WineDeps() {
 
-  local a=0
   local method=${1}
   local deps="${2}"
   local depsname=${3}
+  local pkgtype=${4}
 
   case ${method} in
     install)
@@ -420,29 +441,40 @@ function WineDeps() {
   # Check and install/remove package related dependencies if they are missing/installed
   function pkgdependencies() {
 
+    local deplist="${1}"
+
     # Get a valid logic for generating 'list' array below
     case ${method} in
       install)
+        # Package is not installed, install it
         local checkstatus=0
         ;;
       remove)
+        # Package is installed, remove it
         local checkstatus=1
         ;;
     esac
 
     # Generate a list of missing/removable dependencies, depending on the logic
     local a=0
-    for p in ${@}; do
+    for p in ${deplist[@]}; do
       if [[ $(echo $(dpkg -s ${p} &>/dev/null)$?) -ne ${checkstatus} ]]; then
-        local list[$a]=${p}
+        local validlist[$a]=${p}
         let a++
+
+        # Global array to track installed build dependencies
+        if [[ ${method} == "install" ]] && [[ ${pkgtype} == "buildtime" ]]; then
+          buildpkglist[$z]=${p}
+          let z++
+        fi
+
       fi
     done
 
     # Install missing/Remove existing dependencies, be informative
     local b=0
-    for pkgdep in ${list[@]}; do
-      echo -e "$(( $b + 1 ))/$(( ${#list[*]} )) - ${str} ${depsname} dependency ${pkgdep}"
+    for pkgdep in ${validlist[@]}; do
+      echo -e "$(( $b + 1 ))/$(( ${#validlist[*]} )) - ${str} ${depsname} dependency ${pkgdep}"
       eval ${mgrcmd} ${pkgdep} &> /dev/null
       if [[ $? -eq 0 ]]; then
         let b++
@@ -451,6 +483,10 @@ function WineDeps() {
         exit 1
       fi
     done
+    if [[ -n ${validlist[*]} ]]; then
+      # Add empty newline
+      echo ""
+    fi
   }
 
   pkgdependencies "${deps[*]}"
@@ -585,6 +621,8 @@ function wine32Build() {
 
 ########################################################
 
+# Merge compiled files, build Debian archive
+
 function mergeWineBuilds() {
 
   cp -r "${WINEDIR_INSTALL_64}"/* "${WINEDIR_PACKAGE}"/
@@ -636,7 +674,7 @@ DEBIANCONTROL
 function installDebianArchive() {
   cd "${WINEROOT}"
   # TODO Although the package name ends with 'amd64', this contains both 32 and 64 bit Wine versions
-  echo -e "\nInstalling Wine.\n"
+  echo -e "\nInstalling Wine$(if [[ -v ! NO_STAGING ]]; then printf " Staging"; fi).\n"
   sudo dpkg -i ${PKGNAME}_${wine_version}-1_amd64.deb
 }
 
@@ -651,7 +689,40 @@ function cleanTree() {
   rm -rf "${WINEROOT}"
 }
 
+###########################################################
+
+# Check presence of Wine if compiled deb is going to be installed
+# This function is not relevant if --no-install switch is used
+
+function wineCheck() {
+
+  # Known Wine package names to check on Debian
+  local known_wines=(
+  'wine'
+  'wine32'
+  'wine64'
+  'wine-git'
+  'wine-staging-git'
+  'libwine:amd64'
+  'libwine:i386'
+  'fonts-wine'
+  )
+
+  # Check if any of these Wine packages are present on the system
+  for winepkg in ${known_wines[@]}; do
+    if [[ $(echo $(dpkg -s ${winepkg} &>/dev/null)$?) -eq 0 ]]; then
+      sudo apt purge --remove -y ${winepkg}
+    fi
+  done
+
+}
+
 ########################################################
+
+# Check existence of gstreamer girl package before further operations
+girl_check
+
+##########################
 
 # Get Wine (& Wine-Staging) sources
 getWine
@@ -680,50 +751,77 @@ getWineVersion
 ##########################
 
 # Install Wine common buildtime dependencies
-WineDeps install "${wine_deps_build_common[*]}" "Wine common build time"
-
-# Install Wine common runtime dependencies
-WineDeps install "${wine_deps_runtime_common[*]}" "Wine common runtime"
+WineDeps install "${wine_deps_build_common[*]}" "Wine common build time" buildtime
 
 ##########################
 
 # TODO If we do architecture separation in the future, add if check for amd64 here
 # Condition would be: if amd64, then
 #
-# Purge amd64 buildtime dependencies
+# Purge i386 buildtime dependencies
 # On Debian, we can't have them with i386 at the same time
-# i386/amd64 runtime dependencies have been tested and they are able to co-exist on Debian system
 #
 echo -e "Preparing system environment for 64-bit Wine compilation.\n"
-WineDeps remove "${wine_deps_build_i386[*]}" "Wine build time (32-bit)"
+WineDeps remove "${wine_deps_build_i386[*]}" "Wine build time (32-bit)" buildtime
 
-WineDeps install "${wine_deps_build_amd64[*]}" "Wine build time (64-bit)"
-WineDeps install "${wine_deps_runtime_amd64[*]}" "Wine runtime (64-bit)"
+WineDeps install "${wine_deps_build_amd64[*]}" "Wine build time (64-bit)" buildtime
 wine64Build && \
 echo -e "\nWine 64-bit build process finished.\n"
 
 ##########################
 
-# TODO if i386 / amd64
 # TODO If we do architecture separation in the future, add if check for i386 here
 # Condition would be: if i386 or amd64, then
 # 
 # Purge amd64 buildtime dependencies
 # On Debian, we can't have them with i386 at the same time
-# i386/amd64 runtime dependencies have been tested and they are able to co-exist on Debian system
 #
 echo -e "Preparing system environment for 32-bit Wine compilation.\n"
-WineDeps remove "${wine_deps_build_amd64[*]}" "Wine build time (64-bit)"
+WineDeps remove "${wine_deps_build_amd64[*]}" "Wine build time (64-bit)" buildtime
 
-WineDeps install "${wine_deps_build_i386[*]}" "Wine build time (32-bit)"
-WineDeps install "${wine_deps_runtime_i386[*]}" "Wine runtime (32-bit)"
+WineDeps install "${wine_deps_build_i386[*]}" "Wine build time (32-bit)" buildtime
 wine32Build &&
 echo -e "\nWine 32-bit build process finished.\n"
 
 ##########################
 
 # Remove i386 buildtime dependencies after successful compilation process
-WineDeps remove "${wine_deps_build_i386[*]}" "Wine build time (64-bit)"
+WineDeps remove "${wine_deps_build_i386[*]}" "Wine build time (32-bit)" buildtime
+
+##########################
+
+# i386/amd64 runtime dependencies have been tested and they are able to co-exist on Debian system
+
+if [[ ! -v NO_INSTALL ]]; then
+
+  # Install Wine common runtime dependencies
+  WineDeps install "${wine_deps_runtime_common[*]}" "Wine common runtime" runtime
+
+  # Install architecture-dependent Wine runtime dependencies
+  WineDeps install "${wine_deps_runtime_amd64[*]}" "Wine runtime (64-bit)" runtime
+  WineDeps install "${wine_deps_runtime_i386[*]}" "Wine runtime (32-bit)" runtime
+
+  # Check presence of already installed Wine packages and remove them
+  wineCheck
+
+fi
+
+##########################
+
+# Build time dependencies which were installed but no longer needed
+if [[ -v buildpkglist ]]; then
+  if [[ -v BUILDPKG_RM ]]; then
+    sudo apt purge --remove -y "${buildpkglist[*]}"
+  else
+    echo -e "The following build time dependencies were installed and no longer needed:\n\n$(for l in ${buildpkglist[*]}; do echo -e ${l}; done)\n"
+  fi
+fi
+
+##########################
+
+if [[ -v GIRL_CHECK ]]; then
+  sudo apt install -y ${girlpkg}
+fi
 
 ########################################################
 
