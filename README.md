@@ -38,13 +38,13 @@ With the helper script, you can set launch options for a single game/selected gr
 
 ## Requirements
 
-- **Time:** it can take between 0.5-2 hours for the script to run. Compiling Wine takes a lot of time. You have been warned.
+- **Linux Distribution:** Debian/Ubuntu/Mint OR Arch Linux/Manjaro. Variants may be compatible but they are not tested.
 
-- Debian, Ubuntu, Mint or any other Linux distribution which uses `dpkg` and `àpt` for package management
-
-- Arch Linux, Manjaro or any other Linux distribution which uses `pacman` for package management
+- **RAM:** 4096 MB (DXVK build process may fail with less RAM available)
 
 - **Not listed as a hard dependency, but recommended for DXVK**: The latest Nvidia or AMD GPU drivers (Nvidia proprietary drivers // AMDGPU)
+
+- **Time:** it can take between 0.5-2 hours for the script to run. Compiling Wine takes _a lot of time_. You have been warned.
 
 ----------------
 
@@ -232,52 +232,19 @@ The following section contains important notes about the script usage.
 
 Validation test done for the script to ensure it works as expected. Occasional test-runs are mandatory due to rapid development of the packages (Wine/DXVK) it handles.
 
-**Latest test-run:** 13th November, 2018
+**Latest test-run:** 15th November, 2018
 
 **Linux Distributions:** 
 
-- Success: Arch Linux, Linux Mint 19
+- Success: Arch Linux 64-bit, Linux Mint 19 64-bit, Ubuntu 18.04 64-bit
 
-- Partial failure: Debian 9 (DXVK), Ubuntu 18.04 (DXVK)
+- Partial failure: Debian 9 64-bit (DXVK)
 
 #### Failure reasons:
 
 Debian:
 
 - DXVK uninstallable: no winetricks package available
-
-Ubuntu 18.04:
-
-- DXVK uninstallable: during compilation, the following error appears:
-
-```
-...
-[162/192] Compiling C++ object 'src/d3d11/src@d3d11@@d3d11@sha/d3d11_swapchain.cpp.obj'.
-FAILED: src/d3d11/src@d3d11@@d3d11@sha/d3d11_swapchain.cpp.obj 
-x86_64-w64-mingw32-g++ -Isrc/d3d11/src@d3d11@@d3d11@sha -Isrc/d3d11 -I../../../../src/d3d11 -I../../../.././include -fdiagnostics-color=always -pipe -Wall -Winvalid-pch -Wnon-virtual-dtor -std=c++1z -O3 -DNOMINMAX  -MD -MQ 'src/d3d11/src@d3d11@@d3d11@sha/d3d11_swapchain.cpp.obj' -MF 'src/d3d11/src@d3d11@@d3d11@sha/d3d11_swapchain.cpp.obj.d' -o 'src/d3d11/src@d3d11@@d3d11@sha/d3d11_swapchain.cpp.obj' -c ../../../../src/d3d11/d3d11_swapchain.cpp
-{standard input}: Assembler messages:
-{standard input}:3269: Warning: end of file not at end of a line; newline inserted
-{standard input}: Error: open SEH entry at end of file (missing .seh_endproc)
-x86_64-w64-mingw32-g++: internal compiler error: Killed (program cc1plus)
-...
-
-```
-
-or
-
-```
-...
-[137/192] Compiling C++ object 'src/d3d11/src@d3d11@@d3d11@sha/d3d11_view_uav.cpp.obj'.
-FAILED: src/d3d11/src@d3d11@@d3d11@sha/d3d11_view_uav.cpp.obj 
-x86_64-w64-mingw32-g++ -Isrc/d3d11/src@d3d11@@d3d11@sha -Isrc/d3d11 -I../../../../src/d3d11 -I../../../.././include -fdiagnostics-color=always -pipe -Wall -Winvalid-pch -Wnon-virtual-dtor -std=c++1z -O3 -DNOMINMAX  -MD -MQ 'src/d3d11/src@d3d11@@d3d11@sha/d3d11_view_uav.cpp.obj' -MF 'src/d3d11/src@d3d11@@d3d11@sha/d3d11_view_uav.cpp.obj.d' -o 'src/d3d11/src@d3d11@@d3d11@sha/d3d11_view_uav.cpp.obj' -c ../../../../src/d3d11/d3d11_view_uav.cpp
-x86_64-w64-mingw32-g++: internal compiler error: Killed (program cc1plus)
-Please submit a full bug report,
-with preprocessed source if appropriate.
-See <https://gcc.gnu.org/bugs/> for instructions.
-[144/192] Compiling C++ object 'src/d3d11/src@d3d11@@d3d11@sha/d3d11_context.cpp.obj'.
-ninja: build stopped: subcommand failed.
-...
-```
 
 ---------------------------
 
