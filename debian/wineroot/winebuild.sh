@@ -272,7 +272,7 @@ wine_overr_pkgs=(
 
 ############################
 
-# Suggest section in debian/control file
+# Suggests section in debian/control file
 
 wine_suggested_pkgs=(
 'winbind'
@@ -281,6 +281,18 @@ wine_suggested_pkgs=(
 'wine-binfmt'
 'dosbox'
 )
+
+############################
+
+# Package name and website
+
+if [[ ! -v NO_STAGING ]]; then
+  pkgname="wine-staging-git"
+else
+  pkgname="wine-git"
+fi
+
+pkgurl="https://www.winehq.org"
 
 ########################################################
 
@@ -383,8 +395,8 @@ function girl_check() {
 
 function getWine() {
 
-  local wine_url="git://source.winehq.org/git/wine.git"
-  local winestaging_url="git://github.com/wine-staging/wine-staging.git"
+  local winesrc_url="git://source.winehq.org/git/wine.git"
+  local winestagingsrc_url="git://github.com/wine-staging/wine-staging.git"
 
   function cleanOldBuilds() {
     if [[ $(find "${BUILDROOT}" -type d -name "winebuild_*" | wc -l) -ne 0 ]]; then
@@ -395,22 +407,23 @@ function getWine() {
 
   cleanOldBuilds
 
+##########
+
   mkdir "${BUILDROOT}/winebuild_${datedir}"
   cd "${BUILDROOT}/winebuild_${datedir}"
-
   WINEROOT="${PWD}"
+
+##########
 
   echo -e "Retrieving source code of Wine$(if [[ ! -v NO_STAGING ]]; then echo ' & Wine Staging' ; fi)\n"
 
-  git clone ${wine_url}
-
+  git clone ${winesrc_url}
   if [[ ! -v NO_STAGING ]]; then
-    git clone ${winestaging_url}
+    git clone ${winestagingsrc_url}
     WINEDIR_STAGING="${WINEROOT}/wine-staging"
-    PKGNAME="wine-staging-git"
-  else
-    PKGNAME="wine-git"
   fi
+
+##########
 
   mkdir wine-{patches,32-build,32-install,64-build,64-install,package}
   cp -r ../../../wine_custom_patches/*.{patch,diff} wine-patches/ 2>/dev/null
@@ -634,21 +647,31 @@ function WineDeps() {
 # If we just bundle them together, single package description for
 # debian/control file is enough
 
-function feedControlfile() {
+function feed_debiancontrol() {
 
-  local MAINTAINER="$USER"
+cat << CONTROLFILE > debian/control
+Source: ${pkgname}
+Section: otherosfs
+Priority: optional
+Maintainer: ${USER} <${USER}@unknown>
+Build-Depends: debhelper (>=9), $(echo "${wine_deps_build[*]}" | sed 's/\s/, /g')
+Standards-Version: 4.1.2
+Homepage: ${pkgurl}
 
-  sed -ie "s/^Build-Depends:.*$/Build-Depends: debhelper (>=10), $(echo ${wine_deps_build[*]} | sed 's/\s/, /g')/g" debian/control
-  sed -ie "s/^Depends:.*$/Depends: $(echo ${wine_deps_runtime[*]} | sed 's/\s/, /g')/g" debian/control
-  sed -ie "s/^Suggests:.*$/Suggests: $(echo ${wine_suggested_pkgs[*]} | sed 's/\s/, /g')/g" debian/control
+Package: ${pkgname}
+Architecture: any
+Depends: $(echo ${wine_deps_runtime[*]} | sed 's/\s/, /g')
+Suggests: $(echo ${wine_suggested_pkgs[*]} | sed 's/\s/, /g')
+Conflicts: $(echo ${wine_overr_pkgs[*]} | sed 's/\s/, /g')
+Breaks: $(echo ${wine_overr_pkgs[*]} | sed 's/\s/, /g')
+Replaces: $(echo ${wine_overr_pkgs[*]} | sed 's/\s/, /g')
+Provides: $(echo ${wine_overr_pkgs[*]} | sed 's/\s/, /g')
+Description: A compatibility layer for running Windows programs.
+ Wine is an open source Microsoft Windows API implementation for
+ POSIX-compliant operating systems, including Linux.
+ Git version includes the latest updates available for Wine.
 
-  sed -ie "s/^Maintainer:.*$/Maintainer: ${MAINTAINER}/g" debian/control
-  sed -ie "s/^Source:.*$/Source: ${PKGNAME}/g" debian/control
-  sed -ie "s/^Package:.*$/Package: ${PKGNAME}/g" debian/control
-
-  for ctrl_section in Conflicts Breaks Replaces Provides; do
-      sed -ie "s/^${ctrl_section}:.*$/${ctrl_section}: $(echo ${wine_overr_pkgs[*]} | sed 's/\s/, /g')/g" debian/control
-  done
+CONTROLFILE
 
 }
 
@@ -765,6 +788,7 @@ function wine32Build() {
 ########################################################
 
 # Merge compiled files, build Debian archive
+# Prepare compiled Wine for dpkg-buildpackage
 
 function mergeWineBuilds() {
 
@@ -775,58 +799,51 @@ function mergeWineBuilds() {
 
 }
 
+############################
+
+# Trigger Wine compilation process
+# Create a new deb package
+
 function buildDebianArchive() {
   cd "${WINEROOT}"
-  mv "${WINEDIR_PACKAGE}" "${WINEROOT}/${PKGNAME}-$(wine_version)"
-  cd "${WINEROOT}/${PKGNAME}-$(wine_version)"
+  mv "${WINEDIR_PACKAGE}" "${WINEROOT}/${pkgname}-$(wine_version)"
+  cd "${WINEROOT}/${pkgname}-$(wine_version)"
   dh_make --createorig -s -y -c lgpl
   rm debian/*.{ex,EX}
   printf "usr/* /usr" > debian/install
 
-cat << 'DEBIANCONTROL' > debian/control
-Source:
-Section: otherosfs
-Priority: optional
-Maintainer:
-Build-Depends:
-Standards-Version: 4.1.2
-Homepage: https://www.winehq.org
-
-Package:
-Architecture: any
-Depends:
-Suggests:
-Conflicts:
-Breaks:
-Replaces:
-Provides:
-Description: A compatibility layer for running Windows programs.
- Wine is an open source Microsoft Windows API implementation for
- POSIX-compliant operating systems, including Linux.
- Git version includes the latest updates available for Wine.
-
-DEBIANCONTROL
-
-  feedControlfile
+  feed_debiancontrol
 
   # Start compilation process
   DEB_BUILD_OPTIONS="strip nodocs noddebs" dpkg-buildpackage -b -us -uc
 
 }
 
+############################
+
+# Install created deb package
+
 function installDebianArchive() {
   cd "${WINEROOT}"
   # TODO Although the package name ends with 'amd64', this contains both 32 and 64 bit Wine versions
   echo -e "\nInstalling Wine$(if [[ ! -v NO_STAGING ]]; then printf " Staging"; fi).\n"
-  sudo dpkg -i ${PKGNAME}_$(wine_version)-1_amd64.deb
+  sudo dpkg -i ${pkgname}_$(wine_version)-1_amd64.deb
 }
+
+############################
+
+# Store deb package for later use
 
 function storeDebianArchive() {
   cd "${WINEROOT}"
-  mv ${PKGNAME}_$(wine_version)-1_amd64.deb ../../compiled_deb/"${datedir}" && \
-  echo -e "Compiled ${PKGNAME} is stored at '$(readlink -f ../../compiled_deb/"${datedir}")/'\n"
+  mv ${pkgname}_$(wine_version)-1_amd64.deb ../../compiled_deb/"${datedir}" && \
+  echo -e "Compiled ${pkgname} is stored at '$(readlink -f ../../compiled_deb/"${datedir}")/'\n"
   rm -rf winebuild_${datedir}
 }
+
+############################
+
+# Clean temporary build files
 
 function cleanTree() {
   rm -rf "${WINEROOT}"
