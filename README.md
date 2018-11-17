@@ -4,13 +4,13 @@
 
 Boost up your Wine experience with a taste of DXVK and automate installation of [DXVK](https://github.com/doitsujin/dxvk) + [Wine](https://www.winehq.org/)/[Wine Staging](https://github.com/wine-staging/wine-staging/) on Debian/Ubuntu/Mint/Arch Linux/Manjaro. Additionally, update your GPU drivers + PlayonLinux wineprefixes to use the latest Wine & DXVK combination available.
 
-![](https://i.imgur.com/Tqqi7pm.png)
-
-_Wine Staging 3.20, DXVK and winetricks on Debian 9. Normally, winetricks & DXVK are not available, and Wine is set to very old version 1.8.7 on Debian - leaving all the sweet candies out. Not anymore - let's end this misery and give user finally a choice._
-
 ## About
 
 One-click solution for accessing bleeding-edge Wine/Wine Staging & DXVK packages _system-widely_ on Debian/Ubuntu/Mint and on Arch Linux/Manjaro. Alternatively, you can pick any version of Wine/Wine Staging & DXVK to be used.
+
+![](https://i.imgur.com/Tqqi7pm.png)
+
+_Wine Staging 3.20, DXVK and winetricks on Debian 9. Normally, winetricks & DXVK are not available, and Wine is set to very old version 1.8.7 on Debian - leaving all the sweet candies out. Not anymore - let's end this misery and give user finally a choice._
 
 ## Motivation
 
@@ -116,9 +116,9 @@ This is handy if you encounter issues during package compilation (DXVK/glslang o
 
 **These settings apply only on Debian/Ubuntu/Mint:**
 
-- git_commithash_glslang
+- `git_commithash_glslang`
 
-- git_commithash_meson
+- `git_commithash_meson`
 
 ### Force/Lock package versions: How-to
 
@@ -126,17 +126,17 @@ Take a look on `updatewine.sh`. You can find above variables listed there.
 
 Each variable applies values which must be match package git commit tree. The value format is as follows:
 
-- A) 40 characters long commit hash. Use this if you want this commit to be the latest to be used in package compilation, not anything after it.
+- **A)** 40 characters long commit hash. Use this if you want this commit to be the latest to be used in package compilation, not anything after it.
 
     - defined in git commit tree: [DXVK commit tree](https://github.com/doitsujin/dxvk/commits/master), [Wine commit tree](https://source.winehq.org/git/wine.git/) (or [GitHub mirror](https://github.com/wine-mirror/wine)), [glslang commit tree](https://github.com/KhronosGroup/glslang/commits/master), [meson commit tree](https://github.com/mesonbuild/meson/commits/master)
 
     - You can obtain proper hash by opening the commit. Hash syntax is: `654544e96bfcd1bbaf4a0fc639ef655299276a39` etc...
 
-- B) keyword `HEAD`. This defined the specific package to use the latest commit available on repository (read: this is bleeding-edge version of the package)
+- **B)** keyword `HEAD`. This defined the specific package to use the latest commit available on repository (read: this is bleeding-edge version of the package)
 
 Version freezing can be used on all supported platforms (Debian/Ubuntu/Mint/Arch Linux/Manjaro).
 
-#### Force/Lock package versions: Wine Staging
+#### Force/Lock package versions: about Wine Staging
 
 When you install Wine Staging and you define specific vanilla Wine commit in `git_commithash_wine` (not `HEAD`) variable, _the latest available Wine Staging version compared to that vanilla Wine commit is used_. Practically, this usually means even slightly older package version since the last matching Wine Staging commit usually doesn't match the commit you define for vanilla Wine. In most cases, this shouldn't be a problem.
 
