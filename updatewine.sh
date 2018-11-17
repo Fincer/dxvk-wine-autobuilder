@@ -37,6 +37,26 @@ fi
 SCRIPT_TITLE="\e[1mWine/Wine Staging & DXVK package builder & auto-installer\e[0m"
 SCRIPT_AUTHOR="Pekka Helenius (~Fincer), 2018"
 
+########################################################
+
+# Should we freeze Git versions of these packages?
+# This is handy in some cases, if breakages occur
+# (although we actually compile an older version of a package)
+#
+# Define a commit hash to freeze to
+# Use keyword 'HEAD' if you want to use the latest git
+# version available
+# Do NOT leave these variable empty!
+
+git_commithash_dxvk=1af96347e1c6f1f2eb11aeb11009f380fd5761ec
+
+git_commithash_wine=HEAD
+
+# These apply only on Debian/Ubuntu/Mint
+git_commithash_meson=5d6dcf8850fcc5d552f55943b6aa3582754dedf8
+
+git_commithash_glslang=HEAD
+
 ###########################################################
 # Allow interruption of the script at any time (Ctrl + C)
 trap "exit" INT
@@ -112,9 +132,9 @@ fi
 # and pass them to the subscripts if supported
 
 i=0
-for arch_arg in ${@}; do
+for arg in ${@}; do
 
-  case ${arch_arg} in
+  case ${arg} in
     --no-staging)
       # Do not build Wine staging version, just Wine
       ;;
@@ -133,25 +153,68 @@ for arch_arg in ${@}; do
     --no-pol)
       # Skip PlayOnLinux Wine prefixes update process
       ;;
+    --no-winetricks)
+      # Do not build Winetricks, do not install DXVK
+      # Debian only
+      ;;
     *)
       echo -e "\n\
 \
 ${SCRIPT_TITLE} by ${SCRIPT_AUTHOR}\n\n\
 Usage:\n\nbash updatewine.sh\n\nArguments:\n\n\
---no-staging\tCompile Wine instead of Wine Staging\n\
---no-install\tDo not install Wine or DXVK, just compile them. Wine, meson & glslang must be installed for DXVK compilation.\n\
---no-wine\tDo not compile or install Wine/Wine Staging\n\
+--no-install\tDo not install Wine, Winetricks or DXVK, just compile them. Wine, meson & glslang must be installed for DXVK compilation.\n\
 --no-dxvk\tDo not compile or install DXVK\n\
 --no-pol\tDo not update PlayOnLinux Wine prefixes\n\n\
+--no-staging\tCompile Wine instead of Wine Staging\n\
+--no-wine\tDo not compile or install Wine/Wine Staging\n\
+--no-winetricks\t[Debian only] Do not compile or install Winetricks.\n\
+\t\tNo DXVK installation unless Winetricks already installed.\n\n\
 Compiled packages are installed by default, unless '--no-install' argument is given.\n\
 If '--no-install' argument is given, the script doesn't check or update your PlayOnLinux Wine prefixes.\n"
       exit 0
       ;;
   esac
 
-  args[$i]="${arch_arg}"
+  args[$i]="${arg}"
   let i++
 done
+
+###########################################################
+
+# Date timestamp and random number identifier for compiled
+# DXVK & Wine Staging builds
+# This variable is known as 'datedir' in other script files
+
+datesuffix=$(echo $(date '+%Y-%m-%d-%H%M%S'))
+
+###########################################################
+
+# Add git commit hash overrides to argument list
+# Pass them to subscripts, as well.
+
+githash_overrides=(
+"${git_commithash_dxvk}"
+"${git_commithash_glslang}"
+"${git_commithash_meson}"
+"${git_commithash_wine}"
+)
+
+#############################
+
+# Commit syntax validity check
+
+for githash in ${githash_overrides[@]}; do
+
+  if [[ ! $(printf ${githash} | wc -c) -eq 40 ]] && \
+  [[ ! ${githash} == HEAD ]]; then
+    echo -e "\nError: badly formatted commit hash '${githash}' in the script file 'updatewine.sh'. Aborting\n"
+    exit 1
+  fi
+done
+
+#############################
+
+params=(${datesuffix} ${githash_overrides[@]} ${args[@]})
 
 ###########################################################
 
@@ -191,14 +254,6 @@ function checkInternet() {
 }
 
 checkInternet
-
-###########################################################
-
-# Date timestamp and random number identifier for compiled
-# DXVK & Wine Staging builds
-# This variable is known as 'datedir' in other script files
-
-datesuffix=$(echo $(date '+%Y-%m-%d-%H%M%S'))
 
 ###########################################################
 # Only Debian & Arch based Linux distributions are currently supported
@@ -251,4 +306,4 @@ if [[ ! -v NO_WINE ]] || [[ ! -v NO_DXVK ]]; then
   echo ""
 fi
 
-bash -c "cd ${distro} && bash ./updatewine_${distro}.sh \"${datesuffix}\" ${args[*]}"
+bash -c "cd ${distro} && bash ./updatewine_${distro}.sh ${params[*]}"

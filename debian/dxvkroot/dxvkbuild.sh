@@ -16,7 +16,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-###########################################################
+########################################################
 
 # DO NOT RUN INDIVIDUALLY, ONLY VIA ../../updatewine.sh PARENT SCRIPT!
 
@@ -28,17 +28,41 @@ DXVKROOT="${PWD}"
 # datedir variable supplied by ../updatewine_debian.sh script file
 datedir="${1}"
 
-###########################################################
+########################################################
 
-# Parse input arguments
+# Divide input args into array indexes
+i=0
+for p in ${@:2}; do
+  params[$i]=${p}
+  let i++
+done
+
+########################################################
+
+# Parse input git override hashes
+# This order is mandatory!
+# If you change the order or contents of 'githash_overrides'
+# array in ../updatewine.sh, make sure to update these
+# variables!
+#
+git_commithash_dxvk=${params[0]}
+git_commithash_glslang=${params[1]}
+git_commithash_meson=${params[2]}
+
+########################################################
+
+# Parse input arguments, filter user parameters
+# The range is defined in ../updatewine.sh
+# All input arguments are:
+# <datedir> 4*<githash_override> <args>
+# 0         1 2 3 4              5 ...
+# Filter all but <args>, i.e. the first 0-4 arguments
 
 i=0
-for arg in ${@:2}; do
+for arg in ${params[@]:4}; do
   args[$i]="${arg}"
   let i++
 done
-# Must be a true array as defined above, not a single index list!
-#args="${@:2}"
 
 for check in ${args[@]}; do
 
@@ -46,6 +70,9 @@ for check in ${args[@]}; do
     --no-install)
       NO_INSTALL=
       ;;
+#    --no-winetricks)
+#      NO_WINETRICKS=
+#      ;;
     --updateoverride)
       UPDATE_OVERRIDE=
       ;;
@@ -56,7 +83,7 @@ for check in ${args[@]}; do
 
 done
 
-###########################################################
+########################################################
 
 # Check presence of Wine. Some version of Wine should
 # be found in the system in order to install DXVK.
@@ -112,7 +139,7 @@ runtimeCheck Wine "${known_wines[*]}"
 # Check existence of known Winetricks packages
 runtimeCheck Winetricks "${known_winetricks[*]}"
 
-###########################################################
+########################################################
 
 # If the script is interrupted (Ctrl+C/SIGINT), do the following
 
@@ -130,7 +157,7 @@ trap "DXVK_intCleanup" INT
 # http://wiki.bash-hackers.org/snipplets/print_horizontal_line#a_line_across_the_entire_width_of_the_terminal
 function INFO_SEP() { printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' - ; }
 
-##################################
+########################################################
 
 # Update all packages if UPDATE_OVERRIDE given
 
@@ -140,7 +167,7 @@ if [[ -v UPDATE_OVERRIDE ]]; then
   sudo apt update && sudo apt upgrade -y
 fi
 
-##################################
+########################################################
 
 # Check do we need to compile the package
 # given as input for this function
@@ -156,7 +183,7 @@ function pkgcompilecheck() {
 
 }
 
-###################################################
+########################################################
 
 # Global variable to track buildtime dependencies
 z=0
@@ -168,11 +195,12 @@ function preparepackage() {
   local _pkgdeps_build=${2}
   local _pkgurl=${3}
   local _pkgver=${4}
+  local _git_commithash=${5}
 
   echo -e "Starting compilation$(if [[ ! -v NO_INSTALL ]] || [[ ${_pkgname} =~ ^meson|glslang$ ]]; then printf " & installation"; fi) of ${1}\n"
 
   # Optional variable for runtime dependencies array
-  if [[ -n ${5} ]]; then local _pkgdeps_runtime=${5}; fi
+  if [[ -n ${6} ]]; then local _pkgdeps_runtime=${6}; fi
 
   # Check and install package related dependencies if they are missing
   function pkgdependencies() {
@@ -199,7 +227,7 @@ function preparepackage() {
     # Install missing dependencies, be informative
     local b=0
     for pkgdep in ${validlist[@]}; do
-      echo -e "$(( $b + 1 ))/$(( ${#validlist[*]} )) - Installing ${_pkgname} dependency ${pkgdep}"
+      echo -e "$(( $b + 1 ))/$(( ${#validlist[*]} )) - Installing ${_pkgname} build time dependency ${pkgdep}"
       sudo apt install -y ${pkgdep} &> /dev/null
       if [[ $? -eq 0 ]]; then
         let b++
@@ -221,6 +249,11 @@ function preparepackage() {
 
     if [[ -n "${_pkgver}" ]] && [[ "${_pkgver}" =~ ^git ]]; then
       cd ${_pkgname}
+      git reset --hard ${_git_commithash}
+      if [[ $? -ne 0 ]]; then
+        echo -e "Error: couldn't find commit ${_git_commithash} for ${_pkgname}. Aborting\n"
+        exit 1
+      fi
       _pkgver=$(eval "${_pkgver}")
       cd ..
     fi
@@ -261,7 +294,7 @@ function preparepackage() {
 
 }
 
-###################################################
+########################################################
 
 # BUILD DEPENDENCIES REMOVAL
 
@@ -270,7 +303,7 @@ function buildpkg_removal() {
   # Build time dependencies which were installed but no longer needed
   if [[ -v buildpkglist ]]; then
     if [[ -v BUILDPKG_RM ]]; then
-      sudo apt purge --remove -y "${buildpkglist[*]}"
+      sudo apt purge --remove -y ${buildpkglist[*]}
 
       # In some cases, glslang or meson may still be present on the system. Remove them
       for extrapkg in glslang meson; do
@@ -285,7 +318,7 @@ function buildpkg_removal() {
   fi
 }
 
-###################################################
+########################################################
 
 # MESON COMPILATION & INSTALLATION
 # Required by DXVK package
@@ -305,6 +338,9 @@ function meson_install_main() {
 
   # Git source location
   local pkgurl="https://github.com/mesonbuild/meson"
+
+  # Git commit hash variable
+  local git_commithash=${git_commithash_meson}
 
   # Parsed version number from git source files
   local pkgver_git="git describe --long | sed 's/\-[a-z].*//; s/\-/\./; s/[a-z]//g'"
@@ -365,12 +401,12 @@ function meson_install_main() {
   }
 
   # Execute above functions
-  preparepackage "${pkgname}" "${pkgdeps_build[*]}" "${pkgurl}" "${pkgver_git}" && \
+  preparepackage "${pkgname}" "${pkgdeps_build[*]}" "${pkgurl}" "${pkgver_git}" "${git_commithash}" && \
   meson_debianbuild
 
 }
 
-###################################################
+########################################################
 
 # GLSLANG COMPILATION & INSTALLATION
 # Required by DXVK package
@@ -385,6 +421,9 @@ function glslang_install_main() {
 
   # Git source location
   local pkgurl="https://github.com/KhronosGroup/glslang"
+
+  # Git commit hash variable
+  local git_commithash=${git_commithash_glslang}
 
   # Parsed version number from git source files
   local pkgver_git="git describe --long | sed 's/\-[a-z].*//; s/\-/\./; s/[a-z]//g'"
@@ -425,12 +464,12 @@ function glslang_install_main() {
   }
 
   # Execute above functions
-  preparepackage "${pkgname}" "${pkgdeps_build[*]}" "${pkgurl}" "${pkgver_git}" && \
+  preparepackage "${pkgname}" "${pkgdeps_build[*]}" "${pkgurl}" "${pkgver_git}" "${git_commithash}" && \
   glslang_debianbuild
 
 }
 
-###################################################
+########################################################
 
 # DXVK COMPILATION & INSTALLATION
 
@@ -456,6 +495,9 @@ function dxvk_install_main() {
 
   # Git source location
   local pkgurl="https://github.com/doitsujin/dxvk"
+
+  # Git commit hash variable
+  local git_commithash=${git_commithash_dxvk}
 
   # Parsed version number from git source files
   local pkgver_git="git describe --long | sed 's/\-[a-z].*//; s/\-/\./; s/[a-z]//g'"
@@ -604,14 +646,14 @@ DXVK-DEBIANRULES
   # function 'preparepackage'. This does not apply to runtime dependency 'wine', which
   # may be 'wine', 'wine-git', 'wine-staging-git' etc. in truth
   #
-  preparepackage "${pkgname}" "${pkgdeps_build[*]}" "${pkgurl}" "${pkgver_git}" && \
+  preparepackage "${pkgname}" "${pkgdeps_build[*]}" "${pkgurl}" "${pkgver_git}" "${git_commithash}" && \
   dxvk_posixpkgs && \
   dxvk_custompatches && \
   dxvk_debianbuild
 
 }
 
-####################################################################
+########################################################
 
 pkgcompilecheck meson meson_install_main
 pkgcompilecheck glslang glslang_install_main

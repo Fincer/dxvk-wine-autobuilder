@@ -4,15 +4,19 @@
 
 Boost up your Wine experience with a taste of DXVK and automate installation of [DXVK](https://github.com/doitsujin/dxvk) + [Wine](https://www.winehq.org/)/[Wine Staging](https://github.com/wine-staging/wine-staging/) on Debian/Ubuntu/Mint/Arch Linux/Manjaro. Additionally, update your GPU drivers + PlayonLinux wineprefixes to use the latest Wine & DXVK combination available.
 
+![](https://i.imgur.com/Tqqi7pm.png)
+
+_Wine Staging 3.20, DXVK and winetricks on Debian 9. Normally, winetricks & DXVK are not available, and Wine is set to very old version 1.8.7 on Debian - leaving all the sweet candies out. Not anymore - let's end this misery and give user finally a choice._
+
 ## About
 
-One-click solution for accessing bleeding-edge Wine/Wine Staging & DXVK packages _system-widely_ on Debian/Ubuntu/Mint and on Arch Linux/Manjaro.
+One-click solution for accessing bleeding-edge Wine/Wine Staging & DXVK packages _system-widely_ on Debian/Ubuntu/Mint and on Arch Linux/Manjaro. Alternatively, you can pick any version of Wine/Wine Staging & DXVK to be used.
 
 ## Motivation
 
-**Accessibility, lower the barrier.** Help people to get their hands on the latest bleeding-edge Wine/Wine Staging & DXVK software on major Linux distribution platforms without hassle or headaches.
+**Accessibility, lower the barrier.** Help people to get their hands on the latest (bleeding-edge) Wine/Wine Staging & DXVK software on major Linux distribution platforms without hassle or headaches.
 
-There is not an easy way to auto-install bleeding-edge Wine/Wine Staging & DXVK, especially on Debian/Ubuntu/Mint. The newest Wine/Wine Staging is not easily accessible on Debian-based Linux distributions, and DXVK is practically bundled to Lutris or Steam gaming platform as a form of Proton. However, not all Windows programs, like MS Office or Adobe Photoshop, could run under Linux Steam client: Many Windows programs actually rely on system-wide Wine installation which is why system-wide Wine/Wine Staging & DXVK auto-installation this script offers becomes quite handy.
+There is not an easy way to auto-install the latest Wine/Wine Staging & DXVK, especially on Debian/Ubuntu/Mint. The newest Wine/Wine Staging is not easily accessible on Debian-based Linux distributions, and DXVK is practically bundled to Lutris or Steam gaming platform as a form of Proton. However, not all Windows programs, like MS Office or Adobe Photoshop, could run under Linux Steam client: Many Windows programs actually rely on system-wide Wine installation which is why system-wide Wine/Wine Staging & DXVK auto-installation this script offers becomes quite handy.
 
 The solution provided here _is independent from Steam client or any other Wine management platform_. The latest Wine/Wine Staging & DXVK bundle will be accessible system-widely, not just via Steam, Lutris or PlayOnLinux. Provided PlayOnLinux prefix update is optional, as well.
 
@@ -28,9 +32,11 @@ With the helper script, you can set launch options for a single game/selected gr
 
 ## Contents
 
-- **Wine/Wine Staging & DXVK:** Install script for supported Linux distributions
+- **Wine/Wine Staging & DXVK:** Installation script for supported Linux distributions
 
-- **Nvidia drivers:** Install script for supported Debian-based distributions
+- **Nvidia drivers:** Installation script for supported Debian-based distributions. Independent script.
+
+- **Winetricks install** Installation script for supported Debian-based distributions. Can be run independently.
 
 - **Patches:** Possibility to use your custom patches with Wine & DXVK
 
@@ -97,6 +103,48 @@ All supported arguments are:
 - `--no-dxvk` = Do not compile or install DXVK
 
 - `--no-pol` = Do not update current user's PlayOnLinux Wine prefixes
+
+- `--no-winetricks` = [Debian only] Do not compile or install Winetricks. No DXVK installation unless Winetricks already installed.
+
+### Force/Lock package versions
+
+You can force/lock specific Wine, Wine Staging, DXVK, meson & glslang versions.
+
+This is handy if you encounter issues during package compilation (DXVK/glslang or meson, for instance). yYou should consider forcing package versions by defining a the latest git commit which still works for you. You can do this by specifying the following variables in `updatewine.sh`:
+
+- `git_commithash_dxvk`, `git_commithash_wine`, `git_commithash_glslang`, `git_commithash_meson`
+
+**These settings apply only on Debian/Ubuntu/Mint:**
+
+- git_commithash_glslang
+
+- git_commithash_meson
+
+### Force/Lock package versions: How-to
+
+Take a look on `updatewine.sh`. You can find above variables listed there.
+
+Each variable applies values which must be match package git commit tree. The value format is as follows:
+
+- A) 40 characters long commit hash. Use this if you want this commit to be the latest to be used in package compilation, not anything after it.
+
+    - defined in git commit tree: [DXVK commit tree](https://github.com/doitsujin/dxvk/commits/master), [Wine commit tree](https://source.winehq.org/git/wine.git/) (or [GitHub mirror](https://github.com/wine-mirror/wine)), [glslang commit tree](https://github.com/KhronosGroup/glslang/commits/master), [meson commit tree](https://github.com/mesonbuild/meson/commits/master)
+
+    - You can obtain proper hash by opening the commit. Hash syntax is: `654544e96bfcd1bbaf4a0fc639ef655299276a39` etc...
+
+- B) keyword `HEAD`. This defined the specific package to use the latest commit available on repository (read: this is bleeding-edge version of the package)
+
+Version freezing can be used on all supported platforms (Debian/Ubuntu/Mint/Arch Linux/Manjaro).
+
+#### Force/Lock package versions: Wine Staging
+
+When you install Wine Staging and you define specific vanilla Wine commit in `git_commithash_wine` (not `HEAD`) variable, _the latest available Wine Staging version compared to that vanilla Wine commit is used_. Practically, this usually means even slightly older package version since the last matching Wine Staging commit usually doesn't match the commit you define for vanilla Wine. In most cases, this shouldn't be a problem.
+
+### Debian users: Winetricks installation
+
+**NOTE:** This section doesn't concern Ubuntu or Mint users.
+
+Since Debian doesn't provide winetricks package on official repositories, it is strongly recommended that you use provided `debian_install_winetricks.sh` to install Winetricks. Winetricks is required for successful DXVK installation. You can run `debian_install_winetricks.sh` either independently or as a part of `updatewine.sh` main script.
 
 ----------------
 
@@ -232,29 +280,43 @@ The following section contains important notes about the script usage.
 
 Validation test done for the script to ensure it works as expected. Occasional test-runs are mandatory due to rapid development of the packages (Wine/DXVK) it handles.
 
-**Latest test-run:** 15th November, 2018
+**Latest test-run:** 17th November, 2018
 
 **Linux Distributions:** 
 
-- Success: Arch Linux 64-bit, Linux Mint 19 64-bit, Ubuntu 18.04 64-bit
+- Success: Arch Linux 64-bit, Linux Mint 19 64-bit, Ubuntu 18.04 64-bit, Debian 9 64-bit
 
-- Partial failure: Debian 9 64-bit (DXVK)
+- Failure: N/A
 
 #### Failure reasons:
 
-Debian:
+N/A
 
-- DXVK uninstallable: no winetricks package available
+#### Notes:
+
+Git commit freezing used for DXVK & meson. Reasons:
+
+- DXVK: can't compile DXVK - DXGI 1.4 headers are missing. See [doitsujin/dxvk - Build issue](https://github.com/doitsujin/dxvk/issues/766) for more info. Commit which break the compilation: [doitsujin/dxvk - [dxgi] Include DXGI 1.4 headers](https://github.com/doitsujin/dxvk/commit/f7b2194e0b1d152c8001d406c41efe0a093b1aa2)
+
+    - Latest commit used: [1af96347e1c6f1f2eb11aeb11009f380fd5761ec](https://github.com/doitsujin/dxvk/commit/1af96347e1c6f1f2eb11aeb11009f380fd5761ec)
+
+    - Provide newer mingw packages? Requires own subscripts for that process (on Debian, at least)
+
+- Debian - Meson: can't compile DXVK - changes to Meson path functionality breaks it (suspected commit: [mesonbuild/meson - Store unexpanded library directory paths. Closes #4392.](https://github.com/mesonbuild/meson/commit/6a2dc7576e00e849510f7bc1f939d66d0b2f6f80))
 
 ---------------------------
 
 ### TODO
 
-- winetricks package for pure Debian users (DXVK runtime dependency)
-
 - Add compilation/installation script for the latest AMDGPU on Debian/Ubuntu/Mint
 
 - Remove temp folders in case of failure (meson/glslang/dxvk-git/wine... temp build folders)
+
+- Unify error & warning messages layout, unify internal variable & function names
+
+- Common script clean-up
+
+- Separate glslang and meson build process from dxvk on Debian?
 
 - Better handling for sudo validation loop function
 

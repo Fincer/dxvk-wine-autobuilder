@@ -32,7 +32,7 @@ fi
 
 ########################################################
 
-# Just a title & author for this script, used in initialization and help page
+# Just a title & author for this script, used in initialization
 
 SCRIPT_TITLE="\e[1mNvidia drivers package builder & installer\e[0m"
 SCRIPT_AUTHOR="Pekka Helenius (~Fincer), 2018"

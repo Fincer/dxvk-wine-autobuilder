@@ -30,20 +30,38 @@ datedir="${1}"
 
 ########################################################
 
-# http://wiki.bash-hackers.org/snipplets/print_horizontal_line#a_line_across_the_entire_width_of_the_terminal
-function INFO_SEP() { printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' - ; }
+# Divide input args into array indexes
+i=0
+for p in ${@:2}; do
+  params[$i]=${p}
+  let i++
+done
 
 ########################################################
 
-# Parse input arguments
+# Parse input git override hashes
+# This order is mandatory!
+# If you change the order or contents of 'githash_overrides'
+# array in ../updatewine.sh, make sure to update these
+# variables!
+#
+git_commithash_dxvk=${params[0]}
+git_commithash_wine=${params[3]}
+
+########################################################
+
+# Parse input arguments, filter user parameters
+# The range is defined in ../updatewine.sh
+# All input arguments are:
+# <datedir> 4*<githash_override> <args>
+# 0         1 2 3 4              5 ...
+# Filter all but <args>, i.e. the first 0-4 arguments
 
 i=0
-for arg in ${@:2}; do
+for arg in ${params[@]:4}; do
   args[$i]="${arg}"
   let i++
 done
-# Must be a true array as defined above, not a single index list!
-#args="${@:2}"
 
 for check in ${args[@]}; do
 
@@ -68,6 +86,11 @@ for check in ${args[@]}; do
   esac
 
 done
+
+########################################################
+
+# http://wiki.bash-hackers.org/snipplets/print_horizontal_line#a_line_across_the_entire_width_of_the_terminal
+function INFO_SEP() { printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' - ; }
 
 ###########################################################
 
@@ -226,6 +249,124 @@ function prepare_env() {
 
 }
 
+########################################################
+
+# Parse Wine hash override if Staging is set to be installed
+
+function check_gitOverride_wine() {
+
+  # If staging is to be installed and Wine git is frozen to a specific commit
+  # We need to determine exact commit to use for Wine Staging
+  # to avoid any mismatches
+  #
+  # Basically, when user has defined 'git_commithash_wine' variable (commit), we
+  # iterate through Wine commits and try to determine previously set
+  # Wine Staging commit. We use that Wine Staging commit instead of
+  # the one user has defined in 'git_commithash_wine' variable
+  #
+  if [[ ! -v NO_STAGING ]] && [[ "${git_commithash_wine}" != HEAD ]]; then
+
+    function form_commit_array() {
+
+      cd "${commit_dir}"
+
+      if [[ $? -ne 0 ]]; then
+        echo -e "Error: couldn't access Wine folder ${commit_dir} to check commits. Aborting\n"
+        exit 1
+      fi
+
+      local array_name=${1}
+      local commits_raw=$(eval ${2})
+
+      local i=0
+      for commit in ${commits_raw[*]}; do
+        eval ${array_name}[$i]="${commit}"
+        let i++
+      done
+
+      if [[ $? -ne 0 ]]; then
+        echo -e "Error: couldn't parse Wine commits in ${commit_dir}. Aborting\n"
+        exit 1
+      fi
+
+      cd "${ARCH_BUILDROOT}/0-wine-staging-git/"
+
+    }
+
+    function staging_change_freeze_commit() {
+
+      local wine_commits_raw="git log --pretty=oneline | awk '{print \$1}' | tr '\n' ' '"
+
+      # TODO this check may break quite easily
+      # It depends on the exact comment syntax Wine Staging developers are using (Rebase against ...)
+      # Length and order of these two "array" variables MUST MATCH!
+      local staging_refcommits_raw="git log --pretty=oneline | awk '{ if ((length(\$NF)==40 || length(\$NF)==41) && \$(NF-1)==\"against\") print \$1; }'"
+      local staging_rebasecommits_raw="git log --pretty=oneline | awk '{ if ((length(\$NF)==40 || length(\$NF)==41) && \$(NF-1)==\"against\") print substr(\$NF,1,40); }' | tr '\n' ' '"
+
+      # Syntax: <function> <array_name> <raw_commit_list>
+      commit_dir="${ARCH_BUILDROOT}/0-wine-staging-git/wine-git"
+      form_commit_array wine_commits "${wine_commits_raw}"
+
+      commit_dir="${ARCH_BUILDROOT}/0-wine-staging-git/wine-staging-git"
+      form_commit_array staging_refcommits "${staging_refcommits_raw}"
+      form_commit_array staging_rebasecommits "${staging_rebasecommits_raw}"
+
+      # User has selected vanilla Wine commit to freeze to
+      # We must get the previous Staging commit from rebase_commits array, and
+      # change git_commithash_wine value to that
+
+      # Get all vanilla Wine commits
+      # Filter all newer than defined in 'git_commithash_wine'
+      #
+      echo -e "Determining valid Wine Staging git commit. This takes a while.\n"
+      local i=0
+      for dropcommit in ${wine_commits[@]}; do
+        if [[ "${dropcommit}" == "${git_commithash_wine}" ]]; then
+          break
+        else
+          local wine_dropcommits[$i]="${dropcommit}"
+          let i++
+        fi
+      done
+      wine_commits=("${wine_commits[@]:${#wine_dropcommits[*]}}")
+
+      # For the filtered array list, iterate through 'staging_rebasecommits' array list until
+      # we get a match
+      for vanilla_commit in ${wine_commits[@]}; do
+        local k=0
+        for rebase_commit in ${staging_rebasecommits[@]}; do
+          if [[ "${vanilla_commit}" == "${rebase_commit}" ]]; then
+            # This is the commit we use for vanilla Wine
+            git_commithash_wine="${vanilla_commit}"
+            # This is equal commit we use for Wine Staging
+            git_commithash_winestaging="${staging_refcommits[$k]}"
+            break 2
+          fi
+        let k++
+        done
+      done
+
+    }
+  elif [[ ! -v NO_STAGING ]] && [[ "${git_commithash_wine}" == HEAD ]]; then
+    git_commithash_winestaging=HEAD
+  fi
+  staging_change_freeze_commit
+}
+
+###########################################################
+
+function set_gitOverride() {
+  local git_name=${1}
+  local git_commithash=${2}
+  local pkgbuild_file=${3}
+
+  # Match string ${git_name}#commit=<replacethis>
+  # where replace <replacethis>, but exclude ' " and ) after that
+  #
+  # TODO consider when there is nothing/no string after = symbol
+  sed -i "s!\(${git_name}#commit=\)\(.*[^'|^\"|^\)]\)!\1${git_commithash}!" "${pkgbuild_file}"
+}
+
 ###########################################################
 
 # Remove any existing pkg,src or tar.xz packages left by previous pacman commands
@@ -248,11 +389,38 @@ function build_pkg() {
   local cleanlist=${4}
 
   # Create package and install it to the system
+  # We need to download git sources beforehand in order
+  # to determine git commit hashes
   cd "${ARCH_BUILDROOT}"/${pkgdir}
-  bash -c "updpkgsums && makepkg"
+  bash -c "updpkgsums && makepkg -o"
+
+  # Check git commit hashes
+  if [[ $? -eq 0 ]] && \
+  [[ ${5} == gitcheck ]]; then
+    if [[ ${pkgname} == wine ]]; then
+      check_gitOverride_wine
+
+      local pkgbuild_file="${ARCH_BUILDROOT}/${pkgdir}/PKGBUILD"
+
+      set_gitOverride "wine.git" "${git_commithash_wine}" ${pkgbuild_file}
+      sed -i "s/\(^_wine_commit=\).*/\1${git_commithash_wine}/" ${pkgbuild_file}
+
+      if [[ ! -v NO_STAGING ]]; then
+        set_gitOverride "wine-staging.git" "${git_commithash_winestaging}" ${pkgbuild_file}
+        sed -i "s/\(^_staging_commit=\).*/\1${git_commithash_winestaging}/" ${pkgbuild_file}
+      fi
+
+    elif [[ ${pkgname} == dxvk ]]; then
+      local pkgbuild_file="${ARCH_BUILDROOT}/${pkgdir}/PKGBUILD"
+      set_gitOverride "dxvk.git" "${git_commithash_dxvk}" ${pkgbuild_file}
+    fi
+
+  fi
+
+  if [[ $? -eq 0 ]]; then bash -c "updpkgsums && makepkg"; else exit 1; fi
 
   # After successful compilation...
-  if [[ $(ls ${pkgname}-*tar.xz | wc -l) -ne 0 ]]; then
+  if [[ $(ls ./${pkgname}-*tar.xz 2>/dev/null | wc -l) -ne 0 ]]; then
 
     if [[ ! -v NO_INSTALL ]]; then
       yes | sudo pacman -U ${pkgname}-*.tar.xz
@@ -265,7 +433,7 @@ function build_pkg() {
     done
 
   else
-    echo -e "Error occured while compliling ${pkgname} from source.\n"
+    echo -e "Error occured during ${pkgname} compilation.\n"
     for rml in ${cleanlist[*]}; do
       rm -rf  "${ARCH_BUILDROOT}/${pkgdir}/${rml}"
     done
@@ -362,12 +530,13 @@ check_alldeps
 # Compile Wine & DXVK, depending on whether these packages
 # are to be built
 
+# Although the folder name is '0-wine-staging-git', we can still build vanilla Wine
 if [[ ! -v NO_WINE ]]; then
-  build_pkg wine "${wine_name}" "0-wine-staging-git" "${dxvk_wine_cleanlist[*]}"
+  build_pkg wine "${wine_name}" "0-wine-staging-git" "${dxvk_wine_cleanlist[*]}" gitcheck
 fi
 
 if [[ ! -v NO_DXVK ]]; then
-  build_pkg dxvk DXVK "0-dxvk-git" "${dxvk_wine_cleanlist[*]}"
+  build_pkg dxvk DXVK "0-dxvk-git" "${dxvk_wine_cleanlist[*]}" gitcheck
 fi
 
 #########################

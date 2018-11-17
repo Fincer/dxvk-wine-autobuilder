@@ -19,7 +19,7 @@ url="https://github.com/doitsujin/dxvk"
 license=('custom:zlib/libpng')
 makedepends=('ninja' 'meson>=0.43' 'glslang' 'mingw-w64-gcc' 'git' 'wine')
 options=(!strip !buildflags staticlibs)
-source=(${pkgname}::"git+https://github.com/doitsujin/dxvk.git")
+source=(${pkgname}::"git+https://github.com/doitsujin/dxvk.git#commit=HEAD")
 sha256sums=('SKIP')
 
 ##############################

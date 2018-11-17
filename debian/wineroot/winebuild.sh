@@ -27,6 +27,12 @@ datedir="${1}"
 
 ########################################################
 
+# The directory this script is running at
+
+BUILDROOT="${PWD}"
+
+########################################################
+
 # Staging patchsets. Default: all patchsets.
 # Applies only if Wine Staging is set to be compiled
 # Please see Wine Staging patchinstall.sh file for individual patchset names.
@@ -163,7 +169,7 @@ wine_deps_build_i386=(
 'libtiff-dev:i386'
 'libcups2-dev:i386'
 'libgnutls28-dev:i386'
-'gir1.2-gstreamer-1.0:i386' #required by libgstreamer1.0-dev:i386 (Mint)
+'gir1.2-gstreamer-1.0:i386' #required by libgstreamer1.0-dev:i386
 'libgstreamer1.0-dev:i386'
 'libgstreamer-plugins-base1.0-dev:i386'
 )
@@ -288,15 +294,37 @@ fi
 
 ########################################################
 
-# Parse input arguments
+# Divide input args into array indexes
+i=0
+for p in ${@:2}; do
+  params[$i]=${p}
+  let i++
+done
+
+########################################################
+
+# Parse input git override hashes
+# This order is mandatory!
+# If you change the order or contents of 'githash_overrides'
+# array in ../updatewine.sh, make sure to update these
+# variables!
+#
+git_commithash_wine=${params[3]}
+
+########################################################
+
+# Parse input arguments, filter user parameters
+# The range is defined in ../updatewine.sh
+# All input arguments are:
+# <datedir> 4*<githash_override> <args>
+# 0         1 2 3 4              5 ...
+# Filter all but <args>, i.e. the first 0-4 arguments
 
 i=0
-for arg in ${@:2}; do
+for arg in ${params[@]:4}; do
   args[$i]="${arg}"
   let i++
 done
-# Must be a true array as defined above, not a single index list!
-#args="${@:2}"
 
 for check in ${args[@]}; do
 
@@ -319,8 +347,8 @@ done
 # If the script is interrupted (Ctrl+C/SIGINT), do the following
 
 function Wine_intCleanup() {
-  cd ..
-  rm -rf winebuild_${datedir}
+  cd "${BUILDROOT}"
+  rm -rf "winebuild_${datedir}"
   exit 0
 }
 
@@ -359,16 +387,16 @@ function getWine() {
   local winestaging_url="git://github.com/wine-staging/wine-staging.git"
 
   function cleanOldBuilds() {
-    if [[ $(find . -type d -name "winebuild_*" | wc -l) -ne 0 ]]; then
+    if [[ $(find "${BUILDROOT}" -type d -name "winebuild_*" | wc -l) -ne 0 ]]; then
       echo -e "Removing old Wine build folders. This can take a while.\n"
-      rm -rf ./winebuild_*
+      rm -rf "${BUILDROOT}"/winebuild_*
     fi
   }
 
   cleanOldBuilds
 
-  mkdir winebuild_${datedir}
-  cd winebuild_${datedir}
+  mkdir "${BUILDROOT}/winebuild_${datedir}"
+  cd "${BUILDROOT}/winebuild_${datedir}"
 
   WINEROOT="${PWD}"
 
@@ -406,6 +434,110 @@ function getDebianFiles() {
   tar xvf ${debian_archive}
   rm ${debian_archive}
 
+}
+
+########################################################
+
+# Parse Wine hash override if Staging is set to be installed
+
+function check_gitOverride() {
+
+  # If staging is to be installed and Wine git is frozen to a specific commit
+  # We need to determine exact commit to use for Wine Staging
+  # to avoid any mismatches
+  #
+  # Basically, when user has defined 'git_commithash_wine' variable (commit), we
+  # iterate through Wine commits and try to determine previously set
+  # Wine Staging commit. We use that Wine Staging commit instead of
+  # the one user has defined in 'git_commithash_wine' variable
+  #
+  if [[ ! -v NO_STAGING ]] && [[ "${git_commithash_wine}" != HEAD ]]; then
+
+    function form_commit_array() {
+
+      cd "${commit_dir}"
+
+      if [[ $? -ne 0 ]]; then
+        echo -e "Error: couldn't access Wine folder ${commit_dir} to check commits. Aborting\n"
+        exit 1
+      fi
+
+      local array_name=${1}
+      local commits_raw=$(eval ${2})
+
+      local i=0
+      for commit in ${commits_raw[*]}; do
+        eval ${array_name}[$i]="${commit}"
+        let i++
+      done
+
+      if [[ $? -ne 0 ]]; then
+        echo -e "Error: couldn't parse Wine commits in ${commit_dir}. Aborting\n"
+        exit 1
+      fi
+
+      cd "${WINEROOT}"
+
+    }
+
+    function staging_change_freeze_commit() {
+
+      local wine_commits_raw="git log --pretty=oneline | awk '{print \$1}' | tr '\n' ' '"
+
+      # TODO this check may break quite easily
+      # It depends on the exact comment syntax Wine Staging developers are using (Rebase against ...)
+      # Length and order of these two "array" variables MUST MATCH!
+      local staging_refcommits_raw="git log --pretty=oneline | awk '{ if ((length(\$NF)==40 || length(\$NF)==41) && \$(NF-1)==\"against\") print \$1; }'"
+      local staging_rebasecommits_raw="git log --pretty=oneline | awk '{ if ((length(\$NF)==40 || length(\$NF)==41) && \$(NF-1)==\"against\") print substr(\$NF,1,40); }' | tr '\n' ' '"
+
+      # Syntax: <function> <array_name> <raw_commit_list>
+      commit_dir="${WINEDIR}"
+      form_commit_array wine_commits "${wine_commits_raw}"
+
+      commit_dir="${WINEDIR_STAGING}"
+      form_commit_array staging_refcommits "${staging_refcommits_raw}"
+      form_commit_array staging_rebasecommits "${staging_rebasecommits_raw}"
+
+      # User has selected vanilla Wine commit to freeze to
+      # We must get the previous Staging commit from rebase_commits array, and
+      # change git_commithash_wine value to that
+
+      # Get all vanilla Wine commits
+      # Filter all newer than defined in 'git_commithash_wine'
+      #
+      echo -e "Determining valid Wine Staging git commit. This takes a while.\n"
+      local i=0
+      for dropcommit in ${wine_commits[@]}; do
+        if [[ "${dropcommit}" == "${git_commithash_wine}" ]]; then
+          break
+        else
+          local wine_dropcommits[$i]="${dropcommit}"
+          let i++
+        fi
+      done
+      wine_commits=("${wine_commits[@]:${#wine_dropcommits[*]}}")
+
+      # For the filtered array list, iterate through 'staging_rebasecommits' array list until
+      # we get a match
+      for vanilla_commit in ${wine_commits[@]}; do
+        local k=0
+        for rebase_commit in ${staging_rebasecommits[@]}; do
+          if [[ "${vanilla_commit}" == "${rebase_commit}" ]]; then
+            # This is the commit we use for vanilla Wine
+            git_commithash_wine="${vanilla_commit}"
+            # This is equal commit we use for Wine Staging
+            git_commithash_winestaging="${staging_refcommits[$k]}"
+            break 2
+          fi
+        let k++
+        done
+      done
+
+    }
+  elif [[ ! -v NO_STAGING ]] && [[ "${git_commithash_wine}" == HEAD ]]; then
+    git_commithash_winestaging=HEAD
+  fi
+  staging_change_freeze_commit
 }
 
 ########################################################
@@ -483,7 +615,7 @@ function WineDeps() {
         exit 1
       fi
     done
-    if [[ -n ${validlist[*]} ]]; then
+    if [[ -n ${validlist[*]} ]]; then
       # Add empty newline
       echo ""
     fi
@@ -530,12 +662,27 @@ function refreshWineGIT() {
   # (necessary for reapllying wine-staging patches in succedent builds,
   # otherwise the patches will fail to be reapplied)
   cd "${WINEDIR}"
-  git reset --hard HEAD     # Restore tracked files
-  git clean -d -x -f        # Delete untracked files
+  git reset --hard ${git_commithash_wine} # Get Wine commit
+  if [[ $? -ne 0 ]]; then
+    echo "Error: couldn't find git commit '${git_commithash_wine}' for Wine. Aborting\n"
+    exit 1
+  fi
+  git clean -d -x -f # Delete untracked files
 
   if [[ ! -v NO_STAGING ]]; then
-    # Change back to the wine upstream commit that this version of wine-staging is based on
-    git checkout $(bash "${WINEDIR_STAGING}"/patches/patchinstall.sh --upstream-commit)
+
+    if [[ ${git_commithash_wine} == HEAD ]]; then
+      # Change back to the wine upstream commit that this version of wine-staging is based on
+      git checkout $(bash "${WINEDIR_STAGING}"/patches/patchinstall.sh --upstream-commit)
+
+    else
+      cd "${WINEDIR_STAGING}"
+      git reset --hard ${git_commithash_winestaging}
+      if [[ $? -ne 0 ]]; then
+        echo "Error: couldn't find git commit '${git_commithash_winestaging}' for Wine Staging. Aborting\n"
+        exit 1
+      fi
+    fi
   fi
 }
 
@@ -543,9 +690,9 @@ function refreshWineGIT() {
 
 # Get Wine version tag
 
-function getWineVersion() {
+function wine_version() {
   cd "${WINEDIR}"
-  wine_version=$(git describe | sed 's/^[a-z]*-//; s/-[0-9]*-[a-z0-9]*$//')
+  git describe | sed 's/^[a-z]*-//; s/-[0-9]*-[a-z0-9]*$//'
 }
 
 ########################################################
@@ -555,15 +702,14 @@ function getWineVersion() {
 function patchWineSource() {
 
   if [[ ! -v NO_STAGING ]]; then
-    cd "${WINEDIR_STAGING}/patches"
-    bash ./patchinstall.sh DESTDIR="${WINEDIR}" ${staging_patchsets[*]}
+    bash "${WINEDIR_STAGING}/patches/patchinstall.sh" DESTDIR="${WINEDIR}" ${staging_patchsets[*]}
   fi
 
   cp -r ${WINEROOT}/../../../wine_custom_patches/* "${WINEDIR_PATCHES}/"
 
   if [[ $(find "${WINEDIR_PATCHES}" -mindepth 1 -maxdepth 1 -regex ".*\.\(patch\|diff\)$") ]]; then
     cd "${WINEDIR}"
-    for i in "${WINEDIR_PATCHES}"/*.patch; do
+    for i in "${WINEDIR_PATCHES}"/*.{patch,diff}; do
         patch -Np1 < $i
     done
   fi
@@ -598,8 +744,6 @@ function wine64Build() {
 
 function wine32Build() {
 
-# Gstreamer amd64 & i386 dev packages conflict on Ubuntu
-
   cd "${WINEDIR_BUILD_32}"
   "${WINEDIR}"/configure \
   --with-x \
@@ -607,7 +751,6 @@ function wine32Build() {
   --with-xattr \
   --disable-mscoree \
   --with-vulkan \
-  --without-gstreamer \
   --libdir=/usr/lib/i386-linux-gnu/ \
   --with-wine64="${WINEDIR_BUILD_64}" \
   --prefix=/usr
@@ -634,8 +777,8 @@ function mergeWineBuilds() {
 
 function buildDebianArchive() {
   cd "${WINEROOT}"
-  mv "${WINEDIR_PACKAGE}" "${WINEROOT}/${PKGNAME}-${wine_version}"
-  cd "${WINEROOT}/${PKGNAME}-${wine_version}"
+  mv "${WINEDIR_PACKAGE}" "${WINEROOT}/${PKGNAME}-$(wine_version)"
+  cd "${WINEROOT}/${PKGNAME}-$(wine_version)"
   dh_make --createorig -s -y -c lgpl
   rm debian/*.{ex,EX}
   printf "usr/* /usr" > debian/install
@@ -674,13 +817,13 @@ DEBIANCONTROL
 function installDebianArchive() {
   cd "${WINEROOT}"
   # TODO Although the package name ends with 'amd64', this contains both 32 and 64 bit Wine versions
-  echo -e "\nInstalling Wine$(if [[ -v ! NO_STAGING ]]; then printf " Staging"; fi).\n"
-  sudo dpkg -i ${PKGNAME}_${wine_version}-1_amd64.deb
+  echo -e "\nInstalling Wine$(if [[ ! -v NO_STAGING ]]; then printf " Staging"; fi).\n"
+  sudo dpkg -i ${PKGNAME}_$(wine_version)-1_amd64.deb
 }
 
 function storeDebianArchive() {
   cd "${WINEROOT}"
-  mv ${PKGNAME}_${wine_version}-1_amd64.deb ../../compiled_deb/"${datedir}" && \
+  mv ${PKGNAME}_$(wine_version)-1_amd64.deb ../../compiled_deb/"${datedir}" && \
   echo -e "Compiled ${PKGNAME} is stored at '$(readlink -f ../../compiled_deb/"${datedir}")/'\n"
   rm -rf winebuild_${datedir}
 }
@@ -689,7 +832,7 @@ function cleanTree() {
   rm -rf "${WINEROOT}"
 }
 
-###########################################################
+########################################################
 
 # Check presence of Wine if compiled deb is going to be installed
 # This function is not relevant if --no-install switch is used
@@ -722,12 +865,17 @@ function wineCheck() {
 # Check existence of gstreamer girl package before further operations
 girl_check
 
-##########################
+############################
 
 # Get Wine (& Wine-Staging) sources
 getWine
 
-##########################
+############################
+
+# Check whether we need to update possible hash override
+check_gitOverride
+
+############################
 
 # Refresh & sync Wine (+ Wine Staging) git sources
 refreshWineGIT
@@ -783,12 +931,12 @@ WineDeps install "${wine_deps_build_i386[*]}" "Wine build time (32-bit)" buildti
 wine32Build &&
 echo -e "\nWine 32-bit build process finished.\n"
 
-##########################
+############################
 
 # Remove i386 buildtime dependencies after successful compilation process
 WineDeps remove "${wine_deps_build_i386[*]}" "Wine build time (32-bit)" buildtime
 
-##########################
+############################
 
 # i386/amd64 runtime dependencies have been tested and they are able to co-exist on Debian system
 
@@ -806,18 +954,18 @@ if [[ ! -v NO_INSTALL ]]; then
 
 fi
 
-##########################
+############################
 
 # Build time dependencies which were installed but no longer needed
 if [[ -v buildpkglist ]]; then
   if [[ -v BUILDPKG_RM ]]; then
-    sudo apt purge --remove -y "${buildpkglist[*]}"
+    sudo apt purge --remove -y ${buildpkglist[*]}
   else
-    echo -e "The following build time dependencies were installed and no longer needed:\n\n$(for l in ${buildpkglist[*]}; do echo -e ${l}; done)\n"
+    echo -e "The following build time dependencies were installed and no longer required:\n\n$(for l in ${buildpkglist[*]}; do echo -e ${l}; done)\n"
   fi
 fi
 
-##########################
+############################
 
 if [[ -v GIRL_CHECK ]]; then
   sudo apt install -y ${girlpkg}
@@ -839,4 +987,3 @@ storeDebianArchive
 
 # Clean all temporary files
 cleanTree
-

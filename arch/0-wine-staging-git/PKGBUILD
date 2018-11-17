@@ -29,6 +29,8 @@ else
 fi
 
 pkgver=stg.3.19.r9.g566cd55d+wine.wine.3.19.r220.g5e0d1c89ed
+_wine_commit=HEAD
+_staging_commit=HEAD
 pkgrel=1
 arch=('i686' 'x86_64')
 
@@ -114,7 +116,7 @@ optdepends=(
 options=('staticlibs')
 
 source=(
-    wine-git::'git://source.winehq.org/git/wine.git'
+    wine-git::'git://source.winehq.org/git/wine.git#commit=HEAD'
     '30-win32-aliases.conf'
     )
 
@@ -130,7 +132,7 @@ if [[ $(find ./wine-patches -mindepth 1 -maxdepth 1 -regex ".*\.\(patch\|diff\)$
 fi
 
 if [[ enable_staging -eq 1 ]]; then
-    stagingsrc=wine-staging-git::'git://github.com/wine-staging/wine-staging.git'
+    stagingsrc=wine-staging-git::'git://github.com/wine-staging/wine-staging.git#commit=HEAD'
     source+=($stagingsrc)
 fi
 
@@ -175,11 +177,13 @@ prepare() {
         # Restore the wine tree to its git origin state, without wine-staging patches
         #+(necessary for reapllying wine-staging patches in succedent builds,
         #+otherwise the patches will fail to be reapplied)
-        git reset --hard HEAD      # Restore tracked files
+        git reset --hard ${_wine_commit} # Restore tracked files
         git clean -d -x -f         # Delete untracked files
 
-        # Change back to the wine upstream commit that this version of wine-staging is based on
-        git checkout $(../"$pkgname"/patches/patchinstall.sh --upstream-commit)
+        if [[ ${_wine_commit} == HEAD ]]; then
+          # Change back to the wine upstream commit that this version of wine-staging is based on
+          git checkout $(../"$pkgname"/patches/patchinstall.sh --upstream-commit)
+        fi
     fi
 }
 
@@ -197,7 +201,7 @@ build() {
         ${staging_patchsets[*]}
     fi
 
-    if [[ $(ls "${srcdir}"/*.{patch,diff} | wc -w) -ne 0 ]]; then
+    if [[ $(ls "${srcdir}"/*.{patch,diff} 2>/dev/null | wc -w) -ne 0 ]]; then
 
       cd "${srcdir}"/wine-git
       # Apply all custom patches
