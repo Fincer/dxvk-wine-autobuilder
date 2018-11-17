@@ -232,7 +232,7 @@ function preparepackage() {
       if [[ $? -eq 0 ]]; then
         let b++
       else
-        echo -e "\nError occured while installing ${pkgdep}. Aborting.\n"
+        echo -e "\n\e[1mERROR:\e[0m Error occured while installing ${pkgdep}. Aborting.\n"
         exit 1
       fi
     done
