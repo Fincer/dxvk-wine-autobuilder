@@ -300,7 +300,7 @@ pkgurl="https://www.winehq.org"
 # i386 environments
 
 if [[ $(uname -a | grep -c x86_64) -eq 0 ]]; then
-  echo "This script supports 64-bit architectures only."
+  echo "\e[1mERROR:\e[0m This script supports 64-bit architectures only."
   exit 1
 fi
 
@@ -471,7 +471,7 @@ function check_gitOverride() {
       cd "${commit_dir}"
 
       if [[ $? -ne 0 ]]; then
-        echo -e "Error: couldn't access Wine folder ${commit_dir} to check commits. Aborting\n"
+        echo -e "\e[1mERROR:\e[0m Couldn't access Wine folder ${commit_dir} to check commits. Aborting\n"
         exit 1
       fi
 
@@ -485,7 +485,7 @@ function check_gitOverride() {
       done
 
       if [[ $? -ne 0 ]]; then
-        echo -e "Error: couldn't parse Wine commits in ${commit_dir}. Aborting\n"
+        echo -e "\e[1mERROR:\e[0m Couldn't parse Wine commits in ${commit_dir}. Aborting\n"
         exit 1
       fi
 
@@ -577,7 +577,7 @@ function WineDeps() {
       local mgrcmd="sudo apt purge --remove -y"
       ;;
     *)
-      echo -e "Error: Unknown package management input method. Aborting\n"
+      echo -e "\e[1mERROR:\e[0m Unknown package management input method. Aborting\n"
       exit 1
   esac
 
@@ -624,7 +624,7 @@ function WineDeps() {
       if [[ $? -eq 0 ]]; then
         let b++
       else
-        echo -e "\nError occured while processing ${pkgdep}. Aborting.\n"
+        echo -e "\n\e[1mERROR:\e[0m Error occured while processing ${pkgdep}. Aborting.\n"
         exit 1
       fi
     done
@@ -687,7 +687,7 @@ function refreshWineGIT() {
   cd "${WINEDIR}"
   git reset --hard ${git_commithash_wine} # Get Wine commit
   if [[ $? -ne 0 ]]; then
-    echo "Error: couldn't find git commit '${git_commithash_wine}' for Wine. Aborting\n"
+    echo "\e[1mERROR:\e[0m Couldn't find git commit '${git_commithash_wine}' for Wine. Aborting\n"
     exit 1
   fi
   git clean -d -x -f # Delete untracked files
@@ -702,7 +702,7 @@ function refreshWineGIT() {
       cd "${WINEDIR_STAGING}"
       git reset --hard ${git_commithash_winestaging}
       if [[ $? -ne 0 ]]; then
-        echo "Error: couldn't find git commit '${git_commithash_winestaging}' for Wine Staging. Aborting\n"
+        echo "\e[1mERROR:\e[0m Couldn't find git commit '${git_commithash_winestaging}' for Wine Staging. Aborting\n"
         exit 1
       fi
     fi
@@ -926,7 +926,7 @@ WineDeps install "${wine_deps_build_common[*]}" "Wine common build time" buildti
 # Purge i386 buildtime dependencies
 # On Debian, we can't have them with i386 at the same time
 #
-echo -e "Preparing system environment for 64-bit Wine compilation.\n"
+echo -e "Preparing system for 64-bit Wine compilation.\n"
 WineDeps remove "${wine_deps_build_i386[*]}" "Wine build time (32-bit)" buildtime
 
 WineDeps install "${wine_deps_build_amd64[*]}" "Wine build time (64-bit)" buildtime
@@ -941,7 +941,7 @@ echo -e "\nWine 64-bit build process finished.\n"
 # Purge amd64 buildtime dependencies
 # On Debian, we can't have them with i386 at the same time
 #
-echo -e "Preparing system environment for 32-bit Wine compilation.\n"
+echo -e "Preparing system for 32-bit Wine compilation.\n"
 WineDeps remove "${wine_deps_build_amd64[*]}" "Wine build time (64-bit)" buildtime
 
 WineDeps install "${wine_deps_build_i386[*]}" "Wine build time (32-bit)" buildtime

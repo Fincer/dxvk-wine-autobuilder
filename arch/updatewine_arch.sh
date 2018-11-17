@@ -110,7 +110,7 @@ trap "Arch_intCleanup" INT
 
 function ccacheCheck() {
   if [[ $(pacman -Q | awk '{print $1}' | grep -wE "ccache" | wc -l) -eq 0 ]]; then
-    echo -e "NOTE: Please consider using 'ccache' for faster compilation times.\nInstall it by typing 'sudo pacman -S ccache'\n"
+    echo -e "\e[1mNOTE:\e[0m Please consider using 'ccache' for faster compilation times.\nInstall it by typing 'sudo pacman -S ccache'\n"
   fi
 }
 
@@ -131,7 +131,7 @@ function checkFiles() {
 
     for file in ${list[@]}; do
       if [[ ! -f "${path}/${file}" ]]; then
-        echo -e "Could not locate file ${} for ${name}. Aborting\n"
+        echo -e "\e[1mERROR:\e[0m Could not locate file ${} for ${name}. Aborting\n"
         exit 1
       fi
     done
@@ -212,7 +212,7 @@ function checkDepends() {
 
       if [[ $(printf $(pacman -Q ${pkg} &>/dev/null)$?) -ne 0 ]]; then
         ERRPKGS[$l]=${pkg}
-        echo -e "\e[91mError:\e[0m Dependency '${pkg}' not found, required by '${package}' (${file} => ${var})"
+        echo -e "\e[91mERROR:\e[0m Dependency '${pkg}' not found, required by '${package}' (${file} => ${var})"
         let l++
       fi
 
@@ -226,7 +226,7 @@ function checkDepends() {
 function check_alldeps() {
 
   if [[ -v ERRPKGS ]]; then
-    echo -e "The following dependencies are missing:\n\e[91m\
+    echo -e "\e[1mERROR:\e[0m The following dependencies are missing:\n\e[91m\
 $(for o in ${ERRPKGS[@]}; do printf '%s\n' ${o}; done)\
 \e[0m\n"
     exit 1
@@ -271,7 +271,7 @@ function check_gitOverride_wine() {
       cd "${commit_dir}"
 
       if [[ $? -ne 0 ]]; then
-        echo -e "Error: couldn't access Wine folder ${commit_dir} to check commits. Aborting\n"
+        echo -e "\e[1mERROR:\e[0m Couldn't access Wine folder ${commit_dir} to check commits. Aborting\n"
         exit 1
       fi
 
@@ -285,7 +285,7 @@ function check_gitOverride_wine() {
       done
 
       if [[ $? -ne 0 ]]; then
-        echo -e "Error: couldn't parse Wine commits in ${commit_dir}. Aborting\n"
+        echo -e "\e[1mERROR:\e[0m Couldn't parse Wine commits in ${commit_dir}. Aborting\n"
         exit 1
       fi
 
@@ -433,7 +433,7 @@ function build_pkg() {
     done
 
   else
-    echo -e "Error occured during ${pkgname} compilation.\n"
+    echo -e "\e[1mERROR:\e[0m Error occured during ${pkgname} compilation.\n"
     for rml in ${cleanlist[*]}; do
       rm -rf  "${ARCH_BUILDROOT}/${pkgdir}/${rml}"
     done
@@ -544,6 +544,6 @@ fi
 # Update user's PlayonLinux wine prefixes if needed
 
 if [[ ! -v NO_POL ]]; then
-  echo -e "Updating your PlayOnLinux Wine prefixes.\n"
+  echo -e "\e[1mINFO:\e[0m Updating your PlayOnLinux Wine prefixes.\n"
   updatePOL
 fi

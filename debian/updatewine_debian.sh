@@ -114,7 +114,7 @@ trap "Deb_intCleanup" INT
 
 function ccacheCheck() {
   if [[ $(echo $(dpkg -s ccache &>/dev/null)$?) -ne 0 ]]; then
-    echo -e "NOTE: Please consider installation of 'ccache' for faster compilation times if you compile repetitively.\nInstall it by typing 'sudo apt install ccache'\n"
+    echo -e "\e[1mNOTE:\e[0m Please consider installation of 'ccache' for faster compilation times if you compile repetitively.\nInstall it by typing 'sudo apt install ccache'\n"
   fi
 }
 
@@ -161,13 +161,13 @@ function winetricks_install_main() {
           # Winetricks already installed by the previous command
           return 0
         else
-          echo -e "Warning: can't install Winetricks from repositories. Trying to compile from source.\n"
+          echo -e "\e[1mWARNING:\e[0m Can't install Winetricks from repositories. Trying to compile from source.\n"
           # TODO Force Winetricks compilation from source. Is this a good practice?
           return 1
         fi
       else
         # Multiple or no entries from apt-cache output. Can't decide which package to use, so force winetricks compilation.
-        echo -e "Warning: can't install Winetricks from repositories. Trying to compile from source.\n"
+        echo -e "\e[1mWARNING:\e[0m Can't install Winetricks from repositories. Trying to compile from source.\n"
         # TODO Force Winetricks compilation from source. Is this a good practice?
         return 1
       fi
@@ -207,7 +207,7 @@ function winetricks_install_main() {
           if [[ $(echo $(dpkg -s ${tricksdep} &>/dev/null)$?) -ne 0 ]]; then
             sudo apt install -y ${tricksdep}
             if [[ $? -ne 0 ]]; then
-              echo -e "Error: couldn't install Winetricks dependency ${tricksdep}. Skipping Winetricks installation.\n"
+              echo -e "\e[1mERROR:\e[0m Couldn't install Winetricks dependency ${tricksdep}. Skipping Winetricks installation.\n"
               # TODO revert installation of any installed 'tricksdep' installed on previous loop cycle
               if [[ ! -v NO_INSTALL ]];then
                 echo -e "DXVK won't be installed\n"
@@ -251,7 +251,7 @@ function winetricks_install_main() {
         fi
         mv ${pkgdebdir}/${pkg}*.deb ${pkgdebdir}/winetricks_old/
         if [[ $? -ne 0 ]]; then
-          echo -e "Warning: couldn't move old Winetricks archives. Not installing Winetricks.\n"
+          echo -e "\e[1mWARNING:\e[0m Couldn't move old Winetricks archives. Not installing Winetricks.\n"
           if [[ ! -v NO_INSTALL ]];then
             echo -e "DXVK won't be installed\n"
             # We can set this value because winetricks function is intented to be called
@@ -271,7 +271,7 @@ function winetricks_install_main() {
       sudo dpkg -i ${pkgdebdir}/${pkg}*.deb
 
       if [[ $? -ne 0 ]]; then
-        echo -e "Warning: couldn't install Winetricks.\n"
+        echo -e "\e[1mWARNING:\e[0m Couldn't install Winetricks.\n"
 
         if [[ ! -v NO_INSTALL ]];then
           echo -e "DXVK won't be installed\n"
@@ -285,7 +285,7 @@ function winetricks_install_main() {
         return 1
       fi
     else
-      echo -e "Warning: couldn't compile Winetricks.\n"
+      echo -e "\e[1mWARNING:\e[0m Couldn't compile Winetricks.\n"
       if [[ ! -v NO_INSTALL ]];then
         echo -e "DXVK won't be installed\n"
         # We can set this value because winetricks function is intented to be called
@@ -479,11 +479,12 @@ fi
 
 # If PlayOnLinux Wine prefixes are going to be updated, then
 if [[ ! -v NO_POL ]]; then
+  echo -e "\e[1mINFO:\e[0m Updating your PlayOnLinux Wine prefixes.\n"
   bash -c "cd ${ROOTDIR} && bash playonlinux_prefixupdate.sh"
 fi
 
 # If error occured during Winetricks script runtime, then
 if [[ -v WINETRICKS_ERROR ]]; then
-  echo -e "Warning: couldn't compile or install Winetricks.\
+  echo -e "\e[1mWARNING:\e[0m Couldn't compile or install Winetricks.\
   $(if [[ ! -v NO_DXVK ]]; then printf " DXVK installation may have failed, too."; fi)\n"
 fi

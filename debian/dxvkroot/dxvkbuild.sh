@@ -251,7 +251,7 @@ function preparepackage() {
       cd ${_pkgname}
       git reset --hard ${_git_commithash}
       if [[ $? -ne 0 ]]; then
-        echo -e "Error: couldn't find commit ${_git_commithash} for ${_pkgname}. Aborting\n"
+        echo -e "\e[1mERROR:\e[0m Couldn't find commit ${_git_commithash} for ${_pkgname}. Aborting\n"
         exit 1
       fi
       _pkgver=$(eval "${_pkgver}")
@@ -279,7 +279,7 @@ function preparepackage() {
       mv ${_pkgname} ${_pkgname}-${_pkgver}
       cd ${_pkgname}-${_pkgver}
     else
-      echo -e "Error while downloading source of ${_pkgname} package. Aborting\n"
+      echo -e "\e[1mERROR:\e[0m Error while downloading source of ${_pkgname} package. Aborting\n"
       exit 1
     fi
 
@@ -517,7 +517,7 @@ function dxvk_install_main() {
       echo "${option}" | sudo update-alternatives --config "${package}" &> /dev/null
 
       if [[ $? -ne 0 ]]; then
-        echo -e "Error occured while running 'update-alternatives' for '${package}'. Aborting\n"
+        echo -e "\e[1mERROR:\e[0m Error occured while running 'update-alternatives' for '${package}'. Aborting\n"
         exit 1
       fi
 
@@ -539,7 +539,7 @@ function dxvk_install_main() {
 
       # TODO Expecting just one folder here. This method doesn't work with multiple dirs present
       if [[ $(echo ${dxvk_builddir_name} | wc -l) -gt 1 ]]; then
-        echo "Error: Multiple entries in dxvk build directory detected. Can't decide which one to use. Aborting\n"
+        echo "\e[1mERROR:\e[0m Multiple entries in dxvk build directory detected. Can't decide which one to use. Aborting\n"
         exit 1
       fi
 
@@ -553,7 +553,7 @@ function dxvk_install_main() {
         fi
 
         if [[ $? -ne 0 ]]; then
-          echo -e "Error occured while applying DXVK patch '${pfile}'. Aborting\n"
+          echo -e "\e[1mERROR:\e[0m Error occured while applying DXVK patch '${pfile}'. Aborting\n"
           cd ${CURDIR}
           exit 1
         fi
@@ -603,7 +603,7 @@ DXVK-DEBIANRULES
     bash ./package-release.sh master debian/source/ --no-package
 
     if [[ $? -ne 0 ]]; then
-      echo -e "Error while compiling ${pkgname}. Check messages above. Aborting\n"
+      echo -e "\e[1mERROR:\e[0m Error while compiling ${pkgname}. Check messages above. Aborting\n"
       buildpkg_removal
       exit 1
     fi
