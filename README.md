@@ -310,13 +310,13 @@ Git commit freezing used for DXVK & meson. Reasons:
 
 - Add compilation/installation script for the latest AMDGPU on Debian/Ubuntu/Mint
 
+- Add compilation/installation script for the latest MinGW on Debian/Ubuntu/Mint
+
 - Remove temp folders in case of failure (meson/glslang/dxvk-git/wine... temp build folders)
 
 - Unify error & warning messages layout, unify internal variable & function names
 
 - Common script clean-up
-
-- Separate glslang and meson build process from dxvk on Debian?
 
 - Better handling for sudo validation loop function
 
