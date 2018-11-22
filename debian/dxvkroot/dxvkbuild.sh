@@ -190,34 +190,102 @@ z=0
 
 function preparepackage() {
 
+############################
+
   # Set local variables
-  local _pkgname=${1}
-  local _pkgdeps_build=${2}
-  local _pkgurl=${3}
-  local _pkgver=${4}
-  local _git_commithash=${5}
+  local _pkg_name=${1}
+  local _pkg_license=${2}
+  local _pkg_maintainer=${3}
+  local _pkg_section=${4}
+  local _pkg_priority=${5}
+  local _pkg_arch=${6}
+  local _pkg_commondesc=${7}
+  local _pkg_longdesc=${8}
+  local _pkg_giturl=${9}
+  local _pkg_homeurl=${10}
+  local _git_commithash=${11}
+  local _pkg_gitver=${12}
+  local _pkg_controlfile=${13}
+  local _pkg_rulesfile=${14}
+  local _pkg_rules_override=${15}
+  local _pkg_suggests=${16}
+  local _pkg_overrides=${17}
+  local _pkg_deps_build=${18}
+  local _pkg_deps_runtime=${19}
+  local _pkg_extra_1=${20}
+  local _pkg_extra_2=${21}
+  local _pkg_debbuilder=${22}
 
-  echo -e "Starting compilation$(if [[ ! -v NO_INSTALL ]] || [[ ${_pkgname} =~ ^meson|glslang$ ]]; then printf " & installation"; fi) of ${1}\n"
+############################
 
-  # Optional variable for runtime dependencies array
-  if [[ -n ${6} ]]; then local _pkgdeps_runtime=${6}; fi
+  # Separate array indexes correctly
+  # We have streamed all array indexes, separated
+  # by | symbol. We reconstruct the arrays here.
+  function arrayparser_reverse() {
+
+    local arrays=(
+    '_pkg_suggests'
+    '_pkg_overrides'
+    '_pkg_deps_build'
+    '_pkg_deps_runtime'
+    '_pkg_extra_1'
+    '_pkg_extra_2'
+    )
+
+    for w in ${arrays[@]}; do
+      local s=\${${w}}
+
+      local IFS='|'
+      local y=0
+
+      for t in $(eval printf '%s\|' ${s}); do
+        eval ${w}[$y]=\"${t}\"
+        let y++
+      done
+      unset IFS
+
+    done
+  }
+
+  arrayparser_reverse
+
+############################
+
+  echo -e "Starting compilation$(if [[ ! -v NO_INSTALL ]] || [[ ${_pkg_name} =~ ^meson|glslang$ ]]; then printf " & installation"; fi) of ${_pkg_name}\n"
+
+############################
 
   # Check and install package related dependencies if they are missing
-  function pkgdependencies() {
+  function pkg_dependencies() {
 
-    local pkglist="${1}"
-    local pkgtype="${2}"
+    local _pkg_list="${1}"
+    local _pkg_type="${2}"
+    local IFS=$'\n'
+
+    case ${_pkg_type} in
+      buildtime)
+        local _pkg_type_str="build time"
+        ;;
+      runtime)
+        local _pkg_type_str="runtime"
+        ;;
+    esac
+
+    if [[ ${_pkg_list[0]} == "empty" ]]; then
+      return 0
+    fi
 
     # Generate a list of missing dependencies
     local a=0
-    for p in ${pkglist[@]}; do
+    for p in ${_pkg_list[@]}; do
+      local p=$(printf '%s' ${p} | awk '{print $1}')
       if [[ $(echo $(dpkg -s ${p} &>/dev/null)$?) -ne 0 ]]; then
-        local validlist[$a]=${p}
+        local _validlist[$a]=${p}
         let a++
 
         # Global array to track installed build dependencies
-        if [[ ${pkgtype} == "buildtime" ]]; then
-          buildpkglist[$z]=${p}
+        if [[ ${_pkg_type} == "buildtime" ]]; then
+          _buildpkglist[$z]=${p}
           let z++
         fi
 
@@ -226,71 +294,162 @@ function preparepackage() {
 
     # Install missing dependencies, be informative
     local b=0
-    for pkgdep in ${validlist[@]}; do
-      echo -e "$(( $b + 1 ))/$(( ${#validlist[*]} )) - Installing ${_pkgname} build time dependency ${pkgdep}"
-      sudo apt install -y ${pkgdep} &> /dev/null
+    for _pkg_dep in ${_validlist[@]}; do
+      echo -e "$(( $b + 1 ))/$(( ${#_validlist[*]} )) - Installing ${_pkg_name} ${_pkg_type_str} dependency ${_pkg_dep}"
+      sudo apt install -y ${_pkg_dep} &> /dev/null
       if [[ $? -eq 0 ]]; then
         let b++
       else
-        echo -e "\n\e[1mERROR:\e[0m Error occured while installing ${pkgdep}. Aborting.\n"
+        echo -e "\n\e[1mERROR:\e[0m Error occured while installing ${_pkg_dep}. Aborting.\n"
         exit 1
       fi
     done
-    if [[ -n ${validlist[*]} ]]; then
+    if [[ -n ${_validlist[*]} ]]; then
       # Add empty newline
       echo ""
     fi
   }
 
+############################
+
   # Get git-based version in order to rename the package main folder
   # This is required by deb builder. It retrieves the version number
   # from that folder name
-  function pkgversion() {
+  function pkg_gitversion() {
 
-    if [[ -n "${_pkgver}" ]] && [[ "${_pkgver}" =~ ^git ]]; then
-      cd ${_pkgname}
+    if [[ -n "${_pkg_gitver}" ]] && [[ "${_pkg_gitver}" =~ ^git ]]; then
+      cd ${_pkg_name}
       git reset --hard ${_git_commithash}
       if [[ $? -ne 0 ]]; then
-        echo -e "\e[1mERROR:\e[0m Couldn't find commit ${_git_commithash} for ${_pkgname}. Aborting\n"
+        echo -e "\e[1mERROR:\e[0m Couldn't find commit ${_git_commithash} for ${_pkg_name}. Aborting\n"
         exit 1
       fi
-      _pkgver=$(eval "${_pkgver}")
+      _pkg_gitver=$(eval "${_pkg_gitver}")
       cd ..
     fi
 
   }
 
-  function pkgfoldername() {
+############################
 
-    # Remove old build directory, if present
-    rm -rf ${_pkgname}
+# TODO HANDLE EMPTY LINES CORRECTLY
 
-    # Create a  new build directory, access it and download git sources there
-    mkdir ${_pkgname}
-    cd ${_pkgname}
-    echo -e "Retrieving source code of ${_pkgname} from $(printf ${_pkgurl} | sed 's/^.*\/\///; s/\/.*//')\n"
-    git clone ${_pkgurl} ${_pkgname}
+  function pkg_feed_debiancontrol() {
 
-    # If sources could be downloaded, rename the folder properly for deb builder
-    # Access the folder after which package specific debianbuild function will be run
-    # That function is defined inside package specific install_main function below
-    if [[ $? -eq 0 ]]; then
-      pkgversion && \
-      mv ${_pkgname} ${_pkgname}-${_pkgver}
-      cd ${_pkgname}-${_pkgver}
-    else
-      echo -e "\e[1mERROR:\e[0m Error while downloading source of ${_pkgname} package. Aborting\n"
+    # For correct array index handling
+    local IFS=$'\n'
+
+    cat << CONTROLFILE > "${_pkg_controlfile}"
+Source: ${_pkg_name}
+Section: ${_pkg_section}
+Priority: ${_pkg_priority}
+Maintainer: ${_pkg_maintainer}
+Build-Depends: debhelper (>=9), $(if [[ ${_pkg_deps_build[0]} != "empty" ]]; then \
+for w in ${_pkg_deps_build[@]}; do printf '%s, ' ${w}; done; fi)
+Standards-Version: 4.1.3
+Homepage: ${_pkg_homeurl}
+$(if [[ ${_pkg_extra_1[0]} != "empty" ]]; then for w in ${_pkg_extra_1[@]}; do echo ${w}; done ; fi)
+
+Package: ${_pkg_name}
+Architecture: ${_pkg_arch}
+Depends: \${shlibs:Depends}, \${misc:Depends}, $(if [[ ${_pkg_deps_runtime[0]} != "empty" ]]; then \
+for w in ${_pkg_deps_runtime[@]}; do printf '%s, ' ${w}; done; fi)
+Description: ${_pkg_commondesc}
+$(echo -e ${_pkg_longdesc} | sed 's/^/ /g; s/\n/\n /g')
+$(if [[ ${_pkg_extra_2[0]} != "empty" ]]; then for w in ${_pkg_extra_2[@]}; do echo ${w}; done ; fi)
+$(if [[ ${_pkg_suggests[0]} != "empty" ]]; then echo "Suggests: $(echo ${_pkg_suggests[*]} | sed 's/\s/, /g')"; fi)
+$(if [[ ${_pkg_overrides[0]} != "empty" ]]; then echo "Conflicts: $(echo ${_pkg_overrides[*]} | sed 's/\s/, /g')"; fi)
+$(if [[ ${_pkg_overrides[0]} != "empty" ]]; then echo "Breaks: $(echo ${_pkg_overrides[*]} | sed 's/\s/, /g')"; fi)
+$(if [[ ${_pkg_overrides[0]} != "empty" ]]; then echo "Replaces: $(echo ${_pkg_overrides[*]} | sed 's/\s/, /g')"; fi)
+$(if [[ ${_pkg_overrides[0]} != "empty" ]]; then echo "Provides: $(echo ${_pkg_overrides[*]} | sed 's/\s/, /g')"; fi)
+CONTROLFILE
+
+    if [[ ! -f "${_pkg_controlfile}" ]]; then
+      echo -e "\e[1mERROR:\e[0m Couldn't create Debian control file for ${_pkg_name}. Aborting\n"
       exit 1
     fi
 
   }
 
-  # Execute above functions
-  pkgdependencies "${_pkgdeps_build[*]}" buildtime && \
-  if [[ -v _pkgdeps_runtime ]]; then pkgdependencies "${_pkgdeps_runtime[*]}" runtime ; fi
-  pkgfoldername
+############################
 
-  unset _pkgver
+  function pkg_override_debianrules() {
+    if [[ $(echo ${_pkg_rules_override} | wc -w) -ne 0 ]]; then
+      echo "${_pkg_rules_override}" > "${_pkg_rulesfile}"
+      if [[ $? -ne 0 ]]; then
+        echo "\e[1mERROR:\e[0m Couldn't create Debian rules file for ${_pkg_name}. Aborting\n"
+        exit 1
+      fi
+    fi
+  }
+
+############################
+
+  function pkg_folderprepare() {
+
+    # Remove old build directory, if present
+    rm -rf ${_pkg_name}
+
+    # Create a  new build directory, access it and download git sources there
+    mkdir ${_pkg_name}
+    cd ${_pkg_name}
+    echo -e "Retrieving source code of ${_pkg_name} from $(printf ${_pkg_giturl} | sed 's/^.*\/\///; s/\/.*//')\n"
+    git clone ${_pkg_giturl} ${_pkg_name}
+
+    # If sources could be downloaded, rename the folder properly for deb builder
+    # Access the folder after which package specific debianbuild function will be run
+    # That function is defined inside package specific install_main function below
+    if [[ $? -eq 0 ]]; then
+      pkg_gitversion && \
+      mv ${_pkg_name} ${_pkg_name}-${_pkg_gitver}
+      cd ${_pkg_name}-${_pkg_gitver}
+
+      dh_make --createorig -s -y -c ${_pkg_license} && \
+      pkg_feed_debiancontrol
+      pkg_override_debianrules
+
+    else
+      echo -e "\e[1mERROR:\e[0m Error while downloading source of ${_pkg_name} package. Aborting\n"
+      exit 1
+    fi
+
+  }
+
+############################
+
+  function pkg_debianbuild() {
+
+    # Start deb builder
+    bash -c "${_pkg_debbuilder}"
+
+    # Once our deb package is compiled, install and store it
+    # We do not make installation optional because this is a core dependency for DXVK
+    if [[ $? -eq 0 ]]; then
+      rm -rf ../*.{changes,buildinfo,tar.xz} && \
+      sudo dpkg -i ../${_pkg_name}*.deb && \
+      mv ../${_pkg_name}*.deb ../../../compiled_deb/"${datedir}" && \
+      echo -e "Compiled ${_pkg_name} is stored at '$(readlink -f ../../../compiled_deb/"${datedir}")/'\n"
+      cd ../..
+      rm -rf ${_pkg_name}
+    else
+      exit 1
+    fi
+
+  }
+
+############################
+
+  # Execute above functions
+  pkg_dependencies "${_pkg_deps_build[*]}" buildtime && \
+  if [[ ${_pkg_deps_runtime[0]} != "empty" ]] && [[ ! -v NO_INSTALL ]]; then pkg_dependencies "${_pkg_deps_runtime[*]}" runtime ; fi
+  pkg_folderprepare
+
+  # TODO use package name or separate override switch here?
+  if [[ ${_pkg_name} != "dxvk-git" ]]; then
+    pkg_debianbuild
+  fi
+
+  unset _pkg_gitver
 
 }
 
@@ -301,23 +460,25 @@ function preparepackage() {
 function buildpkg_removal() {
 
   # Build time dependencies which were installed but no longer needed
-  if [[ -v buildpkglist ]]; then
+  if [[ -v _buildpkglist ]]; then
     if [[ -v BUILDPKG_RM ]]; then
-      sudo apt purge --remove -y ${buildpkglist[*]}
+      sudo apt purge --remove -y ${_buildpkglist[*]}
 
       # In some cases, glslang or meson may still be present on the system. Remove them
-      for extrapkg in glslang meson; do
-        if [[ $(echo $(dpkg -s ${extrapkg} &>/dev/null)$?) -eq 0 ]]; then
-          sudo apt purge --remove -y ${extrapkg}
+      for _extrapkg in glslang meson; do
+        if [[ $(echo $(dpkg -s ${_extrapkg} &>/dev/null)$?) -eq 0 ]]; then
+          sudo apt purge --remove -y ${_extrapkg}
         fi
       done
 
     else
-      echo -e "The following build time dependencies were installed and no longer needed:\n\n$(for l in ${buildpkglist[*]}; do echo -e ${l}; done)\n"
+      echo -e "The following build time dependencies were installed and no longer needed:\n\n$(for l in ${_buildpkglist[*]}; do echo -e ${l}; done)\n"
     fi
   fi
 }
 
+########################################################
+########################################################
 ########################################################
 
 # MESON COMPILATION & INSTALLATION
@@ -326,83 +487,172 @@ function buildpkg_removal() {
 function meson_install_main() {
 
   # Package name
-  local pkgname="meson"
+  local pkg_name="meson"
+  local pkg_license="apache"
+  local pkg_maintainer="${USER} <${USER}@unknown>"
+  local pkg_section="devel"
+  local pkg_priority="optional"
+  local pkg_arch="all"
 
-  # Build time dependencies
-  local pkgdeps_build=(
-  'python3'
-  'dh-python'
-  'python3-setuptools'
-  'ninja-build'
+  local pkg_commondesc="high-productivity build system"
+  local pkg_longdesc="
+Meson is a build system designed to increase programmer\n\
+productivity. It does this by providing a fast, simple and easy to\n\
+use interface for modern software development tools and practices.
+  "
+
+  local pkg_giturl="https://github.com/mesonbuild/meson"
+  local pkg_homeurl="http://mesonbuild.com"
+
+  local git_commithash=${git_commithash_meson}
+  local pkg_gitver="git describe --long | sed 's/\-[a-z].*//; s/\-/\./; s/[a-z]//g'"
+
+  local pkg_controlfile="./debian/control"
+  local pkg_rulesfile="./debian/rules"
+
+##############
+# MESON - Debian rules file override
+
+local pkg_rules_override="\
+#!/usr/bin/make -f
+# Original script by Jussi Pakkanen
+
+export MESON_PRINT_TEST_OUTPUT=1
+export QT_SELECT=qt5
+export LC_ALL=C.UTF-8
+%:
+	dh \$@ --with python3 --buildsystem=pybuild
+
+override_dh_auto_configure:
+
+override_dh_auto_build:
+
+override_dh_auto_test:
+
+override_dh_clean:
+	dh_clean
+	rm -f *.pyc
+	rm -rf __pycache__
+	rm -rf mesonbuild/__pycache__
+	rm -rf mesonbuild/*/__pycache__
+	rm -rf work\ area
+	rm -rf install\ dir/*
+	rm -f meson-test-run.txt meson-test-run.xml
+	rm -rf meson.egg-info
+	rm -rf build
+	rm -rf .pybuild
+
+override_dh_install:
+# Helper script to autogenerate cross files.
+	python3 setup.py install --root=\$\$(pwd)/debian/meson --prefix=/usr --install-layout=deb --install-lib=/usr/share/meson --install-scripts=/usr/share/meson
+	rm -rf \$\$(pwd)/debian/meson/usr/share/meson/mesonbuild/__pycache__
+	rm -rf \$\$(pwd)/debian/meson/usr/share/meson/mesonbuild/*/__pycache__
+	rm \$\$(pwd)/debian/meson/usr/bin/meson
+	ln -s ../share/meson/meson \$\$(pwd)/debian/meson/usr/bin/meson
+"
+
+##############
+
+# MESON
+
+  # Debian control file Suggests section
+  local pkg_suggests=(
+  empty
   )
 
-  # Git source location
-  local pkgurl="https://github.com/mesonbuild/meson"
+  # Debian control file override etc. sections
+  local pkg_overrides=(
+  empty
+  )
 
-  # Git commit hash variable
-  local git_commithash=${git_commithash_meson}
+  # Build time dependencies
+  local pkg_deps_build=(
+  'python3 (>= 3.5)'
+  'dh-python'
+  'python3-setuptools'
+  'ninja-build (>= 1.6)'
+  )
 
-  # Parsed version number from git source files
-  local pkgver_git="git describe --long | sed 's/\-[a-z].*//; s/\-/\./; s/[a-z]//g'"
+  # Runtime dependencies
+  local pkg_deps_runtime=(
+  'ninja-build (>=1.6)'
+  'python3'
+  )
 
-  # Location of Debian compilation instructions archive
-  local pkgurl_debian="http://archive.ubuntu.com/ubuntu/pool/universe/m/meson/meson_0.45.1-2.debian.tar.xz"
+  # Extra fields for Debian control file Source section
+  local pkg_extra_1=(
+  'X-Python3-Version: >= 3.5'
+  )
 
-  function meson_debianbuild() {
+  # Extra fields for Debian control file Package section
+  local pkg_extra_2=(
+  empty
+  )
 
-    # Download predefined Meson debian rules archive
-    # Extract it, and finally delete the archive
-    wget ${pkgurl_debian} -O debian.tar.xz
-    tar xf debian.tar.xz && rm debian.tar.xz
+############################
 
-    # Get sed compatible Meson version string
-    local meson_version=$(printf '%s' $(pwd | sed -e 's/.*\-//' -e 's/\./\\\./g'))
+# MESON
 
-    # Do not perform any tests or checks during compilation process
-    sed -ir '/nocheck/d' debian/control
-    sed -ir '/\.\/run_tests\.py/d' debian/rules
+  # Deb builder execution field
+  # Do not build either debug symbols or doc files
+  local pkg_debbuilder="DEB_BUILD_OPTIONS=\"strip nodocs noddebs nocheck\" dpkg-buildpackage -rfakeroot -b -us -uc"
 
-    # Downgrade debhelper version requirement for Debian compatilibity
-    sed -ir 's/debhelper (>= 11)/debhelper (>= 10)/' debian/control
+############################
 
-    # Correct & update package version number + debian rules
-    sed -ir "s/0\.45\.1-2/${meson_version}/" debian/changelog
+# MESON
 
-    # Delete the following strings from debian/rules file
-    # They are deprecated
-    sed -ir '/rm \$\$(pwd)\/debian\/meson\/usr\/bin\/mesontest/d' debian/rules
-    sed -ir '/rm \$\$(pwd)\/debian\/meson\/usr\/bin\/mesonconf/d' debian/rules
-    sed -ir '/rm \$\$(pwd)\/debian\/meson\/usr\/bin\/mesonintrospect/d' debian/rules
-    sed -ir '/rm \$\$(pwd)\/debian\/meson\/usr\/bin\/wraptool/d' debian/rules
-    sed -ir '/rm \-rf \$\$(pwd)\/debian\/meson\/usr\/lib\/python3/d' debian/rules
+  # Prepare these arrays for preparepackage input
+  # Separate each array index with | in these arrays
+  function arrayparser() {
 
-    # Remove deprecated, downloaded patch files
-    rm -rf debian/patches
+    local arrays=(
+    'pkg_suggests'
+    'pkg_overrides'
+    'pkg_deps_build'
+    'pkg_deps_runtime'
+    'pkg_extra_1'
+    'pkg_extra_2'
+    )
 
-    # Remove irrelevant sample files
-    rm -rf debian/*.{ex,EX}
+    for w in ${arrays[@]}; do
 
-    # Start deb builder. Do not build either debug symbols or doc files
-    DEB_BUILD_OPTIONS="strip nodocs noddebs nocheck" dpkg-buildpackage -rfakeroot -b -us -uc
+      local s=\${${w}[@]}
+      local t=$(eval printf '%s\|' ${s})
+      unset ${w}
+      eval ${w}=\"${t}\"
 
-    # Once compiled, install and store the compiled deb archive
-    # We do not make installation optional because this is a core dependency for DXVK
-    if [[ $? -eq 0 ]]; then
-      rm -rf ../*.{changes,buildinfo,tar.xz} && \
-      sudo dpkg -i ../${pkgname}*.deb && \
-      mv ../${pkgname}*.deb ../../../compiled_deb/"${datedir}" && \
-      echo -e "Compiled ${pkgname} is stored at '$(readlink -f ../../../compiled_deb/"${datedir}")/'\n"
-      cd ../..
-      rm -rf ${pkgname}
-    else
-      exit 1
-    fi
-
+    done
   }
 
+############################
+
+# MESON
+
   # Execute above functions
-  preparepackage "${pkgname}" "${pkgdeps_build[*]}" "${pkgurl}" "${pkgver_git}" "${git_commithash}" && \
-  meson_debianbuild
+  arrayparser && \
+  preparepackage \
+  "${pkg_name}" \
+  "${pkg_license}" \
+  "${pkg_maintainer}" \
+  "${pkg_section}" \
+  "${pkg_priority}" \
+  "${pkg_arch}" \
+  "${pkg_commondesc}" \
+  "${pkg_longdesc}" \
+  "${pkg_giturl}" \
+  "${pkg_homeurl}" \
+  "${git_commithash}" \
+  "${pkg_gitver}" \
+  "${pkg_controlfile}" \
+  "${pkg_rulesfile}" \
+  "${pkg_rules_override}" \
+  "${pkg_suggests}" \
+  "${pkg_overrides}" \
+  "${pkg_deps_build}" \
+  "${pkg_deps_runtime}" \
+  "${pkg_extra_1}" \
+  "${pkg_extra_2}" \
+  "${pkg_debbuilder}"
 
 }
 
@@ -414,58 +664,139 @@ function meson_install_main() {
 function glslang_install_main() {
 
   # Package name
-  local pkgname="glslang"
+  local pkg_name="glslang"
+  local pkg_license="bsd"
+  local pkg_maintainer="${USER} <${USER}@unknown>"
+  local pkg_section="devel"
+  local pkg_priority="optional"
+  local pkg_arch="all"
+
+  local pkg_commondesc="Khronos OpenGL and OpenGL ES shader front end and validator."
+  local pkg_longdesc="
+Khronos reference front-end for GLSL and ESSL, and sample SPIR-V generator
+  "
+
+  local pkg_giturl="https://github.com/KhronosGroup/glslang"
+  local pkg_homeurl="https://www.khronos.org/opengles/sdk/tools/Reference-Compiler/"
+
+  local git_commithash=${git_commithash_glslang}
+  local pkg_gitver="git describe --long | sed 's/\-[a-z].*//; s/\-/\./; s/[a-z]//g'"
+
+  local pkg_controlfile="./debian/control"
+  local pkg_rulesfile="./debian/rules"
+
+##############
+# GLSLANG - Debian rules file override
+
+local pkgrules_override="
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_usrlocal:
+"
+
+##############
+
+# GLSLANG
+
+  # Debian control file Suggests section
+  local pkg_suggests=(
+  empty
+  )
+
+  # Debian control file override etc. sections
+  local pkg_overrides=(
+  empty
+  )
 
   # Build time dependencies
-  local pkgdeps_build=('cmake' 'python2.7')
+  local pkg_deps_build=(
+  #${_coredeps[*]}
+  'cmake'
+  'python2.7'
+  )
 
-  # Git source location
-  local pkgurl="https://github.com/KhronosGroup/glslang"
+  # Runtime dependencies
+  local pkg_deps_runtime=(
+  empty
+  )
 
-  # Git commit hash variable
-  local git_commithash=${git_commithash_glslang}
+  # Extra fields for Debian control file Source section
+  local pkg_extra_1=(
+  empty
+  )
 
-  # Parsed version number from git source files
-  local pkgver_git="git describe --long | sed 's/\-[a-z].*//; s/\-/\./; s/[a-z]//g'"
+  # Extra fields for Debian control file Package section
+  local pkg_extra_2=(
+  empty
+  )
 
-  function glslang_debianbuild() {
+############################
 
-    # Create debian subdirectory
-    dh_make --createorig -s -y -c bsd
+# GLSLANG
 
-    # Set Build dependencies into debian/control file
-    sed -ie "s/^Build-Depends:.*$/Build-Depends: debhelper (>=10), $(echo ${_coredeps[*]} | \
-    sed 's/\s/, /g'), $(echo ${pkgdeps_build[*]} | sed 's/\s/, /g')/g" debian/control
+  # Deb builder execution field
+  # Do not build either debug symbols
+  local pkg_debbuilder="DEB_BUILD_OPTIONS=\"strip nodocs noddebs\" dpkg-buildpackage -rfakeroot -b -us -uc"
 
-    # Skip running override_dh_usrlocal while executing deb builder
-    printf 'override_dh_usrlocal:' | tee -a debian/rules
+############################
 
-    # Remove irrelevant sample files
-    rm -rf debian/*.{ex,EX}
+# GLSLANG
 
-    # Start deb builder. Do not build either debug symbols or doc files
-    DEB_BUILD_OPTIONS="strip nodocs noddebs" dpkg-buildpackage -rfakeroot -b -us -uc
+  # Prepare these arrays for preparepackage input
+  # Separate each array index with | in these arrays
+  function arrayparser() {
 
-    # Once compiled, install and store the compiled deb archive
-    # We do not make installation optional because this is a core dependency for DXVK
-    if [[ $? -eq 0 ]]; then
-      rm -rf ../*.{changes,buildinfo,tar.xz} && \
-      sudo dpkg -i ../${pkgname}*.deb && \
-      mv ../${pkgname}*.deb ../../../compiled_deb/"${datedir}" && \
-      echo -e "Compiled ${pkgname} is stored at '$(readlink -f ../../../compiled_deb/"${datedir}")/'\n"
-      cd ../..
-      rm -rf ${pkgname}
-    else
-      # If we fail to build DXVK, remove possibly compiled & installed meson + glslang packages
-      buildpkg_removal
-      exit 1
-    fi
+    local arrays=(
+    'pkg_suggests'
+    'pkg_overrides'
+    'pkg_deps_build'
+    'pkg_deps_runtime'
+    'pkg_extra_1'
+    'pkg_extra_2'
+    )
 
+    for w in ${arrays[@]}; do
+
+      local s=\${${w}[@]}
+      local t=$(eval printf '%s\|' ${s})
+      unset ${w}
+      eval ${w}=\"${t}\"
+
+    done
   }
 
+############################
+
+# GLSLANG
+
   # Execute above functions
-  preparepackage "${pkgname}" "${pkgdeps_build[*]}" "${pkgurl}" "${pkgver_git}" "${git_commithash}" && \
-  glslang_debianbuild
+  arrayparser && \
+  preparepackage \
+  "${pkg_name}" \
+  "${pkg_license}" \
+  "${pkg_maintainer}" \
+  "${pkg_section}" \
+  "${pkg_priority}" \
+  "${pkg_arch}" \
+  "${pkg_commondesc}" \
+  "${pkg_longdesc}" \
+  "${pkg_giturl}" \
+  "${pkg_homeurl}" \
+  "${git_commithash}" \
+  "${pkg_gitver}" \
+  "${pkg_controlfile}" \
+  "${pkg_rulesfile}" \
+  "${pkg_rules_override}" \
+  "${pkg_suggests}" \
+  "${pkg_overrides}" \
+  "${pkg_deps_build}" \
+  "${pkg_deps_runtime}" \
+  "${pkg_extra_1}" \
+  "${pkg_extra_2}" \
+  "${pkg_debbuilder}"
 
 }
 
@@ -476,10 +807,59 @@ function glslang_install_main() {
 function dxvk_install_main() {
 
   # Package name
-  local pkgname="dxvk-git"
+  local pkg_name="dxvk-git"
+  local pkg_license="custom --copyrightfile ../LICENSE"
+  local pkg_maintainer="${USER} <${USER}@unknown>"
+  local pkg_section="otherosfs"
+  local pkg_priority="optional"
+  local pkg_arch="all"
+
+  local pkg_commondesc="Vulkan-based D3D11 and D3D10 implementation for Linux / Wine"
+  local pkg_longdesc="
+A Vulkan-based translation layer for Direct3D 10/11 which
+allows running 3D applications on Linux using Wine.
+  "
+
+  local pkg_giturl="https://github.com/doitsujin/dxvk"
+  local pkg_homeurl="https://github.com/doitsujin/dxvk"
+
+  local git_commithash=${git_commithash_dxvk}
+  local pkg_gitver="git describe --long | sed 's/\-[a-z].*//; s/\-/\./; s/[a-z]//g'"
+
+  local pkg_controlfile="./debian/control"
+  local pkg_rulesfile="./debian/rules"
+
+##############
+# DXVK - Debian rules file override
+
+local pkg_rules_override="\
+#!/usr/bin/make -f
+
+%:
+	dh \$@
+
+override_dh_auto_configure:
+
+override_dh_usrlocal:
+"
+
+##############
+
+# DXVK
+
+  # Debian control file Suggests section
+  local pkg_suggests=(
+  empty
+  )
+
+  # Debian control file override etc. sections
+  local pkg_overrides=(
+  empty
+  )
 
   # Build time dependencies
-  local pkgdeps_build=(
+  local pkg_deps_build=(
+  #${_coredeps[*]}
   'meson'
   'glslang'
   'gcc-mingw-w64-x86-64'
@@ -491,16 +871,51 @@ function dxvk_install_main() {
   )
 
   # Runtime dependencies
-  local pkgdeps_runtime=('wine' 'winetricks')
+  local pkg_deps_runtime=(
+  'wine'
+  'winetricks'
+  )
 
-  # Git source location
-  local pkgurl="https://github.com/doitsujin/dxvk"
+  # Extra fields for Debian control file Source section
+  local pkg_extra_1=(
+  empty
+  )
 
-  # Git commit hash variable
-  local git_commithash=${git_commithash_dxvk}
+  # Extra fields for Debian control file Package section
+  local pkg_extra_2=(
+  empty
+  )
 
-  # Parsed version number from git source files
-  local pkgver_git="git describe --long | sed 's/\-[a-z].*//; s/\-/\./; s/[a-z]//g'"
+############################
+
+# DXVK
+
+  # Prepare these arrays for preparepackage input
+  # Separate each array index with | in these arrays
+  function arrayparser() {
+
+    local arrays=(
+    'pkg_suggests'
+    'pkg_overrides'
+    'pkg_deps_build'
+    'pkg_deps_runtime'
+    'pkg_extra_1'
+    'pkg_extra_2'
+    )
+
+    for w in ${arrays[@]}; do
+
+      local s=\${${w}[@]}
+      local t=$(eval printf '%s\|' ${s})
+      unset ${w}
+      eval ${w}=\"${t}\"
+
+    done
+  }
+
+############################
+
+# DXVK
 
   # Use posix alternates for MinGW binaries
   function dxvk_posixpkgs() {
@@ -525,17 +940,22 @@ function dxvk_install_main() {
 
   }
 
+############################
+
+# DXVK
+
+  # Add and apply custom DXVK patches
   function dxvk_custompatches() {
 
     # Get our current directory, since we will change it during patching process below
     # We want to go back here after having applied the patches
-    local CURDIR=${PWD}
+    local CURDIR="${PWD}"
 
     # Check if the following folder exists, and proceed.
-    if [[ -d ${DXVKROOT}/../../dxvk_custom_patches ]]; then
-      cp -r ${DXVKROOT}/../../dxvk_custom_patches/*.{patch,diff} ${DXVKROOT}/${pkgname}/ 2>/dev/null
+    if [[ -d "${DXVKROOT}/../../dxvk_custom_patches" ]]; then
+      cp -r "${DXVKROOT}/../../dxvk_custom_patches/"*.{patch,diff} "${DXVKROOT}/${pkg_name}/" 2>/dev/null
 
-      local dxvk_builddir_name=$(ls ${DXVKROOT}/${pkgname}/)
+      local dxvk_builddir_name=$(ls -l "${DXVKROOT}/${pkg_name}" | grep ^d | awk '{print $NF}')
 
       # TODO Expecting just one folder here. This method doesn't work with multiple dirs present
       if [[ $(echo ${dxvk_builddir_name} | wc -l) -gt 1 ]]; then
@@ -543,7 +963,7 @@ function dxvk_install_main() {
         exit 1
       fi
 
-      local dxvk_builddir_path="${DXVKROOT}/${pkgname}/${dxvk_builddir_name}"
+      local dxvk_builddir_path="${DXVKROOT}/${pkg_name}/${dxvk_builddir_name}"
 
       cd "${dxvk_builddir_path}"
       for pfile in ../*.{patch,diff}; do
@@ -560,50 +980,30 @@ function dxvk_install_main() {
 
       done
 
-      cd ${CURDIR}
+      cd "${CURDIR}"
 
     fi
 
   }
 
-  # Debian-specific compilation & installation rules
-  function dxvk_debianbuild() {
+############################
+
+# DXVK
+
+  # Debian-specific compilation & installation rules for DXVK
+  function dxvk_custom_deb_build() {
 
     local dxvx_relative_builddir="debian/source/dxvk-master"
-
-    # Create debian subdirectory, add supplied LICENSE file
-    dh_make --createorig -s -y -c custom --copyrightfile ../LICENSE
-
-    # Set Build dependencies into debian/control file
-    sed -ie "s/^Build-Depends:.*$/Build-Depends: debhelper (>=10), $(echo ${_coredeps[*]} | \
-    sed 's/\s/, /g'), $(echo ${pkgdeps_build[*]} | sed 's/\s/, /g')/g" debian/control
-
-    # Set Runtime dependencies into debian/control file
-    sed -ie "s/^Depends:.*$/Depends: $(echo ${pkgdeps_runtime} | sed 's/\s/, /g')/g" debian/control
 
     # Tell deb builder to bundle these files
     printf "${dxvx_relative_builddir}/setup_dxvk.verb usr/share/dxvk/" > debian/install
     printf "\n${dxvx_relative_builddir}/bin/* usr/bin/" >> debian/install
 
-    # Remove irrelevant sample files
-    rm -rf debian/*.{ex,EX}
-
-# Overwrite debian/rules file with the following contents
-cat << 'DXVK-DEBIANRULES' > debian/rules
-#!/usr/bin/make -f
-%:
-	dh $@
-
-override_dh_auto_configure:
-
-override_dh_usrlocal:
-DXVK-DEBIANRULES
-
     # Start DXVK compilation
     bash ./package-release.sh master debian/source/ --no-package
 
     if [[ $? -ne 0 ]]; then
-      echo -e "\e[1mERROR:\e[0m Error while compiling ${pkgname}. Check messages above. Aborting\n"
+      echo -e "\e[1mERROR:\e[0m Error while compiling ${pkg_name}. Check messages above. Aborting\n"
       buildpkg_removal
       exit 1
     fi
@@ -632,24 +1032,52 @@ DXVK-DEBIANRULES
       fi
 
       rm -rf ../*.{changes,buildinfo,tar.xz}
-      mv ../${pkgname}*.deb ../../../compiled_deb/"${datedir}" && \
-      echo -e "Compiled ${pkgname} is stored at '$(readlink -f ../../../compiled_deb/"${datedir}")/'\n"
+      mv ../${pkg_name}*.deb ../../../compiled_deb/"${datedir}" && \
+      echo -e "Compiled ${pkg_name} is stored at '$(readlink -f ../../../compiled_deb/"${datedir}")/'\n"
       cd ../..
-      rm -rf ${pkgname}
+      rm -rf ${pkg_name}
     else
       exit 1
     fi
   }
+
+############################
+
+# DXVK
 
   # Execute above functions
   # Do not check runtime dependencies as our check method expects exact package name in
   # function 'preparepackage'. This does not apply to runtime dependency 'wine', which
   # may be 'wine', 'wine-git', 'wine-staging-git' etc. in truth
   #
-  preparepackage "${pkgname}" "${pkgdeps_build[*]}" "${pkgurl}" "${pkgver_git}" "${git_commithash}" && \
-  dxvk_posixpkgs && \
+  arrayparser && \
+  preparepackage \
+  "${pkg_name}" \
+  "${pkg_license}" \
+  "${pkg_maintainer}" \
+  "${pkg_section}" \
+  "${pkg_priority}" \
+  "${pkg_arch}" \
+  "${pkg_commondesc}" \
+  "${pkg_longdesc}" \
+  "${pkg_giturl}" \
+  "${pkg_homeurl}" \
+  "${git_commithash}" \
+  "${pkg_gitver}" \
+  "${pkg_controlfile}" \
+  "${pkg_rulesfile}" \
+  "${pkg_rules_override}" \
+  "${pkg_suggests[*]}" \
+  "${pkg_overrides[*]}" \
+  "${pkg_deps_build[*]}" \
+  "${pkg_deps_runtime[*]}" \
+  "${pkg_extra_1[*]}" \
+  "${pkg_extra_2[*]}" \
+  "${pkg_debbuilder}" && \
+  \
   dxvk_custompatches && \
-  dxvk_debianbuild
+  dxvk_posixpkgs && \
+  dxvk_custom_deb_build
 
 }
 
