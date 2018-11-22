@@ -1,9 +1,14 @@
+########################################################
+# Common properties
+
 pkg_name="dxvk-git"
 pkg_license="custom --copyrightfile ../LICENSE"
 pkg_maintainer="${USER} <${USER}@unknown>"
 pkg_section="otherosfs"
 pkg_priority="optional"
 pkg_arch="all"
+
+dxvx_relative_builddir="debian/source/dxvk-master"
 
 pkg_commondesc="Vulkan-based D3D11 and D3D10 implementation for Linux / Wine"
 pkg_longdesc="
@@ -17,11 +22,12 @@ pkg_homeurl="https://github.com/doitsujin/dxvk"
 git_commithash=${git_commithash_dxvk}
 pkg_gitver="git describe --long | sed 's/\-[a-z].*//; s/\-/\./; s/[a-z]//g'"
 
+pkg_installfile="./debian/install"
 pkg_controlfile="./debian/control"
 pkg_rulesfile="./debian/rules"
 
 ########################################################
-# Debian rules file override
+# Debian rules file section
 
 pkg_debrules="\
 #!/usr/bin/make -f
@@ -32,9 +38,34 @@ pkg_debrules="\
 override_dh_auto_configure:
 
 override_dh_usrlocal:
+
+override_dh_install:
+
+	# Compile DXVK
+	bash ./package-release.sh master debian/source/ --no-package
+
+	# Tell deb builder to create DXVK x32 & x64 subfolders
+	for arch in 32 64; do mkdir -p ${dxvx_relative_builddir}/x${arch}; done 
+
+	# Make a proper executable script folder for setup_dxvk.verb file
+	mkdir -p ${dxvx_relative_builddir}/bin
+
+	echo -e \"#!/bin/sh\nwinetricks --force /usr/share/dxvk/setup_dxvk.verb\" > \"${dxvx_relative_builddir}/bin/setup_dxvk\"
+	chmod +x "${dxvx_relative_builddir}/bin/setup_dxvk"
+	dh_install
 "
 
 ########################################################
+# Debian install file section
+
+pkg_debinstall="\
+${dxvx_relative_builddir}/setup_dxvk.verb usr/share/dxvk/
+${dxvx_relative_builddir}/bin/* usr/bin/
+$(for arch in 32 64; do echo -e ${dxvx_relative_builddir}/x${arch}/* usr/share/dxvk/x${arch}/; done)
+"
+
+########################################################
+# Debian control file subfields
 
 # Debian control file Overrides section
 pkg_overrides=(
@@ -66,7 +97,7 @@ pkg_provides=(
 empty
 )
 
-##############
+############################
 
 # Build time dependencies
 pkg_deps_build=(
@@ -96,6 +127,12 @@ empty
 pkg_extra_2=(
 empty
 )
+
+############################
+
+# Deb builder execution field
+# Do not build either debug symbols or doc files
+pkg_debbuilder="DEB_BUILD_OPTIONS=\"strip nodocs noddebs\" dpkg-buildpackage -us -uc -b --source-option=--include-binaries"
 
 ########################################################
 # Contents of Debian control file

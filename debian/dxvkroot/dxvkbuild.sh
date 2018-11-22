@@ -85,6 +85,8 @@ done
 
 ########################################################
 
+# PRESENCE OF WINE
+
 # Check presence of Wine. Some version of Wine should
 # be found in the system in order to install DXVK.
 
@@ -180,11 +182,10 @@ function pkgcompilecheck() {
 
 ########################################################
 
-# DXVK COMPILATION & INSTALLATION
+# DXVK CUSTOM INSTALLATION HOOKS
 
 # These are custom installation instructions for DXVK
-# They are not used independently, but as a part of
-# preparepackage function below.
+# They are not used independently.
 
 function dxvk_install_custom() {
 
@@ -212,6 +213,7 @@ function dxvk_install_custom() {
   }
 
 ############################
+# DXVK - CUSTOM PATCHES
 
   # Add and apply custom DXVK patches
   function dxvk_custompatches() {
@@ -256,74 +258,23 @@ function dxvk_install_custom() {
   }
 
 ############################
+# DXVK - CUSTOM HOOKS EXECUTION
 
-# DXVK
-
-  # Debian-specific compilation & installation rules for DXVK
-  function dxvk_custom_deb_build() {
-
-    local dxvx_relative_builddir="debian/source/dxvk-master"
-
-    # Tell deb builder to bundle these files
-    printf "${dxvx_relative_builddir}/setup_dxvk.verb usr/share/dxvk/" > debian/install
-    printf "\n${dxvx_relative_builddir}/bin/* usr/bin/" >> debian/install
-
-    # Start DXVK compilation
-    bash ./package-release.sh master debian/source/ --no-package
-
-    if [[ $? -ne 0 ]]; then
-      echo -e "\e[1mERROR:\e[0m Error while compiling ${pkg_name}. Check messages above. Aborting\n"
-      buildpkg_removal
-      exit 1
-    fi
-
-    # Make a proper executable script for setup_dxvk.verb file
-    mkdir -p ${dxvx_relative_builddir}/bin
-
-    echo -e "#!/bin/sh\nwinetricks --force /usr/share/dxvk/setup_dxvk.verb" \
-    > "${dxvx_relative_builddir}/bin/setup_dxvk"
-    chmod +x "${dxvx_relative_builddir}/bin/setup_dxvk"
-
-    # Tell deb builder to install DXVK x32 & x64 subfolders
-    for arch in 64 32; do
-      mkdir -p ${dxvx_relative_builddir}/x${arch}
-      printf "\n${dxvx_relative_builddir}/x${arch}/* usr/share/dxvk/x${arch}/" >> debian/install
-    done
-
-    # Start deb builder. Do not build either debug symbols or doc files
-    DEB_BUILD_OPTIONS="strip nodocs noddebs" dpkg-buildpackage -us -uc -b --source-option=--include-binaries
-
-    # Once compiled, possibly install and store the compiled deb archive
-    if [[ $? -eq 0 ]]; then
-
-      if [[ ! -v NO_INSTALL ]]; then
-        sudo dpkg -i ../${pkgname}*.deb
-      fi
-
-      rm -rf ../*.{changes,buildinfo,tar.xz}
-      mv ../${pkg_name}*.deb ../../../compiled_deb/"${datedir}" && \
-      echo -e "Compiled ${pkg_name} is stored at '$(readlink -f ../../../compiled_deb/"${datedir}")/'\n"
-      cd ../..
-      rm -rf ${pkg_name}
-    else
-      exit 1
-    fi
-  }
-
-############################
-
-# DXVK
   dxvk_custompatches && \
   dxvk_posixpkgs && \
   dxvk_custom_deb_build
 }
 
 ########################################################
+# COMMON - COMPILE AND INSTALL DEB PACKAGE
+
+# Instructions to compile and install a deb package
+# on Debian system
 
 # Global variable to track buildtime dependencies
 z=0
 
-function preparepackage() {
+function compile_and_install_deb() {
 
 ############################
 
@@ -333,19 +284,23 @@ function preparepackage() {
   local _pkg_giturl="${3}"
   local _git_commithash="${4}"
   local _pkg_gitver="${5}"
-  local _pkg_debcontrol="${6}"
-  local _pkg_debrules="${7}"
-  local _pkg_controlfile="${8}"
-  local _pkg_rulesfile="${9}"
-  local _pkg_deps_build="${10}"
-  local _pkg_deps_runtime="${11}"
-  local _pkg_debbuilder="${12}"
+  local _pkg_debinstall="${6}"
+  local _pkg_debcontrol="${7}"
+  local _pkg_debrules="${8}"
+  local _pkg_installfile="${9}"
+  local _pkg_controlfile="${10}"
+  local _pkg_rulesfile="${11}"
+  local _pkg_deps_build="${12}"
+  local _pkg_deps_runtime="${13}"
+  local _pkg_debbuilder="${14}"
 
 ############################
+# COMMON - ARRAY PARAMETER FIX
 
-  # Separate array indexes correctly
-  # We have streamed all array indexes, separated
-  # by | symbol. We reconstruct the arrays here.
+# Separate array indexes correctly
+# We have streamed all array indexes, separated
+# by | symbol. We reconstruct the arrays here.
+
   function arrayparser_reverse() {
 
     local arrays=(
@@ -375,8 +330,10 @@ function preparepackage() {
   echo -e "Starting compilation$(if [[ ! -v NO_INSTALL ]] || [[ ${_pkg_name} =~ ^meson|glslang$ ]]; then printf " & installation"; fi) of ${_pkg_name}\n"
 
 ############################
+# COMMON - PACKAGE DEPENDENCIES CHECK
 
-  # Check and install package related dependencies if they are missing
+# Check and install package related dependencies if they are missing
+
   function pkg_dependencies() {
 
     local _pkg_list="${1}"
@@ -432,10 +389,13 @@ function preparepackage() {
   }
 
 ############################
+# COMMON - RETRIEVE PACKAGE
+# GIT VERSION TAG
 
-  # Get git-based version in order to rename the package main folder
-  # This is required by deb builder. It retrieves the version number
-  # from that folder name
+# Get git-based version in order to rename the package main folder
+# This is required by deb builder. It retrieves the version number
+# from that folder name
+
   function pkg_gitversion() {
 
     if [[ -n "${_pkg_gitver}" ]] && [[ "${_pkg_gitver}" =~ ^git ]]; then
@@ -452,13 +412,18 @@ function preparepackage() {
   }
 
 ############################
+# COMMON - OVERWRITE
+# DEBIAN BUILD ENV FILES
+
+# Overwrite a file which is given as user input
+# The contents are supplied as input, too.
 
   function pkg_override_debianfile() {
 
     local contents=${1}
     local targetfile=${2}
 
-    if [[ $(echo ${contents} | wc -w) -ne 0 ]]; then
+    if [[ ${contents} != "empty" ]]; then
       echo "${contents}" > "${targetfile}"
       if [[ $? -ne 0 ]]; then
         echo -e "\e[1mERROR:\e[0m Couldn't create Debian file '${targetfile}' for ${_pkg_name}. Aborting\n"
@@ -468,6 +433,8 @@ function preparepackage() {
   }
 
 ############################
+# COMMON - GET SOURCE AND
+# PREPARE SOURCE FOLDER
 
   function pkg_folderprepare() {
 
@@ -489,6 +456,7 @@ function preparepackage() {
       cd ${_pkg_name}-${_pkg_gitver}
 
       dh_make --createorig -s -y -c ${_pkg_license} && \
+      pkg_override_debianfile "${_pkg_debinstall}" "${_pkg_installfile}"
       pkg_override_debianfile "${_pkg_debcontrol}" "${_pkg_controlfile}"
       pkg_override_debianfile "${_pkg_debrules}" "${_pkg_rulesfile}"
 
@@ -500,6 +468,8 @@ function preparepackage() {
   }
 
 ############################
+# COMMON - COMPILE, INSTALL
+# AND STORE DEB PACKAGE
 
   function pkg_debianbuild() {
 
@@ -516,14 +486,15 @@ function preparepackage() {
       cd ../..
       rm -rf ${_pkg_name}
     else
+      buildpkg_removal
       exit 1
     fi
 
   }
 
 ############################
+# COMMON - EXECUTION HOOKS
 
-  # Execute above functions
   pkg_dependencies "${_pkg_deps_build[*]}" buildtime && \
 
   if [[ ${_pkg_deps_runtime[0]} != "empty" ]] && [[ ! -v NO_INSTALL ]]; then
@@ -533,11 +504,10 @@ function preparepackage() {
   pkg_folderprepare
 
   # TODO use package name or separate override switch here?
-  if [[ ${_pkg_name} != "dxvk-git" ]]; then
-    pkg_debianbuild
-  else
+  if [[ ${_pkg_name} == *"dxvk"* ]]; then
     dxvk_install_custom
-  fi
+  fi  
+  pkg_debianbuild
 
   unset _pkg_gitver
 
@@ -585,7 +555,7 @@ function pkg_install_main() {
 
 ############################
 
-  # Prepare these arrays for preparepackage input
+  # Prepare these arrays for 'compile_and_install_deb' input
   # Separate each array index with | in these arrays
   function pkg_arrayparser() {
 
@@ -610,14 +580,16 @@ function pkg_install_main() {
 
   # Execute package installation procedure
   pkg_arrayparser && \
-  preparepackage \
+  compile_and_install_deb \
   "${pkg_name}" \
   "${pkg_license}" \
   "${pkg_giturl}" \
   "${git_commithash}" \
   "${pkg_gitver}" \
+  "${pkg_debinstall}" \
   "${pkg_debcontrol}" \
   "${pkg_debrules}" \
+  "${pkg_installfile}" \
   "${pkg_controlfile}" \
   "${pkg_rulesfile}" \
   "${pkg_deps_build}" \

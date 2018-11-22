@@ -1,3 +1,6 @@
+########################################################
+# Common properties
+
 pkg_name="glslang"
 pkg_license="bsd"
 pkg_maintainer="${USER} <${USER}@unknown>"
@@ -16,11 +19,12 @@ pkg_homeurl="https://www.khronos.org/opengles/sdk/tools/Reference-Compiler/"
 git_commithash=${git_commithash_glslang}
 pkg_gitver="git describe --long | sed 's/\-[a-z].*//; s/\-/\./; s/[a-z]//g'"
 
+pkg_installfile="./debian/install"
 pkg_controlfile="./debian/control"
 pkg_rulesfile="./debian/rules"
 
 ########################################################
-# Debian rules file override
+# Debian rules file section
 
 pkg_debrules="\
 #!/usr/bin/make -f
@@ -32,6 +36,12 @@ override_dh_usrlocal:
 "
 
 ########################################################
+# Debian install file section
+
+pkg_debinstall="empty"
+
+########################################################
+# Debian control file subfields
 
 # Debian control file Overrides section
 pkg_overrides=(
@@ -63,7 +73,7 @@ pkg_provides=(
 empty
 )
 
-##############
+############################
 
 # Build time dependencies
 pkg_deps_build=(
