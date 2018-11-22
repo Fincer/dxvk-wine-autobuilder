@@ -133,12 +133,6 @@ ${pkgreq_name} should be installed in order to use DXVK. Just compiling DXVK for
 
 }
 
-# Check existence of known Wine packages
-runtimeCheck Wine "${known_wines[*]}"
-
-# Check existence of known Winetricks packages
-runtimeCheck Winetricks "${known_winetricks[*]}"
-
 ########################################################
 
 # If the script is interrupted (Ctrl+C/SIGINT), do the following
@@ -174,13 +168,154 @@ fi
 
 function pkgcompilecheck() {
 
-  local pkg=${1}
-  local install_function=${2}
+  local install_function=${1}
+  local pkg=${2}
+  local pkg_data=${3}
 
   if [[ $(echo $(dpkg -s ${pkg} &>/dev/null)$?) -ne 0 ]] || [[ -v UPDATE_OVERRIDE ]]; then
-    ${install_function}
+    ${install_function} ${pkg_data}
   fi
 
+}
+
+########################################################
+
+# DXVK COMPILATION & INSTALLATION
+
+# These are custom installation instructions for DXVK
+# They are not used independently, but as a part of
+# preparepackage function below.
+
+function dxvk_install_custom() {
+
+  # Use posix alternates for MinGW binaries
+  function dxvk_posixpkgs() {
+
+    local packages=(
+    'i686-w64-mingw32-g++'
+    'i686-w64-mingw32-gcc'
+    'x86_64-w64-mingw32-g++'
+    'x86_64-w64-mingw32-gcc'
+    )
+
+    for package in "${packages[@]}"; do
+      local option=$(echo "" | sudo update-alternatives --config "${package}" | grep posix | sed 's@^[^0-9]*\([0-9]\+\).*@\1@')
+      echo "${option}" | sudo update-alternatives --config "${package}" &> /dev/null
+
+      if [[ $? -ne 0 ]]; then
+        echo -e "\e[1mERROR:\e[0m Error occured while running 'update-alternatives' for '${package}'. Aborting\n"
+        exit 1
+      fi
+
+    done
+
+  }
+
+############################
+
+  # Add and apply custom DXVK patches
+  function dxvk_custompatches() {
+
+    # Get our current directory, since we will change it during patching process below
+    # We want to go back here after having applied the patches
+    local CURDIR="${PWD}"
+
+    # Check if the following folder exists, and proceed.
+    if [[ -d "${DXVKROOT}/../../dxvk_custom_patches" ]]; then
+      cp -r "${DXVKROOT}/../../dxvk_custom_patches/"*.{patch,diff} "${DXVKROOT}/${pkg_name}/" 2>/dev/null
+
+      local dxvk_builddir_name=$(ls -l "${DXVKROOT}/${pkg_name}" | grep ^d | awk '{print $NF}')
+
+      # TODO Expecting just one folder here. This method doesn't work with multiple dirs present
+      if [[ $(echo ${dxvk_builddir_name} | wc -l) -gt 1 ]]; then
+        echo -e "\e[1mERROR:\e[0m Multiple entries in dxvk build directory detected. Can't decide which one to use. Aborting\n"
+        exit 1
+      fi
+
+      local dxvk_builddir_path="${DXVKROOT}/${pkg_name}/${dxvk_builddir_name}"
+
+      cd "${dxvk_builddir_path}"
+      for pfile in ../*.{patch,diff}; do
+        if [[ -f ${pfile} ]]; then
+          echo -e "Applying DXVK patch: ${pfile}\n"
+          patch -Np1 < ${pfile}
+        fi
+
+        if [[ $? -ne 0 ]]; then
+          echo -e "\e[1mERROR:\e[0m Error occured while applying DXVK patch '${pfile}'. Aborting\n"
+          cd ${CURDIR}
+          exit 1
+        fi
+
+      done
+
+      cd "${CURDIR}"
+
+    fi
+
+  }
+
+############################
+
+# DXVK
+
+  # Debian-specific compilation & installation rules for DXVK
+  function dxvk_custom_deb_build() {
+
+    local dxvx_relative_builddir="debian/source/dxvk-master"
+
+    # Tell deb builder to bundle these files
+    printf "${dxvx_relative_builddir}/setup_dxvk.verb usr/share/dxvk/" > debian/install
+    printf "\n${dxvx_relative_builddir}/bin/* usr/bin/" >> debian/install
+
+    # Start DXVK compilation
+    bash ./package-release.sh master debian/source/ --no-package
+
+    if [[ $? -ne 0 ]]; then
+      echo -e "\e[1mERROR:\e[0m Error while compiling ${pkg_name}. Check messages above. Aborting\n"
+      buildpkg_removal
+      exit 1
+    fi
+
+    # Make a proper executable script for setup_dxvk.verb file
+    mkdir -p ${dxvx_relative_builddir}/bin
+
+    echo -e "#!/bin/sh\nwinetricks --force /usr/share/dxvk/setup_dxvk.verb" \
+    > "${dxvx_relative_builddir}/bin/setup_dxvk"
+    chmod +x "${dxvx_relative_builddir}/bin/setup_dxvk"
+
+    # Tell deb builder to install DXVK x32 & x64 subfolders
+    for arch in 64 32; do
+      mkdir -p ${dxvx_relative_builddir}/x${arch}
+      printf "\n${dxvx_relative_builddir}/x${arch}/* usr/share/dxvk/x${arch}/" >> debian/install
+    done
+
+    # Start deb builder. Do not build either debug symbols or doc files
+    DEB_BUILD_OPTIONS="strip nodocs noddebs" dpkg-buildpackage -us -uc -b --source-option=--include-binaries
+
+    # Once compiled, possibly install and store the compiled deb archive
+    if [[ $? -eq 0 ]]; then
+
+      if [[ ! -v NO_INSTALL ]]; then
+        sudo dpkg -i ../${pkgname}*.deb
+      fi
+
+      rm -rf ../*.{changes,buildinfo,tar.xz}
+      mv ../${pkg_name}*.deb ../../../compiled_deb/"${datedir}" && \
+      echo -e "Compiled ${pkg_name} is stored at '$(readlink -f ../../../compiled_deb/"${datedir}")/'\n"
+      cd ../..
+      rm -rf ${pkg_name}
+    else
+      exit 1
+    fi
+  }
+
+############################
+
+# DXVK
+  dxvk_custompatches && \
+  dxvk_posixpkgs && \
+  dxvk_custom_deb_build
 }
 
 ########################################################
@@ -193,28 +328,18 @@ function preparepackage() {
 ############################
 
   # Set local variables
-  local _pkg_name=${1}
-  local _pkg_license=${2}
-  local _pkg_maintainer=${3}
-  local _pkg_section=${4}
-  local _pkg_priority=${5}
-  local _pkg_arch=${6}
-  local _pkg_commondesc=${7}
-  local _pkg_longdesc=${8}
-  local _pkg_giturl=${9}
-  local _pkg_homeurl=${10}
-  local _git_commithash=${11}
-  local _pkg_gitver=${12}
-  local _pkg_controlfile=${13}
-  local _pkg_rulesfile=${14}
-  local _pkg_rules_override=${15}
-  local _pkg_suggests=${16}
-  local _pkg_overrides=${17}
-  local _pkg_deps_build=${18}
-  local _pkg_deps_runtime=${19}
-  local _pkg_extra_1=${20}
-  local _pkg_extra_2=${21}
-  local _pkg_debbuilder=${22}
+  local _pkg_name="${1}"
+  local _pkg_license="${2}"
+  local _pkg_giturl="${3}"
+  local _git_commithash="${4}"
+  local _pkg_gitver="${5}"
+  local _pkg_debcontrol="${6}"
+  local _pkg_debrules="${7}"
+  local _pkg_controlfile="${8}"
+  local _pkg_rulesfile="${9}"
+  local _pkg_deps_build="${10}"
+  local _pkg_deps_runtime="${11}"
+  local _pkg_debbuilder="${12}"
 
 ############################
 
@@ -224,12 +349,8 @@ function preparepackage() {
   function arrayparser_reverse() {
 
     local arrays=(
-    '_pkg_suggests'
-    '_pkg_overrides'
     '_pkg_deps_build'
     '_pkg_deps_runtime'
-    '_pkg_extra_1'
-    '_pkg_extra_2'
     )
 
     for w in ${arrays[@]}; do
@@ -332,52 +453,15 @@ function preparepackage() {
 
 ############################
 
-# TODO HANDLE EMPTY LINES CORRECTLY
+  function pkg_override_debianfile() {
 
-  function pkg_feed_debiancontrol() {
+    local contents=${1}
+    local targetfile=${2}
 
-    # For correct array index handling
-    local IFS=$'\n'
-
-    cat << CONTROLFILE > "${_pkg_controlfile}"
-Source: ${_pkg_name}
-Section: ${_pkg_section}
-Priority: ${_pkg_priority}
-Maintainer: ${_pkg_maintainer}
-Build-Depends: debhelper (>=9), $(if [[ ${_pkg_deps_build[0]} != "empty" ]]; then \
-for w in ${_pkg_deps_build[@]}; do printf '%s, ' ${w}; done; fi)
-Standards-Version: 4.1.3
-Homepage: ${_pkg_homeurl}
-$(if [[ ${_pkg_extra_1[0]} != "empty" ]]; then for w in ${_pkg_extra_1[@]}; do echo ${w}; done ; fi)
-
-Package: ${_pkg_name}
-Architecture: ${_pkg_arch}
-Depends: \${shlibs:Depends}, \${misc:Depends}, $(if [[ ${_pkg_deps_runtime[0]} != "empty" ]]; then \
-for w in ${_pkg_deps_runtime[@]}; do printf '%s, ' ${w}; done; fi)
-Description: ${_pkg_commondesc}
-$(echo -e ${_pkg_longdesc} | sed 's/^/ /g; s/\n/\n /g')
-$(if [[ ${_pkg_extra_2[0]} != "empty" ]]; then for w in ${_pkg_extra_2[@]}; do echo ${w}; done ; fi)
-$(if [[ ${_pkg_suggests[0]} != "empty" ]]; then echo "Suggests: $(echo ${_pkg_suggests[*]} | sed 's/\s/, /g')"; fi)
-$(if [[ ${_pkg_overrides[0]} != "empty" ]]; then echo "Conflicts: $(echo ${_pkg_overrides[*]} | sed 's/\s/, /g')"; fi)
-$(if [[ ${_pkg_overrides[0]} != "empty" ]]; then echo "Breaks: $(echo ${_pkg_overrides[*]} | sed 's/\s/, /g')"; fi)
-$(if [[ ${_pkg_overrides[0]} != "empty" ]]; then echo "Replaces: $(echo ${_pkg_overrides[*]} | sed 's/\s/, /g')"; fi)
-$(if [[ ${_pkg_overrides[0]} != "empty" ]]; then echo "Provides: $(echo ${_pkg_overrides[*]} | sed 's/\s/, /g')"; fi)
-CONTROLFILE
-
-    if [[ ! -f "${_pkg_controlfile}" ]]; then
-      echo -e "\e[1mERROR:\e[0m Couldn't create Debian control file for ${_pkg_name}. Aborting\n"
-      exit 1
-    fi
-
-  }
-
-############################
-
-  function pkg_override_debianrules() {
-    if [[ $(echo ${_pkg_rules_override} | wc -w) -ne 0 ]]; then
-      echo "${_pkg_rules_override}" > "${_pkg_rulesfile}"
+    if [[ $(echo ${contents} | wc -w) -ne 0 ]]; then
+      echo "${contents}" > "${targetfile}"
       if [[ $? -ne 0 ]]; then
-        echo "\e[1mERROR:\e[0m Couldn't create Debian rules file for ${_pkg_name}. Aborting\n"
+        echo -e "\e[1mERROR:\e[0m Couldn't create Debian file '${targetfile}' for ${_pkg_name}. Aborting\n"
         exit 1
       fi
     fi
@@ -405,8 +489,8 @@ CONTROLFILE
       cd ${_pkg_name}-${_pkg_gitver}
 
       dh_make --createorig -s -y -c ${_pkg_license} && \
-      pkg_feed_debiancontrol
-      pkg_override_debianrules
+      pkg_override_debianfile "${_pkg_debcontrol}" "${_pkg_controlfile}"
+      pkg_override_debianfile "${_pkg_debrules}" "${_pkg_rulesfile}"
 
     else
       echo -e "\e[1mERROR:\e[0m Error while downloading source of ${_pkg_name} package. Aborting\n"
@@ -441,12 +525,18 @@ CONTROLFILE
 
   # Execute above functions
   pkg_dependencies "${_pkg_deps_build[*]}" buildtime && \
-  if [[ ${_pkg_deps_runtime[0]} != "empty" ]] && [[ ! -v NO_INSTALL ]]; then pkg_dependencies "${_pkg_deps_runtime[*]}" runtime ; fi
+
+  if [[ ${_pkg_deps_runtime[0]} != "empty" ]] && [[ ! -v NO_INSTALL ]]; then
+    pkg_dependencies "${_pkg_deps_runtime[*]}" runtime
+  fi
+
   pkg_folderprepare
 
   # TODO use package name or separate override switch here?
   if [[ ${_pkg_name} != "dxvk-git" ]]; then
     pkg_debianbuild
+  else
+    dxvk_install_custom
   fi
 
   unset _pkg_gitver
@@ -478,143 +568,35 @@ function buildpkg_removal() {
 }
 
 ########################################################
-########################################################
-########################################################
 
-# MESON COMPILATION & INSTALLATION
-# Required by DXVK package
+# Package installation instructions
 
-function meson_install_main() {
+function pkg_install_main() {
 
-  # Package name
-  local pkg_name="meson"
-  local pkg_license="apache"
-  local pkg_maintainer="${USER} <${USER}@unknown>"
-  local pkg_section="devel"
-  local pkg_priority="optional"
-  local pkg_arch="all"
+  # Read necessary variables from debdata file
+  local pkg_datafile=${1}
 
-  local pkg_commondesc="high-productivity build system"
-  local pkg_longdesc="
-Meson is a build system designed to increase programmer\n\
-productivity. It does this by providing a fast, simple and easy to\n\
-use interface for modern software development tools and practices.
-  "
-
-  local pkg_giturl="https://github.com/mesonbuild/meson"
-  local pkg_homeurl="http://mesonbuild.com"
-
-  local git_commithash=${git_commithash_meson}
-  local pkg_gitver="git describe --long | sed 's/\-[a-z].*//; s/\-/\./; s/[a-z]//g'"
-
-  local pkg_controlfile="./debian/control"
-  local pkg_rulesfile="./debian/rules"
-
-##############
-# MESON - Debian rules file override
-
-local pkg_rules_override="\
-#!/usr/bin/make -f
-# Original script by Jussi Pakkanen
-
-export MESON_PRINT_TEST_OUTPUT=1
-export QT_SELECT=qt5
-export LC_ALL=C.UTF-8
-%:
-	dh \$@ --with python3 --buildsystem=pybuild
-
-override_dh_auto_configure:
-
-override_dh_auto_build:
-
-override_dh_auto_test:
-
-override_dh_clean:
-	dh_clean
-	rm -f *.pyc
-	rm -rf __pycache__
-	rm -rf mesonbuild/__pycache__
-	rm -rf mesonbuild/*/__pycache__
-	rm -rf work\ area
-	rm -rf install\ dir/*
-	rm -f meson-test-run.txt meson-test-run.xml
-	rm -rf meson.egg-info
-	rm -rf build
-	rm -rf .pybuild
-
-override_dh_install:
-# Helper script to autogenerate cross files.
-	python3 setup.py install --root=\$\$(pwd)/debian/meson --prefix=/usr --install-layout=deb --install-lib=/usr/share/meson --install-scripts=/usr/share/meson
-	rm -rf \$\$(pwd)/debian/meson/usr/share/meson/mesonbuild/__pycache__
-	rm -rf \$\$(pwd)/debian/meson/usr/share/meson/mesonbuild/*/__pycache__
-	rm \$\$(pwd)/debian/meson/usr/bin/meson
-	ln -s ../share/meson/meson \$\$(pwd)/debian/meson/usr/bin/meson
-"
-
-##############
-
-# MESON
-
-  # Debian control file Suggests section
-  local pkg_suggests=(
-  empty
-  )
-
-  # Debian control file override etc. sections
-  local pkg_overrides=(
-  empty
-  )
-
-  # Build time dependencies
-  local pkg_deps_build=(
-  'python3 (>= 3.5)'
-  'dh-python'
-  'python3-setuptools'
-  'ninja-build (>= 1.6)'
-  )
-
-  # Runtime dependencies
-  local pkg_deps_runtime=(
-  'ninja-build (>=1.6)'
-  'python3'
-  )
-
-  # Extra fields for Debian control file Source section
-  local pkg_extra_1=(
-  'X-Python3-Version: >= 3.5'
-  )
-
-  # Extra fields for Debian control file Package section
-  local pkg_extra_2=(
-  empty
-  )
+  if [[ -f ${pkg_datafile} ]]; then
+    source ${pkg_datafile}
+  else
+    echo -e "\e[1mERROR:\e[0m Couldn't read datafile '${pkg_datafile}'. Check the file path and try again.\n"
+    exit 1
+  fi
 
 ############################
-
-# MESON
-
-  # Deb builder execution field
-  # Do not build either debug symbols or doc files
-  local pkg_debbuilder="DEB_BUILD_OPTIONS=\"strip nodocs noddebs nocheck\" dpkg-buildpackage -rfakeroot -b -us -uc"
-
-############################
-
-# MESON
 
   # Prepare these arrays for preparepackage input
   # Separate each array index with | in these arrays
-  function arrayparser() {
+  function pkg_arrayparser() {
 
-    local arrays=(
-    'pkg_suggests'
-    'pkg_overrides'
+    local pkg_arrays=(
     'pkg_deps_build'
     'pkg_deps_runtime'
-    'pkg_extra_1'
-    'pkg_extra_2'
     )
 
-    for w in ${arrays[@]}; do
+    local IFS=$'\n'
+
+    for w in ${pkg_arrays[@]}; do
 
       local s=\${${w}[@]}
       local t=$(eval printf '%s\|' ${s})
@@ -626,465 +608,40 @@ override_dh_install:
 
 ############################
 
-# MESON
-
-  # Execute above functions
-  arrayparser && \
+  # Execute package installation procedure
+  pkg_arrayparser && \
   preparepackage \
   "${pkg_name}" \
   "${pkg_license}" \
-  "${pkg_maintainer}" \
-  "${pkg_section}" \
-  "${pkg_priority}" \
-  "${pkg_arch}" \
-  "${pkg_commondesc}" \
-  "${pkg_longdesc}" \
   "${pkg_giturl}" \
-  "${pkg_homeurl}" \
   "${git_commithash}" \
   "${pkg_gitver}" \
+  "${pkg_debcontrol}" \
+  "${pkg_debrules}" \
   "${pkg_controlfile}" \
   "${pkg_rulesfile}" \
-  "${pkg_rules_override}" \
-  "${pkg_suggests}" \
-  "${pkg_overrides}" \
   "${pkg_deps_build}" \
   "${pkg_deps_runtime}" \
-  "${pkg_extra_1}" \
-  "${pkg_extra_2}" \
   "${pkg_debbuilder}"
 
 }
 
 ########################################################
 
-# GLSLANG COMPILATION & INSTALLATION
-# Required by DXVK package
+# Check existence of known Wine packages
+runtimeCheck Wine "${known_wines[*]}"
 
-function glslang_install_main() {
+# Check existence of known Winetricks packages
+runtimeCheck Winetricks "${known_winetricks[*]}"
 
-  # Package name
-  local pkg_name="glslang"
-  local pkg_license="bsd"
-  local pkg_maintainer="${USER} <${USER}@unknown>"
-  local pkg_section="devel"
-  local pkg_priority="optional"
-  local pkg_arch="all"
+# Meson - compile (& install)
+pkgcompilecheck pkg_install_main meson "${DXVKROOT}/meson.debdata"
 
-  local pkg_commondesc="Khronos OpenGL and OpenGL ES shader front end and validator."
-  local pkg_longdesc="
-Khronos reference front-end for GLSL and ESSL, and sample SPIR-V generator
-  "
+# Glslang - compile (& install)
+pkgcompilecheck pkg_install_main glslang "${DXVKROOT}/glslang.debdata"
 
-  local pkg_giturl="https://github.com/KhronosGroup/glslang"
-  local pkg_homeurl="https://www.khronos.org/opengles/sdk/tools/Reference-Compiler/"
+# DXVK - compile (& install)
+pkg_install_main "${DXVKROOT}/dxvk.debdata"
 
-  local git_commithash=${git_commithash_glslang}
-  local pkg_gitver="git describe --long | sed 's/\-[a-z].*//; s/\-/\./; s/[a-z]//g'"
-
-  local pkg_controlfile="./debian/control"
-  local pkg_rulesfile="./debian/rules"
-
-##############
-# GLSLANG - Debian rules file override
-
-local pkgrules_override="
-#!/usr/bin/make -f
-
-%:
-	dh $@
-
-override_dh_usrlocal:
-"
-
-##############
-
-# GLSLANG
-
-  # Debian control file Suggests section
-  local pkg_suggests=(
-  empty
-  )
-
-  # Debian control file override etc. sections
-  local pkg_overrides=(
-  empty
-  )
-
-  # Build time dependencies
-  local pkg_deps_build=(
-  #${_coredeps[*]}
-  'cmake'
-  'python2.7'
-  )
-
-  # Runtime dependencies
-  local pkg_deps_runtime=(
-  empty
-  )
-
-  # Extra fields for Debian control file Source section
-  local pkg_extra_1=(
-  empty
-  )
-
-  # Extra fields for Debian control file Package section
-  local pkg_extra_2=(
-  empty
-  )
-
-############################
-
-# GLSLANG
-
-  # Deb builder execution field
-  # Do not build either debug symbols
-  local pkg_debbuilder="DEB_BUILD_OPTIONS=\"strip nodocs noddebs\" dpkg-buildpackage -rfakeroot -b -us -uc"
-
-############################
-
-# GLSLANG
-
-  # Prepare these arrays for preparepackage input
-  # Separate each array index with | in these arrays
-  function arrayparser() {
-
-    local arrays=(
-    'pkg_suggests'
-    'pkg_overrides'
-    'pkg_deps_build'
-    'pkg_deps_runtime'
-    'pkg_extra_1'
-    'pkg_extra_2'
-    )
-
-    for w in ${arrays[@]}; do
-
-      local s=\${${w}[@]}
-      local t=$(eval printf '%s\|' ${s})
-      unset ${w}
-      eval ${w}=\"${t}\"
-
-    done
-  }
-
-############################
-
-# GLSLANG
-
-  # Execute above functions
-  arrayparser && \
-  preparepackage \
-  "${pkg_name}" \
-  "${pkg_license}" \
-  "${pkg_maintainer}" \
-  "${pkg_section}" \
-  "${pkg_priority}" \
-  "${pkg_arch}" \
-  "${pkg_commondesc}" \
-  "${pkg_longdesc}" \
-  "${pkg_giturl}" \
-  "${pkg_homeurl}" \
-  "${git_commithash}" \
-  "${pkg_gitver}" \
-  "${pkg_controlfile}" \
-  "${pkg_rulesfile}" \
-  "${pkg_rules_override}" \
-  "${pkg_suggests}" \
-  "${pkg_overrides}" \
-  "${pkg_deps_build}" \
-  "${pkg_deps_runtime}" \
-  "${pkg_extra_1}" \
-  "${pkg_extra_2}" \
-  "${pkg_debbuilder}"
-
-}
-
-########################################################
-
-# DXVK COMPILATION & INSTALLATION
-
-function dxvk_install_main() {
-
-  # Package name
-  local pkg_name="dxvk-git"
-  local pkg_license="custom --copyrightfile ../LICENSE"
-  local pkg_maintainer="${USER} <${USER}@unknown>"
-  local pkg_section="otherosfs"
-  local pkg_priority="optional"
-  local pkg_arch="all"
-
-  local pkg_commondesc="Vulkan-based D3D11 and D3D10 implementation for Linux / Wine"
-  local pkg_longdesc="
-A Vulkan-based translation layer for Direct3D 10/11 which
-allows running 3D applications on Linux using Wine.
-  "
-
-  local pkg_giturl="https://github.com/doitsujin/dxvk"
-  local pkg_homeurl="https://github.com/doitsujin/dxvk"
-
-  local git_commithash=${git_commithash_dxvk}
-  local pkg_gitver="git describe --long | sed 's/\-[a-z].*//; s/\-/\./; s/[a-z]//g'"
-
-  local pkg_controlfile="./debian/control"
-  local pkg_rulesfile="./debian/rules"
-
-##############
-# DXVK - Debian rules file override
-
-local pkg_rules_override="\
-#!/usr/bin/make -f
-
-%:
-	dh \$@
-
-override_dh_auto_configure:
-
-override_dh_usrlocal:
-"
-
-##############
-
-# DXVK
-
-  # Debian control file Suggests section
-  local pkg_suggests=(
-  empty
-  )
-
-  # Debian control file override etc. sections
-  local pkg_overrides=(
-  empty
-  )
-
-  # Build time dependencies
-  local pkg_deps_build=(
-  #${_coredeps[*]}
-  'meson'
-  'glslang'
-  'gcc-mingw-w64-x86-64'
-  'gcc-mingw-w64-i686'
-  'g++-mingw-w64-x86-64'
-  'g++-mingw-w64-i686'
-  'mingw-w64-x86-64-dev'
-  'mingw-w64-i686-dev'
-  )
-
-  # Runtime dependencies
-  local pkg_deps_runtime=(
-  'wine'
-  'winetricks'
-  )
-
-  # Extra fields for Debian control file Source section
-  local pkg_extra_1=(
-  empty
-  )
-
-  # Extra fields for Debian control file Package section
-  local pkg_extra_2=(
-  empty
-  )
-
-############################
-
-# DXVK
-
-  # Prepare these arrays for preparepackage input
-  # Separate each array index with | in these arrays
-  function arrayparser() {
-
-    local arrays=(
-    'pkg_suggests'
-    'pkg_overrides'
-    'pkg_deps_build'
-    'pkg_deps_runtime'
-    'pkg_extra_1'
-    'pkg_extra_2'
-    )
-
-    for w in ${arrays[@]}; do
-
-      local s=\${${w}[@]}
-      local t=$(eval printf '%s\|' ${s})
-      unset ${w}
-      eval ${w}=\"${t}\"
-
-    done
-  }
-
-############################
-
-# DXVK
-
-  # Use posix alternates for MinGW binaries
-  function dxvk_posixpkgs() {
-
-    local packages=(
-    'i686-w64-mingw32-g++'
-    'i686-w64-mingw32-gcc'
-    'x86_64-w64-mingw32-g++'
-    'x86_64-w64-mingw32-gcc'
-    )
-
-    for package in "${packages[@]}"; do
-      local option=$(echo "" | sudo update-alternatives --config "${package}" | grep posix | sed 's@^[^0-9]*\([0-9]\+\).*@\1@')
-      echo "${option}" | sudo update-alternatives --config "${package}" &> /dev/null
-
-      if [[ $? -ne 0 ]]; then
-        echo -e "\e[1mERROR:\e[0m Error occured while running 'update-alternatives' for '${package}'. Aborting\n"
-        exit 1
-      fi
-
-    done
-
-  }
-
-############################
-
-# DXVK
-
-  # Add and apply custom DXVK patches
-  function dxvk_custompatches() {
-
-    # Get our current directory, since we will change it during patching process below
-    # We want to go back here after having applied the patches
-    local CURDIR="${PWD}"
-
-    # Check if the following folder exists, and proceed.
-    if [[ -d "${DXVKROOT}/../../dxvk_custom_patches" ]]; then
-      cp -r "${DXVKROOT}/../../dxvk_custom_patches/"*.{patch,diff} "${DXVKROOT}/${pkg_name}/" 2>/dev/null
-
-      local dxvk_builddir_name=$(ls -l "${DXVKROOT}/${pkg_name}" | grep ^d | awk '{print $NF}')
-
-      # TODO Expecting just one folder here. This method doesn't work with multiple dirs present
-      if [[ $(echo ${dxvk_builddir_name} | wc -l) -gt 1 ]]; then
-        echo "\e[1mERROR:\e[0m Multiple entries in dxvk build directory detected. Can't decide which one to use. Aborting\n"
-        exit 1
-      fi
-
-      local dxvk_builddir_path="${DXVKROOT}/${pkg_name}/${dxvk_builddir_name}"
-
-      cd "${dxvk_builddir_path}"
-      for pfile in ../*.{patch,diff}; do
-        if [[ -f ${pfile} ]]; then
-          echo -e "Applying DXVK patch: ${pfile}\n"
-          patch -Np1 < ${pfile}
-        fi
-
-        if [[ $? -ne 0 ]]; then
-          echo -e "\e[1mERROR:\e[0m Error occured while applying DXVK patch '${pfile}'. Aborting\n"
-          cd ${CURDIR}
-          exit 1
-        fi
-
-      done
-
-      cd "${CURDIR}"
-
-    fi
-
-  }
-
-############################
-
-# DXVK
-
-  # Debian-specific compilation & installation rules for DXVK
-  function dxvk_custom_deb_build() {
-
-    local dxvx_relative_builddir="debian/source/dxvk-master"
-
-    # Tell deb builder to bundle these files
-    printf "${dxvx_relative_builddir}/setup_dxvk.verb usr/share/dxvk/" > debian/install
-    printf "\n${dxvx_relative_builddir}/bin/* usr/bin/" >> debian/install
-
-    # Start DXVK compilation
-    bash ./package-release.sh master debian/source/ --no-package
-
-    if [[ $? -ne 0 ]]; then
-      echo -e "\e[1mERROR:\e[0m Error while compiling ${pkg_name}. Check messages above. Aborting\n"
-      buildpkg_removal
-      exit 1
-    fi
-
-    # Make a proper executable script for setup_dxvk.verb file
-    mkdir -p ${dxvx_relative_builddir}/bin
-
-    echo -e "#!/bin/sh\nwinetricks --force /usr/share/dxvk/setup_dxvk.verb" \
-    > "${dxvx_relative_builddir}/bin/setup_dxvk"
-    chmod +x "${dxvx_relative_builddir}/bin/setup_dxvk"
-
-    # Tell deb builder to install DXVK x32 & x64 subfolders
-    for arch in 64 32; do
-      mkdir -p ${dxvx_relative_builddir}/x${arch}
-      printf "\n${dxvx_relative_builddir}/x${arch}/* usr/share/dxvk/x${arch}/" >> debian/install
-    done
-
-    # Start deb builder. Do not build either debug symbols or doc files
-    DEB_BUILD_OPTIONS="strip nodocs noddebs" dpkg-buildpackage -us -uc -b --source-option=--include-binaries
-
-    # Once compiled, possibly install and store the compiled deb archive
-    if [[ $? -eq 0 ]]; then
-
-      if [[ ! -v NO_INSTALL ]]; then
-        sudo dpkg -i ../${pkgname}*.deb
-      fi
-
-      rm -rf ../*.{changes,buildinfo,tar.xz}
-      mv ../${pkg_name}*.deb ../../../compiled_deb/"${datedir}" && \
-      echo -e "Compiled ${pkg_name} is stored at '$(readlink -f ../../../compiled_deb/"${datedir}")/'\n"
-      cd ../..
-      rm -rf ${pkg_name}
-    else
-      exit 1
-    fi
-  }
-
-############################
-
-# DXVK
-
-  # Execute above functions
-  # Do not check runtime dependencies as our check method expects exact package name in
-  # function 'preparepackage'. This does not apply to runtime dependency 'wine', which
-  # may be 'wine', 'wine-git', 'wine-staging-git' etc. in truth
-  #
-  arrayparser && \
-  preparepackage \
-  "${pkg_name}" \
-  "${pkg_license}" \
-  "${pkg_maintainer}" \
-  "${pkg_section}" \
-  "${pkg_priority}" \
-  "${pkg_arch}" \
-  "${pkg_commondesc}" \
-  "${pkg_longdesc}" \
-  "${pkg_giturl}" \
-  "${pkg_homeurl}" \
-  "${git_commithash}" \
-  "${pkg_gitver}" \
-  "${pkg_controlfile}" \
-  "${pkg_rulesfile}" \
-  "${pkg_rules_override}" \
-  "${pkg_suggests[*]}" \
-  "${pkg_overrides[*]}" \
-  "${pkg_deps_build[*]}" \
-  "${pkg_deps_runtime[*]}" \
-  "${pkg_extra_1[*]}" \
-  "${pkg_extra_2[*]}" \
-  "${pkg_debbuilder}" && \
-  \
-  dxvk_custompatches && \
-  dxvk_posixpkgs && \
-  dxvk_custom_deb_build
-
-}
-
-########################################################
-
-pkgcompilecheck meson meson_install_main
-pkgcompilecheck glslang glslang_install_main
-dxvk_install_main
-
+# Clean buildtime dependencies
 buildpkg_removal

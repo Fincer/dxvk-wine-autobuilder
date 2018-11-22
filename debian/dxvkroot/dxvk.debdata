@@ -1,0 +1,131 @@
+pkg_name="dxvk-git"
+pkg_license="custom --copyrightfile ../LICENSE"
+pkg_maintainer="${USER} <${USER}@unknown>"
+pkg_section="otherosfs"
+pkg_priority="optional"
+pkg_arch="all"
+
+pkg_commondesc="Vulkan-based D3D11 and D3D10 implementation for Linux / Wine"
+pkg_longdesc="
+A Vulkan-based translation layer for Direct3D 10/11 which
+allows running 3D applications on Linux using Wine.
+"
+
+pkg_giturl="https://github.com/doitsujin/dxvk"
+pkg_homeurl="https://github.com/doitsujin/dxvk"
+
+git_commithash=${git_commithash_dxvk}
+pkg_gitver="git describe --long | sed 's/\-[a-z].*//; s/\-/\./; s/[a-z]//g'"
+
+pkg_controlfile="./debian/control"
+pkg_rulesfile="./debian/rules"
+
+########################################################
+# Debian rules file override
+
+pkg_debrules="\
+#!/usr/bin/make -f
+
+%:
+	dh \$@
+
+override_dh_auto_configure:
+
+override_dh_usrlocal:
+"
+
+########################################################
+
+# Debian control file Overrides section
+pkg_overrides=(
+empty
+)
+
+# Debian control file Suggests section
+pkg_suggests=(
+empty
+)
+
+# Debian control file Conflicts section
+pkg_conflicts=(
+empty
+)
+
+# Debian control file Breaks section
+pkg_breaks=(
+empty
+)
+
+# Debian control file Replaces section
+pkg_replaces=(
+empty
+)
+
+# Debian control file Provides section
+pkg_provides=(
+empty
+)
+
+##############
+
+# Build time dependencies
+pkg_deps_build=(
+#${_coredeps[*]}
+'meson'
+'glslang'
+'gcc-mingw-w64-x86-64'
+'gcc-mingw-w64-i686'
+'g++-mingw-w64-x86-64'
+'g++-mingw-w64-i686'
+'mingw-w64-x86-64-dev'
+'mingw-w64-i686-dev'
+)
+
+# Runtime dependencies
+pkg_deps_runtime=(
+'wine'
+'winetricks'
+)
+
+# Extra fields for Debian control file Source section
+pkg_extra_1=(
+empty
+)
+
+# Extra fields for Debian control file Package section
+pkg_extra_2=(
+empty
+)
+
+########################################################
+# Contents of Debian control file
+
+# This is a necessary variable setting for array loops below
+IFS=$'\n'
+
+pkg_debcontrol="\
+Source: ${pkg_name}
+Section: ${pkg_section}
+Priority: ${pkg_priority}
+Maintainer: ${pkg_maintainer}
+Build-Depends: debhelper (>=9), $(if [[ ${pkg_deps_build[0]} != "empty" ]]; then \
+for w in ${pkg_deps_build[@]}; do printf '%s, ' ${w}; done; fi)
+Standards-Version: 4.1.3
+Homepage: ${pkg_homeurl}
+$(if [[ ${pkg_extra_1[0]} != "empty" ]]; then for w in ${pkg_extra_1[@]}; do echo ${w}; done ; fi)
+
+Package: ${pkg_name}
+Architecture: ${pkg_arch}
+Depends: \${shlibs:Depends}, \${misc:Depends}, $(if [[ ${pkg_deps_runtime[0]} != "empty" ]]; then \
+for w in ${pkg_deps_runtime[@]}; do printf '%s, ' ${w}; done; fi)
+Description: ${pkg_commondesc}
+$(echo -e ${pkg_longdesc}   | sed 's/^/ /g; s/\n/\n /g')
+$(if [[ ${pkg_extra_2[0]}   != "empty" ]]; then for w in ${pkg_extra_2[@]}; do echo ${w}; done ; fi)
+$(if [[ ${pkg_suggests[0]}  != "empty" ]]; then echo "Suggests: $(echo ${_kg_suggests[*]}   | sed 's/\s/, /g')"; fi)
+$(if [[ ${pkg_conflicts[0]} != "empty" ]]; then echo "Conflicts: $(echo ${pkg_overrides[*]} | sed 's/\s/, /g')"; fi)
+$(if [[ ${pkg_breaks[0]}    != "empty" ]]; then echo "Breaks: $(echo ${pkg_overrides[*]}    | sed 's/\s/, /g')"; fi)
+$(if [[ ${pkg_replaces[0]}  != "empty" ]]; then echo "Replaces: $(echo ${pkg_overrides[*]}  | sed 's/\s/, /g')"; fi)
+$(if [[ ${pkg_provides[0]}  != "empty" ]]; then echo "Provides: $(echo ${pkg_overrides[*]}  | sed 's/\s/, /g')"; fi)
+"
+
+unset IFS
