@@ -49,13 +49,17 @@ SCRIPT_AUTHOR="Pekka Helenius (~Fincer), 2018"
 # Do NOT leave these variable empty!
 
 git_commithash_dxvk=1af96347e1c6f1f2eb11aeb11009f380fd5761ec
+git_branch_dxvk=master
 
 git_commithash_wine=HEAD
+git_branch_wine=master
 
 # These apply only on Debian/Ubuntu/Mint
 git_commithash_meson=5d6dcf8850fcc5d552f55943b6aa3582754dedf8
+git_branch_meson=master
 
 git_commithash_glslang=HEAD
+git_branch_glslang=master
 
 ###########################################################
 # Allow interruption of the script at any time (Ctrl + C)
@@ -199,6 +203,16 @@ githash_overrides=(
 "${git_commithash_wine}"
 )
 
+# Add git branches to argument list
+# Pass them to subscripts, as well.
+
+gitbranch_overrides=(
+"${git_branch_dxvk}"
+"${git_branch_glslang}"
+"${git_branch_meson}"
+"${git_branch_wine}"
+)
+
 #############################
 
 # Commit syntax validity check
@@ -214,7 +228,7 @@ done
 
 #############################
 
-params=(${datesuffix} ${githash_overrides[@]} ${args[@]})
+params=(${datesuffix} ${githash_overrides[@]} ${gitbranch_overrides[@]} ${args[@]})
 
 ###########################################################
 

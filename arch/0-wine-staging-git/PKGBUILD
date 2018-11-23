@@ -1,8 +1,9 @@
-# Maintainer: Daniel Bermond < yahoo-com: danielbermond >
-# Contributor: Pekka Helenius (~ Fincer) <fincer89 at hotmail dot com>
+# Maintainer: Pekka Helenius (~ Fincer) <fincer89 at hotmail dot com>
+# Contributor: Daniel Bermond < yahoo-com: danielbermond >
+
 
 # Enable Wine Staging? 1 = yes
-enable_staging=1
+enable_staging=0
 
 # Staging patchsets. Default: all patchsets. Please see Wine Staging patchinstall.sh file for individual patchset names.
 staging_patchsets=(--all) # In order to disable all patchsets, use #(--all) and add desired patchsets individually here 
@@ -28,11 +29,13 @@ else
 
 fi
 
-pkgver=stg.3.19.r9.g566cd55d+wine.wine.3.19.r220.g5e0d1c89ed
-_wine_commit=HEAD
-_staging_commit=HEAD
+pkgver=wine.wine.3.0.3.r0.gf5ada74b31
 pkgrel=1
 arch=('i686' 'x86_64')
+
+_wine_commit=HEAD
+_staging_commit=HEAD
+_git_branch_wine=master
 
 license=('LGPL')
 _depends=(
@@ -169,22 +172,24 @@ pkgver() {
 
 prepare() {
 
-    if [[ enable_staging -eq 1 ]]; then
-        cd "$srcdir"/wine-git
+    cd "${srcdir}/wine-git"
 
-        msg2 "Cleaning the wine source code tree..."
-
-        # Restore the wine tree to its git origin state, without wine-staging patches
-        #+(necessary for reapllying wine-staging patches in succedent builds,
-        #+otherwise the patches will fail to be reapplied)
-        git reset --hard ${_wine_commit} # Restore tracked files
-        git clean -d -x -f         # Delete untracked files
-
-        if [[ ${_wine_commit} == HEAD ]]; then
-          # Change back to the wine upstream commit that this version of wine-staging is based on
-          git checkout $(../"$pkgname"/patches/patchinstall.sh --upstream-commit)
-        fi
+    if [[ enable_staging -eq 0 ]]; then
+      git checkout ${_git_branch_wine}
     fi
+
+    msg2 "Cleaning the wine source code tree..."
+
+    if [[ ${_wine_commit} == HEAD ]] && [[ enable_staging -eq 1 ]]; then
+        # Change back to the wine upstream commit that this version of wine-staging is based on
+        git checkout $(../"$pkgname"/patches/patchinstall.sh --upstream-commit)
+    fi
+
+    # Restore the wine tree to its git origin state, without wine-staging patches
+    #+(necessary for reapllying wine-staging patches in succedent builds,
+    #+otherwise the patches will fail to be reapplied)
+    git reset --hard ${_wine_commit} # Restore tracked files
+    git clean -d -x -f         # Delete untracked files
 }
 
 build() {
@@ -315,9 +320,4 @@ package() {
     ln -s ../conf.avail/30-win32-aliases.conf "${pkgdir}/etc/fonts/conf.d/30-win32-aliases.conf"
 }
 md5sums=('SKIP'
-         '1ff4e467f59409272088d92173a0f801'
-         'SKIP'
-         '1ff4e467f59409272088d92173a0f801'
-         'd41d8cd98f00b204e9800998ecf8427e'
-         'd41d8cd98f00b204e9800998ecf8427e'
-         'SKIP')
+         '1ff4e467f59409272088d92173a0f801')

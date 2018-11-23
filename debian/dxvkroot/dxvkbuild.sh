@@ -49,17 +49,21 @@ git_commithash_dxvk=${params[0]}
 git_commithash_glslang=${params[1]}
 git_commithash_meson=${params[2]}
 
+git_branch_dxvk=${params[4]}
+git_branch_glslang=${params[5]}
+git_branch_meson=${params[6]}
+
 ########################################################
 
 # Parse input arguments, filter user parameters
 # The range is defined in ../updatewine.sh
 # All input arguments are:
-# <datedir> 4*<githash_override> <args>
-# 0         1 2 3 4              5 ...
-# Filter all but <args>, i.e. the first 0-4 arguments
+# <datedir> 4*<githash_override> 4*<gitbranch_override> <args>
+# 0         1 2 3 4              5 6 7 8                9...
+# Filter all but <args>, i.e. the first 0-8 arguments
 
 i=0
-for arg in ${params[@]:4}; do
+for arg in ${params[@]:8}; do
   args[$i]="${arg}"
   let i++
 done
@@ -282,17 +286,18 @@ function compile_and_install_deb() {
   local _pkg_name="${1}"
   local _pkg_license="${2}"
   local _pkg_giturl="${3}"
-  local _git_commithash="${4}"
-  local _pkg_gitver="${5}"
-  local _pkg_debinstall="${6}"
-  local _pkg_debcontrol="${7}"
-  local _pkg_debrules="${8}"
-  local _pkg_installfile="${9}"
-  local _pkg_controlfile="${10}"
-  local _pkg_rulesfile="${11}"
-  local _pkg_deps_build="${12}"
-  local _pkg_deps_runtime="${13}"
-  local _pkg_debbuilder="${14}"
+  local _pkg_gitbranch="${4}"
+  local _git_commithash="${5}"
+  local _pkg_gitver="${6}"
+  local _pkg_debinstall="${7}"
+  local _pkg_debcontrol="${8}"
+  local _pkg_debrules="${9}"
+  local _pkg_installfile="${10}"
+  local _pkg_controlfile="${11}"
+  local _pkg_rulesfile="${12}"
+  local _pkg_deps_build="${13}"
+  local _pkg_deps_runtime="${14}"
+  local _pkg_debbuilder="${15}"
 
 ############################
 # COMMON - ARRAY PARAMETER FIX
@@ -400,6 +405,7 @@ function compile_and_install_deb() {
 
     if [[ -n "${_pkg_gitver}" ]] && [[ "${_pkg_gitver}" =~ ^git ]]; then
       cd ${_pkg_name}
+      git checkout ${_pkg_gitbranch}
       git reset --hard ${_git_commithash}
       if [[ $? -ne 0 ]]; then
         echo -e "\e[1mERROR:\e[0m Couldn't find commit ${_git_commithash} for ${_pkg_name}. Aborting\n"
@@ -584,6 +590,7 @@ function pkg_install_main() {
   "${pkg_name}" \
   "${pkg_license}" \
   "${pkg_giturl}" \
+  "${pkg_gitbranch}" \
   "${git_commithash}" \
   "${pkg_gitver}" \
   "${pkg_debinstall}" \

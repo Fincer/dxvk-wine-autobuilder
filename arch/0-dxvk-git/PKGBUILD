@@ -1,9 +1,9 @@
-# Maintainer: Adrià Cereto i Massagué <ssorgatem at gmail.com>
-# Contributor: Pekka Helenius (~Fincer) <fincer89 at hotmail dot com>
+# Maintainer: Pekka Helenius (~Fincer) <fincer89 at hotmail dot com>
+# Contributor: Adrià Cereto i Massagué <ssorgatem at gmail.com>
 
 pkgname=dxvk-git
 _pkgname=dxvk
-pkgver=0.91.21
+pkgver=0.92.7
 pkgrel=1
 
 arch=('i686' 'x86_64')
@@ -19,14 +19,17 @@ url="https://github.com/doitsujin/dxvk"
 license=('custom:zlib/libpng')
 makedepends=('ninja' 'meson>=0.43' 'glslang' 'mingw-w64-gcc' 'git' 'wine')
 options=(!strip !buildflags staticlibs)
-source=(${pkgname}::"git+https://github.com/doitsujin/dxvk.git#commit=HEAD")
+source=(${pkgname}::"git+https://github.com/doitsujin/dxvk.git#commit=1af96347e1c6f1f2eb11aeb11009f380fd5761ec")
 sha256sums=('SKIP')
 
-##############################
-# Custom patches, if present
+_git_branch_dxvk=master
+_dxvk_commit=1af96347e1c6f1f2eb11aeb11009f380fd5761ec
 
-if [[ $(find ./dxvk-patches -mindepth 1 -maxdepth 1 -regex ".*\.\(patch\|diff\)$") ]]; then
-    cp -r ./dxvk-patches/*.{patch,diff} ./
+##############################
+
+# Copy custom patches to correct location
+if [[ $(find "${startdir}/dxvk-patches" -mindepth 1 -maxdepth 1 -regex ".*\.\(patch\|diff\)$") ]]; then
+    cp -r "${startdir}/dxvk-patches/"*.{patch,diff} "${startdir}"/
     p=0
     for patch in $(find . -mindepth 1 -maxdepth 1 -regex ".*\.\(patch\|diff\)$"); do
         patches[$p]="$(basename ${patch})"
@@ -36,12 +39,17 @@ if [[ $(find ./dxvk-patches -mindepth 1 -maxdepth 1 -regex ".*\.\(patch\|diff\)$
     source+=(${source[@]} ${patches[@]})
 fi
 
+# Reset git tree and apply custom patches
 prepare() {
 
-  # Apply patches, if present
-  if [[ $(ls "${srcdir}"/*.{patch,diff} | wc -w) -ne 0 ]]; then
+  cd "${srcdir}/dxvk-git"
+  git checkout ${_git_branch_dxvk}
+  git reset --hard ${_dxvk_commit} # Restore tracked files
+  git clean -d -x -f         # Delete untracked files
 
-  cd "${srcdir}"/dxvk-git
+  # Apply patches, if present
+  if [[ $(ls "${srcdir}"/*.{patch,diff} 2>/dev/null | wc -w) -ne 0 ]]; then
+
   # Apply all custom patches
   msg2 "Applying custom patches..."
 
@@ -55,15 +63,18 @@ prepare() {
 
 ##############################
 
+# Retrieve DXVK version tag
 pkgver() {
     cd "${pkgname}"
     git describe --long | sed 's/\-[a-z].*//; s/\-/\./; s/[a-z]//g'
 }
 
+# Launch DXVK build script
 build() {
     "${srcdir}/${pkgname}"/package-release.sh ${pkgver} "${srcdir}"/build --no-package
 }
 
+# Bundle the compiled files
 package() {
     mkdir -p "${pkgdir}"/usr/{bin,share/dxvk}
     cp -r "${srcdir}"/build/${_pkgname}-${pkgver}/* "${pkgdir}/usr/share/dxvk/"

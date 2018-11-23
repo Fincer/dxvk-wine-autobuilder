@@ -110,9 +110,17 @@ All supported arguments are:
 
 You can force/lock specific Wine, Wine Staging, DXVK, meson & glslang versions.
 
-This is handy if you encounter issues during package compilation (DXVK/glslang or meson, for instance). yYou should consider forcing package versions by defining a the latest git commit which still works for you. You can do this by specifying the following variables in `updatewine.sh`:
+There are two switches for that: Set a specific **1)** _commit_ **2)** _git branch_ you want to use
 
-- `git_commithash_dxvk`, `git_commithash_wine`, `git_commithash_glslang`, `git_commithash_meson`
+This is handy if you encounter issues during package compilation (DXVK/glslang or meson, for instance). You should consider forcing package versions either by defining the latest git commit which still works for you or by using a specific git branch for your build. You can do this by specifying the following variables in `updatewine.sh`:
+
+- Git commit:
+
+    - `git_commithash_dxvk`, `git_commithash_wine`, `git_commithash_glslang`, `git_commithash_meson`
+
+- Git branch:
+
+    - `git_branch_dxvk`, `git_branch_wine`, `git_branch_glslang`, `git_branch_meson`
 
 **These settings apply only on Debian/Ubuntu/Mint:**
 
@@ -120,7 +128,11 @@ This is handy if you encounter issues during package compilation (DXVK/glslang o
 
 - `git_commithash_meson`
 
-### Force/Lock package versions: How-to
+- `git_branch_glslang`
+
+- `git_branch_meson`
+
+### Force/Lock package versions: How-to (git commit)
 
 Take a look on `updatewine.sh`. You can find above variables listed there.
 
@@ -134,11 +146,25 @@ Each variable applies values which must be match package git commit tree. The va
 
 - **B)** keyword `HEAD`. This defined the specific package to use the latest commit available on repository (read: this is bleeding-edge version of the package)
 
-Version freezing can be used on all supported platforms (Debian/Ubuntu/Mint/Arch Linux/Manjaro).
+Git commit version freezing can be used on all supported platforms (Debian/Ubuntu/Mint/Arch Linux/Manjaro).
+
+### Force/Lock package versions: How-to (git branch)
+
+Take a look on `updatewine.sh`. You can find above variables listed there.
+
+Each variable applies values which must be match package git branch available. The value format is as follows:
+
+- **A)** Default value: _master_. This git branch includes usually the latest updates for a package
+
+- **B)** Custom value: _available branch_. Optionally, use a custom value. You can find valid branch names by checking the corresponding git package repository.
+
+Git branch selection can be used on all supported platforms (Debian/Ubuntu/Mint/Arch Linux/Manjaro).
 
 #### Force/Lock package versions: about Wine Staging
 
 When you install Wine Staging and you define specific vanilla Wine commit in `git_commithash_wine` (not `HEAD`) variable, _the latest available Wine Staging version compared to that vanilla Wine commit is used_. Practically, this usually means even slightly older package version since the last matching Wine Staging commit usually doesn't match the commit you define for vanilla Wine. In most cases, this shouldn't be a problem.
+
+Any other vanilla Wine git branch setting than _master_ will be ignored if Wine Staging is set to be compiled. _master_ branch is always used for Wine Staging compilation.
 
 ### Debian users: Winetricks installation
 
@@ -276,11 +302,11 @@ The following section contains important notes about the script usage.
 
 ---------------------------
 
-### Script validation test
+### Script runtime test
 
-Validation test done for the script to ensure it works as expected. Occasional test-runs are mandatory due to rapid development of the packages (Wine/DXVK) it handles.
+Runtime test done for the script to ensure it works as expected. Occasional test-runs are mandatory due to rapid development of the packages (Wine/DXVK) it handles.
 
-**Latest test-run:** 17th November, 2018
+**Latest test-run:** 23th November, 2018
 
 **Linux Distributions:** 
 
@@ -300,7 +326,7 @@ Git commit freezing used for DXVK & meson. Reasons:
 
     - Latest commit used: [1af96347e1c6f1f2eb11aeb11009f380fd5761ec](https://github.com/doitsujin/dxvk/commit/1af96347e1c6f1f2eb11aeb11009f380fd5761ec)
 
-    - Provide newer mingw packages? Requires own subscripts for that process (on Debian, at least)
+    - Provide newer MinGW packages? Requires own subscripts for that process (on Debian, at least)
 
 - Debian - Meson: can't compile DXVK - changes to Meson path functionality breaks it (suspected commit: [mesonbuild/meson - Store unexpanded library directory paths. Closes #4392.](https://github.com/mesonbuild/meson/commit/6a2dc7576e00e849510f7bc1f939d66d0b2f6f80))
 
@@ -311,6 +337,8 @@ Git commit freezing used for DXVK & meson. Reasons:
 - Add compilation/installation script for the latest AMDGPU on Debian/Ubuntu/Mint
 
 - Add compilation/installation script for the latest MinGW on Debian/Ubuntu/Mint
+
+- Add info about selected commits and branches (if they have not been set to default)
 
 - Remove temp folders in case of failure (meson/glslang/dxvk-git/wine... temp build folders)
 

@@ -48,6 +48,9 @@ done
 git_commithash_dxvk=${params[0]}
 git_commithash_wine=${params[3]}
 
+git_branch_dxvk=${params[4]}
+git_branch_wine=${params[7]}
+
 ########################################################
 
 # Parse input arguments, filter user parameters
@@ -58,7 +61,7 @@ git_commithash_wine=${params[3]}
 # Filter all but <args>, i.e. the first 0-4 arguments
 
 i=0
-for arg in ${params[@]:4}; do
+for arg in ${params[@]:8}; do
   args[$i]="${arg}"
   let i++
 done
@@ -347,10 +350,13 @@ function check_gitOverride_wine() {
       done
 
     }
+    git_branch_wine=master
+    staging_change_freeze_commit
+
   elif [[ ! -v NO_STAGING ]] && [[ "${git_commithash_wine}" == HEAD ]]; then
+    git_branch_wine=master
     git_commithash_winestaging=HEAD
   fi
-  staging_change_freeze_commit
 }
 
 ###########################################################
@@ -404,6 +410,7 @@ function build_pkg() {
 
       set_gitOverride "wine.git" "${git_commithash_wine}" ${pkgbuild_file}
       sed -i "s/\(^_wine_commit=\).*/\1${git_commithash_wine}/" ${pkgbuild_file}
+      sed -i "s/\(^_git_branch_wine=\).*/\1${git_branch_wine}/" ${pkgbuild_file}
 
       if [[ ! -v NO_STAGING ]]; then
         set_gitOverride "wine-staging.git" "${git_commithash_winestaging}" ${pkgbuild_file}
@@ -413,6 +420,8 @@ function build_pkg() {
     elif [[ ${pkgname} == dxvk ]]; then
       local pkgbuild_file="${ARCH_BUILDROOT}/${pkgdir}/PKGBUILD"
       set_gitOverride "dxvk.git" "${git_commithash_dxvk}" ${pkgbuild_file}
+      sed -i "s/\(^_git_branch_dxvk=\).*/\1${git_branch_dxvk}/" ${pkgbuild_file}
+      sed -i "s/\(^_dxvk_commit=\).*/\1${git_commithash_dxvk}/" ${pkgbuild_file}
     fi
 
   fi

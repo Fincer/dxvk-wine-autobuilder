@@ -15,6 +15,7 @@ Khronos reference front-end for GLSL and ESSL, and sample SPIR-V generator
 
 pkg_giturl="https://github.com/KhronosGroup/glslang"
 pkg_homeurl="https://www.khronos.org/opengles/sdk/tools/Reference-Compiler/"
+pkg_gitbranch=${git_branch_glslang}
 
 git_commithash=${git_commithash_glslang}
 pkg_gitver="git describe --long | sed 's/\-[a-z].*//; s/\-/\./; s/[a-z]//g'"
