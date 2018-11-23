@@ -282,18 +282,6 @@ wine_suggested_pkgs=(
 'dosbox'
 )
 
-############################
-
-# Package name and website
-
-if [[ ! -v NO_STAGING ]]; then
-  pkgname="wine-staging-git"
-else
-  pkgname="wine-git"
-fi
-
-pkgurl="https://www.winehq.org"
-
 ########################################################
 
 # Architecture check. We do not support independent
@@ -354,6 +342,18 @@ for check in ${args[@]}; do
   esac
 
 done
+
+############################
+
+# Package name and website
+
+if [[ ! -v NO_STAGING ]]; then
+  pkgname="wine-staging-git"
+else
+  pkgname="wine-git"
+fi
+
+pkgurl="https://www.winehq.org"
 
 ########################################################
 
