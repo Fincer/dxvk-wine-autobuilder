@@ -48,12 +48,12 @@ done
 # Parse input arguments, filter user parameters
 # The range is defined in ../updatewine.sh
 # All input arguments are:
-# <datedir> 4*<githash_override> <args>
-# 0         1 2 3 4              5 ...
-# Filter all but <args>, i.e. the first 0-4 arguments
+# <datedir> 4*<githash_override> 4*<gitbranch_override> <args>
+# 0         1 2 3 4              5 6 7 8                9...
+# Filter all but <args>, i.e. the first 0-8 arguments
 
 i=0
-for arg in ${params[@]:4}; do
+for arg in ${params[@]:8}; do
   args[$i]="${arg}"
   let i++
 done
