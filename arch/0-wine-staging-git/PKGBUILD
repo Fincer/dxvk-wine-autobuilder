@@ -123,8 +123,8 @@ source=(
     '30-win32-aliases.conf'
     )
 
-if [[ $(find ./wine-patches -mindepth 1 -maxdepth 1 -regex ".*\.\(patch\|diff\)$") ]]; then
-    cp -rf ./wine-patches/*.{patch,diff} ./ 2>/dev/null
+if [[ $(find ${PWD}/wine-patches -mindepth 1 -maxdepth 1 -regex ".*\.\(patch\|diff\)$") ]]; then
+    cp -rf ${PWD}/wine-patches/*.{patch,diff} ./ 2>/dev/null
     p=0
     for patch in $(find . -mindepth 1 -maxdepth 1 -regex ".*\.\(patch\|diff\)$"); do
         patches[$p]="$(basename ${patch})"
