@@ -68,7 +68,7 @@ prepare() {
 # Retrieve DXVK version tag
 pkgver() {
     cd "${pkgname}"
-    git describe --long | sed 's/\-[a-z].*//; s/\-/\./; s/[a-z]//g'
+    printf '%s' $(git describe --long | sed 's/\-[a-z].*//; s/\-/\./; s/[a-z]//g')
 }
 
 # Launch DXVK build script
