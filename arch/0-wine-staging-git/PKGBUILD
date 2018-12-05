@@ -124,7 +124,7 @@ source=(
     )
 
 if [[ $(find ./wine-patches -mindepth 1 -maxdepth 1 -regex ".*\.\(patch\|diff\)$") ]]; then
-    cp -r ./wine-patches/*.{patch,diff} ./
+    cp -rf ./wine-patches/*.{patch,diff} ./ 2>/dev/null
     p=0
     for patch in $(find . -mindepth 1 -maxdepth 1 -regex ".*\.\(patch\|diff\)$"); do
         patches[$p]="$(basename ${patch})"
