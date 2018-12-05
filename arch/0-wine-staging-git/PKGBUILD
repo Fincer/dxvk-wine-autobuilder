@@ -213,7 +213,9 @@ build() {
       msg2 "Applying custom patches..."
 
       for i in "${srcdir}"/*.{patch,diff}; do 
-        patch -Np1 < ${i}
+        if [[ -f ${i} ]]; then
+          patch -Np1 < ${i}
+        fi
       done
     fi
 
