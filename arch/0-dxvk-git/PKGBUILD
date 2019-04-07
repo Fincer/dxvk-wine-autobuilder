@@ -9,8 +9,7 @@ pkgrel=1
 arch=('i686' 'x86_64')
 conflicts=("dxvk-win64-bin")
 provides=("dxvk" "dxvk64")
-depends=('vulkan-icd-loader' 'wine' 'winetricks')
-conflicts=("dxvk-git<$pkgver")
+depends=('vulkan-icd-loader' 'wine')
 
 pkgdesc="A Vulkan-based compatibility layer for Direct3D 10/11 which allows running 3D applications on Linux using Wine."
 arch=('x86_64' 'i686')
@@ -81,7 +80,7 @@ package() {
     mkdir -p "${pkgdir}"/usr/{bin,share/dxvk}
     cp -r "${srcdir}"/build/${_pkgname}-${pkgver}/* "${pkgdir}/usr/share/dxvk/"
 
-    echo -e "#!/bin/sh\nwinetricks --force /usr/share/dxvk/setup_dxvk.verb" \
+    echo -e "#!/bin/sh\n/usr/share/dxvk/setup_dxvk.sh" \
     > "${pkgdir}/usr/bin/setup_dxvk"
 
     chmod +x "${pkgdir}/usr/bin/setup_dxvk"
