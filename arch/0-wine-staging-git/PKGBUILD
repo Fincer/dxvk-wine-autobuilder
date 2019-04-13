@@ -232,6 +232,7 @@ build() {
 
         ../wine-git/configure \
                         --with-x \
+                        --without-mingw \
                         --with-gstreamer \
                         --enable-win64 \
                         --with-xattr \
@@ -258,6 +259,7 @@ build() {
 
         ../wine-git/configure \
                         --with-x \
+                        --without-mingw \
                         --with-gstreamer \
                         --with-xattr \
                         --disable-mscoree \
