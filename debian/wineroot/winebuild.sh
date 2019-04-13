@@ -757,6 +757,7 @@ function wine64Build() {
   cd "${WINEDIR_BUILD_64}"
   "${WINEDIR}"/configure \
   --with-x \
+  --without-mingw \
   --with-gstreamer \
   --enable-win64 \
   --with-xattr \
@@ -779,6 +780,7 @@ function wine32Build() {
   cd "${WINEDIR_BUILD_32}"
   "${WINEDIR}"/configure \
   --with-x \
+  --without-mingw \
   --with-gstreamer \
   --with-xattr \
   --disable-mscoree \
