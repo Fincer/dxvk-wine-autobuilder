@@ -51,7 +51,7 @@ override_dh_install:
 	# Make a proper executable script folder for setup_dxvk.verb file
 	mkdir -p ${dxvk_relative_builddir}/bin
 
-	echo -e \"#!/bin/sh\nwinetricks --force /usr/share/dxvk/setup_dxvk.verb\" > \"${dxvk_relative_builddir}/bin/setup_dxvk\"
+	echo -e \"#!/bin/sh\n/usr/share/dxvk/setup_dxvk.sh\" > \"${dxvk_relative_builddir}/bin/setup_dxvk\"
 	chmod +x "${dxvk_relative_builddir}/bin/setup_dxvk"
 	dh_install
 "
@@ -116,7 +116,6 @@ pkg_deps_build=(
 # Runtime dependencies
 pkg_deps_runtime=(
 'wine'
-'winetricks'
 )
 
 # Extra fields for Debian control file Source section

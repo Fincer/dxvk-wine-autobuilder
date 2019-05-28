@@ -104,8 +104,6 @@ All supported arguments are:
 
 - `--no-pol` = Do not update current user's PlayOnLinux Wine prefixes
 
-- `--no-winetricks` = [Debian only] Do not compile or install Winetricks. No DXVK installation unless Winetricks already installed.
-
 ### Force/Lock package versions
 
 You can force/lock specific Wine, Wine Staging, DXVK, meson & glslang versions.
@@ -170,7 +168,7 @@ Any other vanilla Wine git branch setting than _master_ will be ignored if Wine 
 
 **NOTE:** This section doesn't concern Ubuntu or Mint users.
 
-Since Debian doesn't provide winetricks package on official repositories, it is strongly recommended that you use provided `debian_install_winetricks.sh` to install Winetricks. Winetricks is required for successful DXVK installation. You can run `debian_install_winetricks.sh` either independently or as a part of `updatewine.sh` main script.
+Since Debian doesn't provide winetricks package on official repositories, it is strongly recommended that you use provided `debian_install_winetricks.sh` to install Winetricks.
 
 ----------------
 
@@ -212,8 +210,6 @@ To enable DXVK on existing wineprefixes, just run
 WINEPREFIX=/path/to/my/wineprefix setup_dxvk
 ```
 
-`winetricks` is required for this command. 
-
 ## Add DXVK to PlayOnLinux Wine prefixes
 
 To install DXVK on specific PlayOnLinux wineprefix which uses a different than `system` version of Wine, apply the following command syntax:
@@ -223,8 +219,6 @@ WINEPREFIX="$HOME/.PlayOnLinux/wineprefix/myprefix" WINEPATH=$HOME/.PlayOnLinux/
 ```
 
 where you need to set either `linux-amd64` or `linux-x86`, and `wineversion` + `myprefix` to match real ones, obviously.
-
-system-wide `winetricks` executable (`/usr/bin/winetricks`) is required for this command.
 
 ### Manually uninstall temporary development packages (Debian/Ubuntu/Mint):
 

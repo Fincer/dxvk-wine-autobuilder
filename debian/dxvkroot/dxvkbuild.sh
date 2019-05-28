@@ -74,9 +74,6 @@ for check in ${args[@]}; do
     --no-install)
       NO_INSTALL=
       ;;
-#    --no-winetricks)
-#      NO_WINETRICKS=
-#      ;;
     --updateoverride)
       UPDATE_OVERRIDE=
       ;;
@@ -103,10 +100,6 @@ known_wines=(
 'libwine:i386'
 'wine-git'
 'wine-staging-git'
-)
-
-known_winetricks=(
-'winetricks'
 )
 
 function runtimeCheck() {
@@ -609,9 +602,6 @@ function pkg_install_main() {
 
 # Check existence of known Wine packages
 runtimeCheck Wine "${known_wines[*]}"
-
-# Check existence of known Winetricks packages
-runtimeCheck Winetricks "${known_winetricks[*]}"
 
 # Meson - compile (& install)
 pkgcompilecheck pkg_install_main meson "${DXVKROOT}/meson.debdata"
