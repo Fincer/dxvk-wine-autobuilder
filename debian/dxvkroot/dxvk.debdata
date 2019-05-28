@@ -8,7 +8,7 @@ pkg_section="otherosfs"
 pkg_priority="optional"
 pkg_arch="all"
 
-dxvx_relative_builddir="debian/source/dxvk-master"
+dxvk_relative_builddir="debian/source/dxvk-master"
 
 pkg_commondesc="Vulkan-based D3D11 and D3D10 implementation for Linux / Wine"
 pkg_longdesc="
@@ -46,13 +46,13 @@ override_dh_install:
 	bash ./package-release.sh master debian/source/ --no-package
 
 	# Tell deb builder to create DXVK x32 & x64 subfolders
-	for arch in 32 64; do mkdir -p ${dxvx_relative_builddir}/x${arch}; done 
+	for arch in 32 64; do mkdir -p ${dxvk_relative_builddir}/x${arch}; done 
 
 	# Make a proper executable script folder for setup_dxvk.verb file
-	mkdir -p ${dxvx_relative_builddir}/bin
+	mkdir -p ${dxvk_relative_builddir}/bin
 
-	echo -e \"#!/bin/sh\nwinetricks --force /usr/share/dxvk/setup_dxvk.verb\" > \"${dxvx_relative_builddir}/bin/setup_dxvk\"
-	chmod +x "${dxvx_relative_builddir}/bin/setup_dxvk"
+	echo -e \"#!/bin/sh\nwinetricks --force /usr/share/dxvk/setup_dxvk.verb\" > \"${dxvk_relative_builddir}/bin/setup_dxvk\"
+	chmod +x "${dxvk_relative_builddir}/bin/setup_dxvk"
 	dh_install
 "
 
@@ -60,9 +60,9 @@ override_dh_install:
 # Debian install file section
 
 pkg_debinstall="\
-${dxvx_relative_builddir}/setup_dxvk.verb usr/share/dxvk/
-${dxvx_relative_builddir}/bin/* usr/bin/
-$(for arch in 32 64; do echo -e ${dxvx_relative_builddir}/x${arch}/* usr/share/dxvk/x${arch}/; done)
+${dxvk_relative_builddir}/setup_dxvk.verb usr/share/dxvk/
+${dxvk_relative_builddir}/bin/* usr/bin/
+$(for arch in 32 64; do echo -e ${dxvk_relative_builddir}/x${arch}/* usr/share/dxvk/x${arch}/; done)
 "
 
 ########################################################
