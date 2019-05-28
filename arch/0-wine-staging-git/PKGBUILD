@@ -257,6 +257,9 @@ build() {
 
         cd "$srcdir"/"$pkgname"-32-build
 
+        # Revert Wine commit 8f732c66ab37b54c30d63c74f7822ba1d4f04996
+        # Ref: https://source.winehq.org/git/wine.git/commit/8f732c66ab37b54c30d63c74f7822ba1d4f04996
+        CFLAGS="${CFLAGS} -fPIC" \
         ../wine-git/configure \
                         --with-x \
                         --without-mingw \

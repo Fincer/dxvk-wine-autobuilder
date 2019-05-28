@@ -778,6 +778,10 @@ function wine64Build() {
 function wine32Build() {
 
   cd "${WINEDIR_BUILD_32}"
+
+  # Revert Wine commit 8f732c66ab37b54c30d63c74f7822ba1d4f04996
+  # Ref: https://source.winehq.org/git/wine.git/commit/8f732c66ab37b54c30d63c74f7822ba1d4f04996
+  # CFLAGS="${CFLAGS} -fPIC" \
   "${WINEDIR}"/configure \
   --with-x \
   --without-mingw \
