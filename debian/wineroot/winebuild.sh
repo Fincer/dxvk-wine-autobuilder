@@ -427,7 +427,18 @@ function getWine() {
 ##########
 
   mkdir wine-{patches,32-build,32-install,64-build,64-install,package}
-  cp -r ../../../wine_custom_patches/*.{patch,diff} wine-patches/ 2>/dev/null
+
+  for file in ../../../wine_custom_patches/*.{patch,diff}; do
+    if [[ $(echo "${file}") == *"_staging"* ]] && [[ -v NO_STAGING ]]; then
+      continue
+    fi
+
+    if [[ $(echo "${file}") == *"_nostaging"* ]] && [[ ! -v NO_STAGING ]]; then
+      continue
+    fi
+
+    cp -rf "${file}" wine-patches/ 2>/dev/null
+  done
 
   WINEDIR="${WINEROOT}/wine"
   WINEDIR_PATCHES="${WINEROOT}/wine-patches"
@@ -949,7 +960,7 @@ echo -e "\nWine 64-bit build process finished.\n"
 
 # TODO If we do architecture separation in the future, add if check for i386 here
 # Condition would be: if i386 or amd64, then
-# 
+#
 # Purge amd64 buildtime dependencies
 # On Debian, we can't have them with i386 at the same time
 #

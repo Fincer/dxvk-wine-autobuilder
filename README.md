@@ -182,6 +182,10 @@ Folders `dxvk_disabled_patches` and `wine_disabled_patches` are just for managem
 
 Wine patches are not related to Wine Staging patchset. You can use your custom Wine patches either with Wine Staging or vanilla Wine.
 
+### Distinguish Wine staging and non-staging patches
+
+By using keywords `_staging` or `_nostaging` in your patch filename, you can quickly distinguish similar patches which are targeted either to Wine staging or Wine vanilla version.
+
 ----------------
 
 ## Compiled packages are stored for later usage

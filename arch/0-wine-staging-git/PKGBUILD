@@ -124,7 +124,19 @@ source=(
     )
 
 if [[ $(find ${PWD}/wine-patches -mindepth 1 -maxdepth 1 -regex ".*\.\(patch\|diff\)$") ]]; then
-    cp -rf ${PWD}/wine-patches/*.{patch,diff} ./ 2>/dev/null
+    for file in ${PWD}/wine-patches/*.{patch,diff}; do
+
+      if [[ $(echo ${file}) == *"_nostaging"* ]] && [[ enable_staging -eq 1 ]]; then
+        continue
+      fi
+
+      if [[ $(echo ${file}) == *"_staging"* ]] && [[ enable_staging -eq 0 ]]; then
+        continue
+      fi
+
+      cp ${file} . 2>/dev/null
+
+    done
     p=0
     for patch in $(find . -mindepth 1 -maxdepth 1 -regex ".*\.\(patch\|diff\)$"); do
         patches[$p]="$(basename ${patch})"

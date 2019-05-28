@@ -378,9 +378,7 @@ function set_gitOverride() {
 # Remove any existing pkg,src or tar.xz packages left by previous pacman commands
 
 function cleanUp() {
-  rm -rf ${ARCH_BUILDROOT}/*/{pkg,src,*.tar.xz}
-  rm -rf ${ARCH_BUILDROOT}/0-wine-staging-git/{*.patch}
-  rm -rf ${ARCH_BUILDROOT}/0-dxvk-git/{*.patch}
+  rm -rf ${ARCH_BUILDROOT}/*/{pkg,src,*.tar.xz,*.patch,*.diff}
 }
 
 ###########################################################
@@ -511,11 +509,11 @@ checkStaging
 # Check whether we have ccache installed
 ccacheCheck
 
-# Prepare building environment: copy patches and create timestamped folder for compiled packages
-prepare_env
-
 # Clean all previous trash we may have
 cleanUp
+
+# Prepare building environment: copy patches and create timestamped folder for compiled packages
+prepare_env
 
 #########################
 
