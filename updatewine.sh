@@ -1,7 +1,7 @@
 #!/bin/env bash
 
 #    DXVK/D9VK/Wine-Staging scripts dispatcher for various Linux distributions
-#    Copyright (C) 2018  Pekka Helenius
+#    Copyright (C) 2019  Pekka Helenius
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -35,7 +35,7 @@ fi
 # Just a title & author for this script, used in initialization and help page
 
 SCRIPT_TITLE="\e[1mWine/Wine Staging, DXVK & D9VK package builder & auto-installer\e[0m"
-SCRIPT_AUTHOR="Pekka Helenius (~Fincer), 2018"
+SCRIPT_AUTHOR="Pekka Helenius (~Fincer), 2019"
 
 ########################################################
 

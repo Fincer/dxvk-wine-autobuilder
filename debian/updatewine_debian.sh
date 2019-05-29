@@ -1,7 +1,7 @@
 #!/bin/env bash
 
 #    Wrapper for DXVK & Wine compilation scripts
-#    Copyright (C) 2018  Pekka Helenius
+#    Copyright (C) 2019  Pekka Helenius
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
