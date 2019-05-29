@@ -112,6 +112,9 @@ function Arch_intCleanup() {
 # Allow interruption of the script at any time (Ctrl + C)
 trap "Arch_intCleanup" INT
 
+# Error event
+trap "Arch_intCleanup" ERR
+
 ###########################################################
 
 # Check existence of ccache package

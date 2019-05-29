@@ -368,6 +368,9 @@ function Wine_intCleanup() {
 # Allow interruption of the script at any time (Ctrl + C)
 trap "Wine_intCleanup" INT
 
+# Error event
+trap "Wine_intCleanup" ERR
+
 ########################################################
 
 # This is specifically for Debian

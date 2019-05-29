@@ -196,6 +196,9 @@ function DXVK_intCleanup() {
 # Allow interruption of the script at any time (Ctrl + C)
 trap "DXVK_intCleanup" INT
 
+# Error event
+trap "DXVK_intCleanup" ERR
+
 ########################################################
 
 # http://wiki.bash-hackers.org/snipplets/print_horizontal_line#a_line_across_the_entire_width_of_the_terminal

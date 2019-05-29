@@ -354,8 +354,6 @@ Git commit freezing used for DXVK & meson. Reasons:
 
 - Add info about selected commits and branches (if they have not been set to default)
 
-- Remove temp folders in case of failure (meson/glslang/dxvk-git/wine... temp build folders)
-
 - Unify error & warning messages layout, unify internal variable & function names
 
 - Common script clean-up
