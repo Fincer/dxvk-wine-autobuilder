@@ -265,7 +265,7 @@ function sudoQuestion() {
 
 function checkInternet() {
     if [[ $(echo $(wget --delete-after -q -T 5 github.com -o -)$?) -ne 0 ]]; then
-        echo -e "\nInternet connection failed (GitHub). Please check your connection and try again.\n"
+        echo -e "\nDNS name resolution failed (GitHub). Please check your network connection settings and try again.\n"
         exit 1
     fi
     rm -f ./index.html.tmp
