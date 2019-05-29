@@ -1,24 +1,27 @@
 ########################################################
 # Common properties
 
-pkg_name="glslang"
-pkg_license="bsd"
+pkg_name="d9vk-git"
+pkg_license="custom --copyrightfile ../LICENSE"
 pkg_maintainer="${USER} <${USER}@unknown>"
-pkg_section="devel"
+pkg_section="otherosfs"
 pkg_priority="optional"
 pkg_arch="all"
 
-pkg_commondesc="Khronos OpenGL and OpenGL ES shader front end and validator."
+d9vk_relative_builddir="debian/source/dxvk-master"
+
+pkg_commondesc="Vulkan-based D3D9 implementation for Linux / Wine"
 pkg_longdesc="
-Khronos reference front-end for GLSL and ESSL, and sample SPIR-V generator
+A Vulkan-based translation layer for Direct3D 9 which
+allows running 3D applications on Linux using Wine.
 "
 
-pkg_giturl="https://github.com/KhronosGroup/glslang"
-pkg_homeurl="https://www.khronos.org/opengles/sdk/tools/Reference-Compiler/"
-pkg_gitbranch=${git_branch_glslang}
+pkg_giturl="https://github.com/Joshua-Ashton/d9vk"
+pkg_homeurl="https://github.com/Joshua-Ashton/d9vk"
+pkg_gitbranch=${git_branch_d9vk}
 
-git_commithash=${git_commithash_glslang}
-pkg_gitver="git describe --long | sed 's/\-[a-z].*//; s/\-/\./; s/[a-z]//g'"
+git_commithash=${git_commithash_d9vk}
+pkg_gitver="git describe --long --always | sed 's/\-[a-z].*//; s/\-/\./; s/[a-z]//g'"
 
 pkg_installfile="./debian/install"
 pkg_controlfile="./debian/control"
@@ -33,13 +36,35 @@ pkg_debrules="\
 %:
 	dh \$@
 
+override_dh_auto_configure:
+
 override_dh_usrlocal:
+
+override_dh_install:
+
+	# Compile D9VK
+	bash ./package-release.sh master debian/source/ --no-package
+
+	# Tell deb builder to create D9VK x32 & x64 subfolders
+	for arch in 32 64; do mkdir -p ${d9vk_relative_builddir}/x${arch}; done
+
+	# Make a proper executable script folder for setup_d9vk.sh file
+	mkdir -p ${d9vk_relative_builddir}/bin
+
+	printf '%s\n%s' \"#!/bin/sh\" \"/usr/share/dxvk/setup_d9vk.sh\" > \"${d9vk_relative_builddir}/bin/setup_d9vk\"
+	chmod +x "${d9vk_relative_builddir}/bin/setup_d9vk"
+	mv ${d9vk_relative_builddir}/setup_dxvk.sh ${d9vk_relative_builddir}/setup_d9vk.sh
+	dh_install
 "
 
 ########################################################
 # Debian install file section
 
-pkg_debinstall="empty"
+pkg_debinstall="\
+${d9vk_relative_builddir}/setup_d9vk.sh usr/share/dxvk/
+${d9vk_relative_builddir}/bin/* usr/bin/
+$(for arch in 32 64; do echo -e ${d9vk_relative_builddir}/x${arch}/d3d9.dll usr/share/dxvk/x${arch}/; done)
+"
 
 ########################################################
 # Debian control file subfields
@@ -79,34 +104,46 @@ empty
 # Build time dependencies
 pkg_deps_build=(
 #${_coredeps[*]}
-'cmake'
-'python2.7'
+'meson'
+'glslang'
+'gcc-mingw-w64-base'
+#'binutils-common'
+'mingw-w64-common'
+'binutils-mingw-w64-x86-64'
+'binutils-mingw-w64-i686'
+
+'mingw-w64-x86-64-dev'
+'gcc-mingw-w64-x86-64'
+'g++-mingw-w64-x86-64'
+
+'mingw-w64-i686-dev'
+'gcc-mingw-w64-i686'
+'g++-mingw-w64-i686'
 )
 
 # Runtime dependencies
 pkg_deps_runtime=(
-empty
+'wine'
 )
 
-# Extra fields for Debian control file Source (start) section
+# Extra fields for Debian control file Source section
 pkg_extra_1=(
 empty
 )
 
-# Extra fields for Debian control file Package (end) section
+# Extra fields for Debian control file Package section
 pkg_extra_2=(
 empty
 )
 
-########################################################
+############################
 
 # Deb builder execution field
-# Do not build either debug symbols
-pkg_debbuilder="DEB_BUILD_OPTIONS=\"strip nodocs noddebs\" dpkg-buildpackage -rfakeroot -b -us -uc -d"
+# Do not build either debug symbols or doc files
+pkg_debbuilder="DEB_BUILD_OPTIONS=\"strip nodocs noddebs\" dpkg-buildpackage -us -uc -b -d --source-option=--include-binaries"
 
 ########################################################
 # Contents of Debian control file
-
 # This is a necessary variable setting for array loops below
 IFS=$'\n'
 

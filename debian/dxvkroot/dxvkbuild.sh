@@ -1,6 +1,6 @@
 #!/bin/env bash
 
-#    Compile DXVK git on Debian/Ubuntu/Mint and variants
+#    Compile DXVK & D9VK git on Debian/Ubuntu/Mint and variants
 #    Copyright (C) 2018  Pekka Helenius
 #
 #    This program is free software: you can redistribute it and/or modify
@@ -46,12 +46,14 @@ done
 # variables!
 #
 git_commithash_dxvk=${params[0]}
-git_commithash_glslang=${params[1]}
-git_commithash_meson=${params[2]}
+git_commithash_d9vk=${params[1]}
+git_commithash_glslang=${params[2]}
+git_commithash_meson=${params[3]}
 
-git_branch_dxvk=${params[4]}
-git_branch_glslang=${params[5]}
-git_branch_meson=${params[6]}
+git_branch_dxvk=${params[5]}
+git_branch_d9vk=${params[6]}
+git_branch_glslang=${params[7]}
+git_branch_meson=${params[8]}
 
 ########################################################
 
@@ -80,27 +82,77 @@ for check in ${args[@]}; do
     --buildpkg-rm)
       BUILDPKG_RM=
       ;;
+    --no-dxvk)
+      NO_DXVK=
+      ;;
+    --no-d9vk)
+      NO_D9VK=
+      ;;
   esac
 
 done
 
 ########################################################
 
-# PRESENCE OF WINE
-
 # Check presence of Wine. Some version of Wine should
 # be found in the system in order to install DXVK.
 
 known_wines=(
-'wine'
-'wine-stable'
-'wine32'
-'wine64'
-'libwine:amd64'
-'libwine:i386'
-'wine-git'
-'wine-staging-git'
+  'wine'
+  'wine-stable'
+  'wine32'
+  'wine64'
+  'libwine:amd64'
+  'libwine:i386'
+  'wine-git'
+  'wine-staging-git'
 )
+
+# Alternative remote dependency packages for Debian distributions which offer too old packages for DXVK/D9VK
+#
+# Left side:  <package name in repositories>,<version_number>
+# Right side: package alternative source URL
+#
+# NOTE: Determine these packages in corresponding debdata files as runtime or buildtime dependencies
+#
+typeset -A remotePackagesAlt
+remotePackagesAlt=(
+  [gcc-mingw-w64-base,830]="http://mirrors.kernel.org/ubuntu/pool/universe/g/gcc-mingw-w64/gcc-mingw-w64-base_8.3.0-6ubuntu1+21.1build2_amd64.deb"
+  [mingw-w64-common,600]="http://mirrors.kernel.org/ubuntu/pool/universe/m/mingw-w64/mingw-w64-common_6.0.0-3_all.deb"
+#  [binutils-common,232]="http://mirrors.kernel.org/ubuntu/pool/main/b/binutils/binutils-common_2.32-7ubuntu4_amd64.deb"
+  [binutils-mingw-w64-x86-64,232]="http://mirrors.kernel.org/ubuntu/pool/universe/b/binutils-mingw-w64/binutils-mingw-w64-x86-64_2.32-7ubuntu4+8.3ubuntu2_amd64.deb"
+  [binutils-mingw-w64-i686,232]="http://mirrors.kernel.org/ubuntu/pool/universe/b/binutils-mingw-w64/binutils-mingw-w64-i686_2.32-7ubuntu4+8.3ubuntu2_amd64.deb"
+
+  [mingw-w64-x86-64-dev,600]="http://mirrors.kernel.org/ubuntu/pool/universe/m/mingw-w64/mingw-w64-x86-64-dev_6.0.0-3_all.deb"
+  [gcc-mingw-w64-x86-64,830]="http://mirrors.kernel.org/ubuntu/pool/universe/g/gcc-mingw-w64/gcc-mingw-w64-x86-64_8.3.0-6ubuntu1+21.1build2_amd64.deb"
+  [g++-mingw-w64-x86-64,830]="http://mirrors.kernel.org/ubuntu/pool/universe/g/gcc-mingw-w64/g++-mingw-w64-x86-64_8.3.0-6ubuntu1+21.1build2_amd64.deb"
+
+  [mingw-w64-i686-dev,600]="http://mirrors.kernel.org/ubuntu/pool/universe/m/mingw-w64/mingw-w64-i686-dev_6.0.0-3_all.deb"
+  [gcc-mingw-w64-i686,830]="http://mirrors.kernel.org/ubuntu/pool/universe/g/gcc-mingw-w64/gcc-mingw-w64-i686_8.3.0-6ubuntu1+21.1build2_amd64.deb"
+  [g++-mingw-w64-i686,830]="http://mirrors.kernel.org/ubuntu/pool/universe/g/gcc-mingw-w64/g++-mingw-w64-i686_8.3.0-6ubuntu1+21.1build2_amd64.deb"
+)
+
+# Posix-compliant MingW alternative executables
+#
+typeset -A alternatives
+alternatives=(
+  [x86_64-w64-mingw32-gcc]="x86_64-w64-mingw32-gcc-posix"
+  [x86_64-w64-mingw32-g++]="x86_64-w64-mingw32-g++-posix"
+  [i686-w64-mingw32-gcc]="i686-w64-mingw32-gcc-posix"
+  [i686-w64-mingw32-g++]="i686-w64-mingw32-g++-posix"
+)
+
+# Temporary symbolic links for DXVK & D9VK compilation
+#
+typeset -A tempLinks
+tempLinks=(
+  ['/usr/bin/i686-w64-mingw32-gcc']='/usr/bin/i686-w64-mingw32-gcc-posix'
+  ['/usr/bin/i686-w64-mingw32-g++']='/usr/bin/i686-w64-mingw32-g++-posix'
+  ['/usr/bin/x86_64-w64-mingw32-gcc']='x86_64-w64-mingw32-gcc-posix'
+  ['/usr/bin/x86_64-w64-mingw32-g++']='x86_64-w64-mingw32-g++-posix'
+)
+
+########################################################
 
 function runtimeCheck() {
 
@@ -119,15 +171,14 @@ function runtimeCheck() {
   done
 
   if [[ -z ${pkglist[*]} ]]; then
-    echo -e "\e[1mWARNING:\e[0m Not installing DXVK because \e[1m${pkgreq_name}\e[0m is missing on your system.\n\
-${pkgreq_name} should be installed in order to use DXVK. Just compiling DXVK for later use.\n"
+    echo -e "\e[1mWARNING:\e[0m Not installing DXVK/D9VK because \e[1m${pkgreq_name}\e[0m is missing on your system.\n\
+${pkgreq_name} should be installed in order to use DXVK/D9VK. Just compiling DXVK/D9VK for later use.\n"
 
     # Do this check separately so we can warn about all missing runtime dependencies above
     if [[ ! -v NO_INSTALL ]]; then
       # Force --no-install switch
       NO_INSTALL=
     fi
-
   fi
 
 }
@@ -137,7 +188,7 @@ ${pkgreq_name} should be installed in order to use DXVK. Just compiling DXVK for
 # If the script is interrupted (Ctrl+C/SIGINT), do the following
 
 function DXVK_intCleanup() {
-  rm -rf ${DXVKROOT}/{dxvk-git,meson,glslang}
+  rm -rf ${DXVKROOT}/{dxvk-git,d9vk-git,meson,glslang,*.deb}
   rm -rf ${DXVKROOT}/../compiled_deb/"${datedir}"
   exit 0
 }
@@ -186,27 +237,32 @@ function pkgcompilecheck() {
 
 function dxvk_install_custom() {
 
+  local PATCHDIR="${1}"
+
   # Use posix alternates for MinGW binaries
   function dxvk_posixpkgs() {
 
-    local packages=(
-    'i686-w64-mingw32-g++'
-    'i686-w64-mingw32-gcc'
-    'x86_64-w64-mingw32-g++'
-    'x86_64-w64-mingw32-gcc'
-    )
-
-    for package in "${packages[@]}"; do
-      local option=$(echo "" | sudo update-alternatives --config "${package}" | grep posix | sed 's@^[^0-9]*\([0-9]\+\).*@\1@')
-      echo "${option}" | sudo update-alternatives --config "${package}" &> /dev/null
+    for alt in ${!alternatives[@]}; do
+      echo "Linking MingW executable ${alt} to ${alternatives[$alt]}"
+      sudo rm -rf /etc/alternatives/"${alt}" 2>/dev/null
+      sudo ln -sf  /usr/bin/"${alternatives[$alt]}" /etc/alternatives/"${alt}"
 
       if [[ $? -ne 0 ]]; then
-        echo -e "\e[1mERROR:\e[0m Error occured while running 'update-alternatives' for '${package}'. Aborting\n"
+        echo -e "\e[1mERROR:\e[0m Error occured while linking executable ${alt} to ${alternatives[$alt]}. Aborting\n"
         exit 1
       fi
-
     done
 
+    for link in ${!tempLinks[@]}; do
+      if [[ ! -f ${link} ]]; then
+        echo "Creating temporary links for MingW executable ${link}"
+        sudo ln -sf ${tempLinks["${link}"]} "${link}"
+        if [[ $? -ne 0 ]]; then
+          echo -e "\e[1mERROR:\e[0m Error occured while linking executable ${link}. Aborting\n"
+          exit 1
+        fi
+      fi
+    done
   }
 
 ############################
@@ -218,10 +274,10 @@ function dxvk_install_custom() {
     # Get our current directory, since we will change it during patching process below
     # We want to go back here after having applied the patches
     local CURDIR="${PWD}"
-
+    
     # Check if the following folder exists, and proceed.
-    if [[ -d "${DXVKROOT}/../../dxvk_custom_patches" ]]; then
-      cp -r "${DXVKROOT}/../../dxvk_custom_patches/"*.{patch,diff} "${DXVKROOT}/${pkg_name}/" 2>/dev/null
+    if [[ -d "${DXVKROOT}/../../${PATCHDIR}" ]]; then
+      cp -r "${DXVKROOT}/../../${PATCHDIR}/"*.{patch,diff} "${DXVKROOT}/${pkg_name}/" 2>/dev/null
 
       local dxvk_builddir_name=$(ls -l "${DXVKROOT}/${pkg_name}" | grep ^d | awk '{print $NF}')
 
@@ -258,8 +314,7 @@ function dxvk_install_custom() {
 # DXVK - CUSTOM HOOKS EXECUTION
 
   dxvk_custompatches && \
-  dxvk_posixpkgs && \
-  dxvk_custom_deb_build
+  dxvk_posixpkgs
 }
 
 ########################################################
@@ -325,6 +380,13 @@ function compile_and_install_deb() {
 
 ############################
 
+  function pkg_installcheck() {
+    RETURNVALUE=$(echo $(dpkg -s "${1}" &>/dev/null)$?)
+    return $RETURNVALUE
+  }
+
+############################
+
   echo -e "Starting compilation$(if [[ ! -v NO_INSTALL ]] || [[ ${_pkg_name} =~ ^meson|glslang$ ]]; then printf " & installation"; fi) of ${_pkg_name}\n"
 
 ############################
@@ -337,6 +399,8 @@ function compile_and_install_deb() {
     local _pkg_list="${1}"
     local _pkg_type="${2}"
     local IFS=$'\n'
+    _pkg_list=$(echo "${_pkg_list}" | sed 's/([^)]*)//g')
+    unset IFS
 
     case ${_pkg_type} in
       buildtime)
@@ -354,25 +418,76 @@ function compile_and_install_deb() {
     # Generate a list of missing dependencies
     local a=0
     for p in ${_pkg_list[@]}; do
-      local p=$(printf '%s' ${p} | awk '{print $1}')
-      if [[ $(echo $(dpkg -s ${p} &>/dev/null)$?) -ne 0 ]]; then
+      if [[ $(pkg_installcheck ${p}) -eq 0 ]]; then
         local _validlist[$a]=${p}
         let a++
 
         # Global array to track installed build dependencies
         if [[ ${_pkg_type} == "buildtime" ]]; then
-          _buildpkglist[$z]=${p}
+          _buildpkglist[$z]="${p}"
           let z++
         fi
-
       fi
     done
+
+    function pkg_remoteinstall() {
+      sudo apt install -y ${1} &> /dev/null
+    }
+
+    function pkg_localinstall() {
+      wget ${1} -O ${DXVKROOT}/"${2}".deb
+      sudo dpkg -i --force-all ${DXVKROOT}/"${2}".deb
+    }
+
+    function pkg_configure() {
+      if [[ $(sudo dpkg-reconfigure ${1} | grep "is broken or not fully installed") ]]; then
+        if [[ -v ${2} ]]; then
+          pkg_localinstall ${2} ${1}
+        else
+          pkg_remoteinstall ${1}
+        fi
+      fi
+    }
 
     # Install missing dependencies, be informative
     local b=0
     for _pkg_dep in ${_validlist[@]}; do
       echo -e "$(( $b + 1 ))/$(( ${#_validlist[*]} )) - Installing ${_pkg_name} ${_pkg_type_str} dependency ${_pkg_dep}"
-      sudo apt install -y ${_pkg_dep} &> /dev/null
+
+      if [[ ${#remotePackagesAlt[@]} -gt 0 ]]; then
+        for altRemote in ${!remotePackagesAlt[@]}; do
+            altRemotepkg=$(echo ${altRemote} | awk -F ',' '{print $1}')
+            altRemotever=$(echo ${altRemote} | awk -F ',' '{print $2}')
+          if [[ "${_pkg_dep}" == "${altRemotepkg}" ]]; then
+            if [[ $(pkg_installcheck ${altRemotepkg}) -ne 0 ]]; then
+
+              # TODO remove duplicate functionality
+              if [[ $(apt-cache show "${altRemotepkg}" | grep -m1 -oP "(?<=^Version: )[0-9|\.]*" | sed 's/\.//g') < ${altRemotever} ]]; then
+                pkg_localinstall ${remotePackagesAlt["${altRemote}"]} "${altRemotepkg}"
+                pkg_configure "${altRemotepkg}" ${remotePackagesAlt["${altRemote}"]}
+              else
+                pkg_remoteinstall "${altRemotepkg}"
+                pkg_configure "${altRemotepkg}"
+              fi
+            else
+              if [[ $(dpkg -s "${altRemotepkg}" | grep -m1 -oP "(?<=^Version: )[0-9|\.]*" | sed 's/\.//g') < ${altRemotever} ]]; then
+                pkg_localinstall ${remotePackagesAlt["${altRemote}"]} "${altRemotepkg}"
+                pkg_configure "${altRemotepkg}" ${remotePackagesAlt["${altRemote}"]}
+              else
+                pkg_remoteinstall "${altRemotepkg}"
+                pkg_configure "${altRemotepkg}"
+              fi
+
+            fi
+          fi
+        done
+      fi
+
+      if [[ $(pkg_installcheck ${_pkg_dep}) -ne 0 ]]; then
+        pkg_remoteinstall "${_pkg_dep}"
+        pkg_configure "${_pkg_dep}"
+      fi
+
       if [[ $? -eq 0 ]]; then
         let b++
       else
@@ -483,7 +598,7 @@ function compile_and_install_deb() {
       mv ../${_pkg_name}*.deb ../../../compiled_deb/"${datedir}" && \
       echo -e "Compiled ${_pkg_name} is stored at '$(readlink -f ../../../compiled_deb/"${datedir}")/'\n"
       cd ../..
-      rm -rf ${_pkg_name}
+      rm -rf {${_pkg_name},*.deb}
     else
       buildpkg_removal
       exit 1
@@ -494,7 +609,7 @@ function compile_and_install_deb() {
 ############################
 # COMMON - EXECUTION HOOKS
 
-  pkg_dependencies "${_pkg_deps_build[*]}" buildtime && \
+  pkg_dependencies "${_pkg_deps_build[*]}" buildtime
 
   if [[ ${_pkg_deps_runtime[0]} != "empty" ]] && [[ ! -v NO_INSTALL ]]; then
     pkg_dependencies "${_pkg_deps_runtime[*]}" runtime
@@ -503,9 +618,13 @@ function compile_and_install_deb() {
   pkg_folderprepare
 
   # TODO use package name or separate override switch here?
-  if [[ ${_pkg_name} == *"dxvk"* ]]; then
-    dxvk_install_custom
-  fi  
+  if [[ "${_pkg_name}" == *"dxvk"* ]]; then
+    dxvk_install_custom "dxvk_custom_patches"
+  fi
+  if [[ "${_pkg_name}" == *"d9vk"* ]]; then
+    dxvk_install_custom "d9vk_custom_patches"
+  fi
+
   pkg_debianbuild
 
   unset _pkg_gitver
@@ -518,6 +637,14 @@ function compile_and_install_deb() {
 
 function buildpkg_removal() {
 
+  _buildpkglist=($(echo ${_buildpkglist[@]} | tr ' ' '\n' |sort -u | tr '\n' ' '))
+
+  for link in ${!tempLinks[@]}; do
+    if [[ $(file ${link}) == *"symbolic link"* ]]; then
+      sudo rm -f "${link}"
+    fi
+  done
+
   # Build time dependencies which were installed but no longer needed
   if [[ -v _buildpkglist ]]; then
     if [[ -v BUILDPKG_RM ]]; then
@@ -526,9 +653,11 @@ function buildpkg_removal() {
       # In some cases, glslang or meson may still be present on the system. Remove them
       for _extrapkg in glslang meson; do
         if [[ $(echo $(dpkg -s ${_extrapkg} &>/dev/null)$?) -eq 0 ]]; then
-          sudo apt purge --remove -y ${_extrapkg}
+          sudo dpkg --remove --force-remove-reinstreq ${_extrapkg}
         fi
       done
+      # Manually obtained deb packages are expected to break system configuration, thus we need to fix it.
+      sudo apt --fix-broken -y install
 
     else
       echo -e "The following build time dependencies were installed and no longer needed:\n\n$(for l in ${_buildpkglist[*]}; do echo -e ${l}; done)\n"
@@ -559,8 +688,8 @@ function pkg_install_main() {
   function pkg_arrayparser() {
 
     local pkg_arrays=(
-    'pkg_deps_build'
-    'pkg_deps_runtime'
+      'pkg_deps_build'
+      'pkg_deps_runtime'
     )
 
     local IFS=$'\n'
@@ -609,8 +738,15 @@ pkgcompilecheck pkg_install_main meson "${DXVKROOT}/meson.debdata"
 # Glslang - compile (& install)
 pkgcompilecheck pkg_install_main glslang "${DXVKROOT}/glslang.debdata"
 
-# DXVK - compile (& install)
-pkg_install_main "${DXVKROOT}/dxvk.debdata"
+if [[ ! -v NO_DXVK ]]; then
+  # DXVK - compile (& install)
+  pkg_install_main "${DXVKROOT}/dxvk.debdata"
+fi
+
+if [[ ! -v NO_D9VK ]]; then
+  # D9VK - compile (& install)
+  pkg_install_main "${DXVKROOT}/d9vk.debdata"
+fi
 
 # Clean buildtime dependencies
 buildpkg_removal

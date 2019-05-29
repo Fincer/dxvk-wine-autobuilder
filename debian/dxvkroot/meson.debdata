@@ -135,7 +135,7 @@ empty
 
 # Deb builder execution field
 # Do not build either debug symbols or doc files
-pkg_debbuilder="DEB_BUILD_OPTIONS=\"strip nodocs noddebs nocheck\" dpkg-buildpackage -rfakeroot -b -us -uc"
+pkg_debbuilder="DEB_BUILD_OPTIONS=\"strip nodocs noddebs nocheck\" dpkg-buildpackage -rfakeroot -b -us -uc -d"
 
 ########################################################
 # Contents of Debian control file

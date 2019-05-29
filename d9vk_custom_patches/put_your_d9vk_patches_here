@@ -1,0 +1,4 @@
+Put your custom D9VK patches here.
+Valid file suffix formats are: .diff and .patch
+
+These patches are applied during D9VK compilation

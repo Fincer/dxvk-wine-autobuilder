@@ -1,30 +1,30 @@
-# Wine/Wine Staging + DXVK package builder & auto-installer
+# Wine/Wine Staging + DXVK & D9VK package builder & auto-installer
 
 ![](https://i.imgur.com/5WCPioZ.png)
 
-Boost up your Wine experience with a taste of DXVK and automate installation of [DXVK](https://github.com/doitsujin/dxvk) + [Wine](https://www.winehq.org/)/[Wine Staging](https://github.com/wine-staging/wine-staging/) on Debian/Ubuntu/Mint/Arch Linux/Manjaro. Additionally, update your GPU drivers + PlayonLinux wineprefixes to use the latest Wine & DXVK combination available.
+Boost up your Wine experience with a taste of DXVK + D9VK and automate installation of [DXVK](https://github.com/doitsujin/dxvk), [D9VK](https://github.com/Joshua-Ashton/d9vk) + [Wine](https://www.winehq.org/)/[Wine Staging](https://github.com/wine-staging/wine-staging/) on Debian/Ubuntu/Mint/Arch Linux/Manjaro. Additionally, update your GPU drivers + PlayonLinux wineprefixes to use the latest Wine & DXVK + D9VK combination available.
 
 ## About
 
-One-click solution for accessing bleeding-edge Wine/Wine Staging & DXVK packages _system-widely_ on Debian/Ubuntu/Mint and on Arch Linux/Manjaro. Alternatively, you can pick any version of Wine/Wine Staging & DXVK to be used.
+One-click solution for accessing bleeding-edge Wine/Wine Staging, DXVK & D9VK packages _system-widely_ on Debian/Ubuntu/Mint and on Arch Linux/Manjaro. Alternatively, you can pick any version of Wine/Wine Staging, DXVK & D9VK to be used.
 
 ![](https://i.imgur.com/Tqqi7pm.png)
 
-_Wine Staging 3.20, DXVK and winetricks on Debian 9. Normally, winetricks & DXVK are not available, and Wine is set to very old version 1.8.7 on Debian - leaving all the sweet candies out. Not anymore - let's end this misery and give user finally a choice._
+_Wine Staging 3.20, DXVK and winetricks on Debian 9. Normally, no winetricks, DXVK or D9VK are available, and Wine is set to very old version 1.8.7 on Debian - leaving all the sweet candies out. Not anymore - let's end this misery and give user finally a choice._
 
 ## Motivation
 
-**Accessibility, lower the barrier.** Help people to get their hands on the latest (bleeding-edge) Wine/Wine Staging & DXVK software on major Linux distribution platforms without hassle or headaches.
+**Accessibility, lower the barrier.** Help people to get their hands on the latest (bleeding-edge) Wine/Wine Staging, DXVK & D9VK software on major Linux distribution platforms without hassle or headaches.
 
-There is not an easy way to auto-install the latest Wine/Wine Staging & DXVK, especially on Debian/Ubuntu/Mint. The newest Wine/Wine Staging is not easily accessible on Debian-based Linux distributions, and DXVK is practically bundled to Lutris or Steam gaming platform as a form of Proton. However, not all Windows programs, like MS Office or Adobe Photoshop, could run under Linux Steam client: Many Windows programs actually rely on system-wide Wine installation which is why system-wide Wine/Wine Staging & DXVK auto-installation this script offers becomes quite handy.
+There is not an easy way to auto-install the latest Wine/Wine Staging, DXVK & D9VK, especially on Debian/Ubuntu/Mint. The newest Wine/Wine Staging is not easily accessible on Debian-based Linux distributions, and DXVK/D9VK is practically bundled to Lutris or Steam gaming platform as a form of Proton. However, not all Windows programs, like MS Office or Adobe Photoshop, could run under Linux Steam client: Many Windows programs actually rely on system-wide Wine installation which is why system-wide Wine/Wine Staging, DXVK & D9VK auto-installation this script offers becomes quite handy.
 
-The solution provided here _is independent from Steam client or any other Wine management platform_. The latest Wine/Wine Staging & DXVK bundle will be accessible system-widely, not just via Steam, Lutris or PlayOnLinux. Provided PlayOnLinux prefix update is optional, as well.
+The solution provided here _is independent from Steam client or any other Wine management platform_. The latest Wine/Wine Staging, DXVK & D9VK bundle will be accessible system-widely, not just via Steam, Lutris or PlayOnLinux. Provided PlayOnLinux prefix update is optional, as well.
 
 ----------------
 
 ## Adapt system-wide Wine/DXVK to your Steam Windows games
 
-If you want to easily use Wine/Wine Staging and DXVK with your Steam Windows games on Linux, you may want to check out my helper script [steam-launchoptions](https://github.com/Fincer/steam-launchoptions).
+If you want to easily use Wine/Wine Staging and DXVK + D9VK with your Steam Windows games on Linux, you may want to check out my helper script [steam-launchoptions](https://github.com/Fincer/steam-launchoptions).
 
 With the helper script, you can set launch options for a single game/selected group of games/all games you have on your Steam account. You can customize the launch options for both Windows and Linux games and clean all existing launch options, too.
 
@@ -32,13 +32,13 @@ With the helper script, you can set launch options for a single game/selected gr
 
 ## Contents
 
-- **Wine/Wine Staging & DXVK:** Installation script for supported Linux distributions
+- **Wine/Wine Staging, DXVK & D9VK:** Installation script for supported Linux distributions
 
 - **Nvidia drivers:** Installation script for supported Debian-based distributions. Independent script.
 
 - **Winetricks install** Installation script for supported Debian-based distributions. Can be run independently.
 
-- **Patches:** Possibility to use your custom patches with Wine & DXVK
+- **Patches:** Possibility to use your custom patches with Wine, DXVK & D9VK
 
 ----------------
 
@@ -48,7 +48,7 @@ With the helper script, you can set launch options for a single game/selected gr
 
 - **RAM:** 4096 MB (DXVK build process may fail with less RAM available)
 
-- **Not listed as a hard dependency, but recommended for DXVK**: The latest Nvidia or AMD GPU drivers (Nvidia proprietary drivers // AMDGPU)
+- **Not listed as a hard dependency, but recommended for DXVK & D9VK**: The latest Nvidia or AMD GPU drivers (Nvidia proprietary drivers // AMDGPU)
 
 - **Time:** it can take between 0.5-2 hours for the script to run. Compiling Wine takes _a lot of time_. You have been warned.
 
@@ -56,7 +56,7 @@ With the helper script, you can set launch options for a single game/selected gr
 
 ## Why to compile from source?
 
-Latest version of Wine/Wine Staging & DXVK are only available via git as source code which must be compiled before usage. Note that compiling Wine takes a lot of time. Compiling from source has its advantages and disadvantages, some of them listed below.
+Latest version of Wine/Wine Staging, DXVK & D9VK are only available via git as source code which must be compiled before usage. Note that compiling Wine takes a lot of time. Compiling from source has its advantages and disadvantages, some of them listed below.
 
 **Advantages:**
 
@@ -72,7 +72,7 @@ Latest version of Wine/Wine Staging & DXVK are only available via git as source 
 
 - is unreliable in some cases, the script may break easily due to rapid DXVK development or distro changes
 
-- may break working already-working versions of the packages (use `--no-install` parameter to avoid installation of DXVK & Wine, just as precaution)
+- may break working already-working versions of the packages (use `--no-install` parameter to avoid installation of DXVK/D9VK & Wine, just as precaution)
 
 ----------------
 
@@ -102,11 +102,13 @@ All supported arguments are:
 
 - `--no-dxvk` = Do not compile or install DXVK
 
+- `--no-d9vk` = Do not compile or install D9VK
+
 - `--no-pol` = Do not update current user's PlayOnLinux Wine prefixes
 
 ### Force/Lock package versions
 
-You can force/lock specific Wine, Wine Staging, DXVK, meson & glslang versions.
+You can force/lock specific Wine, Wine Staging, DXVK, D9VK, meson & glslang versions.
 
 There are two switches for that: Set a specific **1)** _commit_ **2)** _git branch_ you want to use
 
@@ -114,11 +116,11 @@ This is handy if you encounter issues during package compilation (DXVK/glslang o
 
 - Git commit:
 
-    - `git_commithash_dxvk`, `git_commithash_wine`, `git_commithash_glslang`, `git_commithash_meson`
+    - `git_commithash_dxvk`, `git_commithash_d9vk`, `git_commithash_wine`, `git_commithash_glslang`, `git_commithash_meson`
 
 - Git branch:
 
-    - `git_branch_dxvk`, `git_branch_wine`, `git_branch_glslang`, `git_branch_meson`
+    - `git_branch_dxvk`, `git_branch_d9vk`, `git_branch_wine`, `git_branch_glslang`, `git_branch_meson`
 
 **These settings apply only on Debian/Ubuntu/Mint:**
 
@@ -138,7 +140,7 @@ Each variable applies values which must be match package git commit tree. The va
 
 - **A)** 40 characters long commit hash. Use this if you want this commit to be the latest to be used in package compilation, not anything after it.
 
-    - defined in git commit tree: [DXVK commit tree](https://github.com/doitsujin/dxvk/commits/master), [Wine commit tree](https://source.winehq.org/git/wine.git/) (or [GitHub mirror](https://github.com/wine-mirror/wine)), [glslang commit tree](https://github.com/KhronosGroup/glslang/commits/master), [meson commit tree](https://github.com/mesonbuild/meson/commits/master)
+    - defined in git commit tree: [DXVK commit tree](https://github.com/doitsujin/dxvk/commits/master), D9VK commit tree](https://github.com/Joshua-Ashton/d9vk/commits/master), [Wine commit tree](https://source.winehq.org/git/wine.git/) (or [GitHub mirror](https://github.com/wine-mirror/wine)), [glslang commit tree](https://github.com/KhronosGroup/glslang/commits/master), [meson commit tree](https://github.com/mesonbuild/meson/commits/master)
 
     - You can obtain proper hash by opening the commit. Hash syntax is: `654544e96bfcd1bbaf4a0fc639ef655299276a39` etc...
 
@@ -168,13 +170,13 @@ Any other vanilla Wine git branch setting than _master_ will be ignored if Wine 
 
 **NOTE:** This section doesn't concern Ubuntu or Mint users.
 
-Since Debian doesn't provide winetricks package on official repositories, it is strongly recommended that you use provided `debian_install_winetricks.sh` to install Winetricks.
+Since Debian doesn't provide winetricks package on official repositories, it is strongly recommended that you use provided `debian_install_winetricks.sh` to install Winetricks if needed.
 
 ----------------
 
-## Custom patches for Wine & DXVK
+## Custom patches for Wine, DXVK & D9VK
 
-You can apply your own patches for DXVK & Wine by dropping valid `.patch` or `.diff` files into `dxvk_custom_patches` (DXVK) or `wine_custom_patches` (Wine) folder.
+You can apply your own patches for DXVK, D9VK & Wine by dropping valid `.patch` or `.diff` files into `dxvk_custom_patches` (DXVK), `d9vk_custom_patches` (D9VK) or `wine_custom_patches` (Wine) folder.
 
 Folders `dxvk_disabled_patches` and `wine_disabled_patches` are just for management purposes, they do not have a role in script logic at all.
 
@@ -188,7 +190,7 @@ By using keywords `_staging` or `_nostaging` in your patch filename, you can qui
 
 ## Compiled packages are stored for later usage
 
-Successfully compiled Wine & DXVK packages are stored in separate subfolders. Their locations are as follows.
+Successfully compiled Wine, DXVK & D9VK packages are stored in separate subfolders. Their locations are as follows.
 
 On Debian/Ubuntu/Mint:
 
@@ -210,12 +212,24 @@ To enable DXVK on existing wineprefixes, just run
 WINEPREFIX=/path/to/my/wineprefix setup_dxvk
 ```
 
-## Add DXVK to PlayOnLinux Wine prefixes
+## D9VK usage
 
-To install DXVK on specific PlayOnLinux wineprefix which uses a different than `system` version of Wine, apply the following command syntax:
+**NOTE:** D9VK must be installed before applying these steps.
+
+To enable D9VK on existing wineprefixes, just run
+
+```
+WINEPREFIX=/path/to/my/wineprefix setup_d9vk
+```
+
+## Add DXVK/D9VK to PlayOnLinux Wine prefixes
+
+To install DXVK or D9VK on specific PlayOnLinux wineprefix which uses a different than `system` version of Wine, apply the following command syntax:
 
 ```
 WINEPREFIX="$HOME/.PlayOnLinux/wineprefix/myprefix" WINEPATH=$HOME/.PlayOnLinux/wine/{linux-amd64,linux-x86}/wineversion/bin" setup_dxvk
+
+WINEPREFIX="$HOME/.PlayOnLinux/wineprefix/myprefix" WINEPATH=$HOME/.PlayOnLinux/wine/{linux-amd64,linux-x86}/wineversion/bin" setup_d9vk
 ```
 
 where you need to set either `linux-amd64` or `linux-x86`, and `wineversion` + `myprefix` to match real ones, obviously.
@@ -270,6 +284,10 @@ bash debian_cleanup_devpkgs.sh
 
 `bash updatewine.sh --no-staging --no-dxvk --no-pol`
 
+**8)** Compile D9VK, and make an installable package for it. Install the package, do not check PlayOnLinux wineprefixes:
+
+`bash updatewine.sh --no-wine --no-dxvk --no-pol`
+
 ----------------
 
 ## GPU drivers
@@ -302,7 +320,7 @@ The following section contains important notes about the script usage.
 
 ### Script runtime test
 
-Runtime test done for the script to ensure it works as expected. Occasional test-runs are mandatory due to rapid development of the packages (Wine/DXVK) it handles.
+Runtime test done for the script to ensure it works as expected. Occasional test-runs are mandatory due to rapid development of the packages (Wine/DXVK/D9VK) it handles.
 
 **Latest test-run:** 23th November, 2018
 
@@ -333,8 +351,6 @@ Git commit freezing used for DXVK & meson. Reasons:
 ### TODO
 
 - Add compilation/installation script for the latest AMDGPU on Debian/Ubuntu/Mint
-
-- Add compilation/installation script for the latest MinGW on Debian/Ubuntu/Mint
 
 - Add info about selected commits and branches (if they have not been set to default)
 

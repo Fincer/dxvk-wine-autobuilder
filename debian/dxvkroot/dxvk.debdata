@@ -48,10 +48,10 @@ override_dh_install:
 	# Tell deb builder to create DXVK x32 & x64 subfolders
 	for arch in 32 64; do mkdir -p ${dxvk_relative_builddir}/x${arch}; done 
 
-	# Make a proper executable script folder for setup_dxvk.verb file
+	# Make a proper executable script folder for setup_dxvk.sh file
 	mkdir -p ${dxvk_relative_builddir}/bin
 
-	echo -e \"#!/bin/sh\n/usr/share/dxvk/setup_dxvk.sh\" > \"${dxvk_relative_builddir}/bin/setup_dxvk\"
+	printf '%s\n%s' \"#!/bin/sh\" \"/usr/share/dxvk/setup_dxvk.sh\" > \"${dxvk_relative_builddir}/bin/setup_dxvk\"
 	chmod +x "${dxvk_relative_builddir}/bin/setup_dxvk"
 	dh_install
 "
@@ -60,7 +60,7 @@ override_dh_install:
 # Debian install file section
 
 pkg_debinstall="\
-${dxvk_relative_builddir}/setup_dxvk.verb usr/share/dxvk/
+${dxvk_relative_builddir}/setup_dxvk.sh usr/share/dxvk/
 ${dxvk_relative_builddir}/bin/* usr/bin/
 $(for arch in 32 64; do echo -e ${dxvk_relative_builddir}/x${arch}/* usr/share/dxvk/x${arch}/; done)
 "
@@ -105,12 +105,19 @@ pkg_deps_build=(
 #${_coredeps[*]}
 'meson'
 'glslang'
-'gcc-mingw-w64-x86-64'
-'gcc-mingw-w64-i686'
-'g++-mingw-w64-x86-64'
-'g++-mingw-w64-i686'
+'gcc-mingw-w64-base'
+#'binutils-common'
+'mingw-w64-common'
+'binutils-mingw-w64-x86-64'
+'binutils-mingw-w64-i686'
+
 'mingw-w64-x86-64-dev'
+'gcc-mingw-w64-x86-64'
+'g++-mingw-w64-x86-64'
+
 'mingw-w64-i686-dev'
+'gcc-mingw-w64-i686'
+'g++-mingw-w64-i686'
 )
 
 # Runtime dependencies
@@ -132,7 +139,7 @@ empty
 
 # Deb builder execution field
 # Do not build either debug symbols or doc files
-pkg_debbuilder="DEB_BUILD_OPTIONS=\"strip nodocs noddebs\" dpkg-buildpackage -us -uc -b --source-option=--include-binaries"
+pkg_debbuilder="DEB_BUILD_OPTIONS=\"strip nodocs noddebs\" dpkg-buildpackage -us -uc -b -d --source-option=--include-binaries"
 
 ########################################################
 # Contents of Debian control file

@@ -74,11 +74,11 @@ for check in ${args[@]}; do
     --no-dxvk)
       NO_DXVK=
       ;;
+    --no-d9vk)
+      NO_D9VK=
+      ;;
     --no-pol)
       NO_POL=
-      ;;
-    --no-winetricks)
-      NO_WINETRICKS=
       ;;
     --no-install)
       NO_INSTALL=
@@ -137,187 +137,14 @@ Using $(nproc --ignore 1) of $(nproc) available CPU cores for Wine source code c
 
 ########################################################
 
-# Call Winetricks compilation & installation subscript in the following function
-
-function winetricks_install_main() {
-
-  local pkg="winetricks"
-
-  # Location of expected Winetricks deb archive from
-  # the point of view of this script file
-  local pkgdebdir=".."
-
-  # Winetricks availability check
-  function winetricks_availcheck() {
-
-    local apt_searchcheck=$(apt-cache search ^${pkg}$ | wc -l)
-
-    if [[ $(echo $(dpkg -s ${pkg} &>/dev/null)$?) -ne 0 ]]; then
-
-      # TODO expecting only 1 match from apt-cache output
-      if [[ ${apt_searchcheck} -eq 1 ]]; then
-        sudo apt install -y ${pkg}
-        if [[ $? -eq 0 ]]; then
-          # Winetricks already installed by the previous command
-          return 0
-        else
-          echo -e "\e[1mWARNING:\e[0m Can't install Winetricks from repositories. Trying to compile from source.\n"
-          # TODO Force Winetricks compilation from source. Is this a good practice?
-          return 1
-        fi
-      else
-        # Multiple or no entries from apt-cache output. Can't decide which package to use, so force winetricks compilation.
-        echo -e "\e[1mWARNING:\e[0m Can't install Winetricks from repositories. Trying to compile from source.\n"
-        # TODO Force Winetricks compilation from source. Is this a good practice?
-        return 1
-      fi
-    else
-      # Winetricks already installed on the system
-      echo -e "Winetricks is installed on your system. Use your package manager or 'debian_install_winetricks.sh' script to update it.\n"
-      return 0
-    fi
-  }
-
-  # Winetricks installation from local deb package
-  function winetricks_localdeb() {
-
-    # Check that Wine exists on the system. If yes, then
-    # install other required winetricks dependencies
-    # so that Winetricks install script won't complain about
-    # missing them.
-    #
-    local known_wines=(
-      'wine'
-      'wine-stable'
-      'wine32'
-      'wine64'
-      'libwine:amd64'
-      'libwine:i386'
-      'wine-git'
-      'wine-staging-git'
-    )
-
-    # Other winetricks dependencies
-    local winetricks_deps=('cabextract' 'unzip' 'x11-utils')
-
-    # If known wine is found, then check winetricks_deps and install them if needed.
-    for winepkg in ${known_wines[@]}; do
-      if [[ $(echo $(dpkg -s ${winepkg} &>/dev/null)$?) -eq 0 ]]; then
-        for tricksdep in ${winetricks_deps[@]}; do
-          if [[ $(echo $(dpkg -s ${tricksdep} &>/dev/null)$?) -ne 0 ]]; then
-            sudo apt install -y ${tricksdep}
-            if [[ $? -ne 0 ]]; then
-              echo -e "\e[1mERROR:\e[0m Couldn't install Winetricks dependency ${tricksdep}. Skipping Winetricks installation.\n"
-              # TODO revert installation of any installed 'tricksdep' installed on previous loop cycle
-              if [[ ! -v NO_INSTALL ]];then
-                echo -e "DXVK won't be installed\n"
-                # We can set this value because winetricks function is intented to be called
-                # after Wine compilation & installation BUT before DXVK install function
-                # DXVK runtime (not build time) depends on Winetricks
-                params+=('--no-install')
-              fi
-              # Special variable only to inform user about errors in Winetricks installation
-              WINETRICKS_ERROR=
-              return 1
-            fi
-          fi
-        done
-        # If known wine has already been found, do not iterate through other candidates
-        break
-      fi
-    done
-
-    # Check for existing winetricks deb archives in the previous folder
-    local localdeb=$(find ${pkgdebdir} -type f -name "${pkg}*.deb" | wc -l)
-
-    case ${localdeb} in
-      0)
-        # No old winetricks archives
-        # Just fall through
-        ;;
-      1)
-        # One old winetricks archive found
-        echo -e "Found already compiled Winetricks archive, installing it.\n"
-        # TODO ask user? Note that asking this limits the automation process of this script
-        # unless a solution will be implemented (e.g. parameter switch)
-        sudo dpkg -i ${pkgdebdir}/${pkg}*.deb
-        return 0
-        ;;
-      *)
-        # Multiple old winetricks archives found
-        # Move them and compile a new one
-        if [[ ! -d ${pkgdebdir}/winetricks_old ]]; then
-          mkdir -p ${pkgdebdir}/winetricks_old
-        fi
-        mv ${pkgdebdir}/${pkg}*.deb ${pkgdebdir}/winetricks_old/
-        if [[ $? -ne 0 ]]; then
-          echo -e "\e[1mWARNING:\e[0m Couldn't move old Winetricks archives. Not installing Winetricks.\n"
-          if [[ ! -v NO_INSTALL ]];then
-            echo -e "DXVK won't be installed\n"
-            # We can set this value because winetricks function is intented to be called
-            # after Wine compilation & installation BUT before DXVK install function
-            # DXVK runtime (not build time) depends on Winetricks
-            params+=('--no-install')
-          fi
-        fi
-        ;;
-    esac
-
-    echo -e "Starting compilation & installation of Winetricks\n"
-    bash -c "cd .. && bash ./debian_install_winetricks.sh"
-
-    if [[ $? -eq 0 ]]; then
-      # The compiled Winetricks deb package is found in the previous folder
-      sudo dpkg -i ${pkgdebdir}/${pkg}*.deb
-
-      if [[ $? -ne 0 ]]; then
-        echo -e "\e[1mWARNING:\e[0m Couldn't install Winetricks.\n"
-
-        if [[ ! -v NO_INSTALL ]];then
-          echo -e "DXVK won't be installed\n"
-          # We can set this value because winetricks function is intented to be called
-          # after Wine compilation & installation BUT before DXVK install function
-          # DXVK runtime (not build time) depends on Winetricks
-          params+=('--no-install')
-        fi
-        # Special variable only to inform user about errors in Winetricks installation
-        WINETRICKS_ERROR=
-        return 1
-      fi
-    else
-      echo -e "\e[1mWARNING:\e[0m Couldn't compile Winetricks.\n"
-      if [[ ! -v NO_INSTALL ]];then
-        echo -e "DXVK won't be installed\n"
-        # We can set this value because winetricks function is intented to be called
-        # after Wine compilation & installation BUT before DXVK install function
-        # DXVK runtime (not build time) depends on Winetricks
-        params+=('--no-install')
-      fi
-      # Special variable only to inform user about errors in Winetricks compilation
-      WINETRICKS_ERROR=
-      return 1
-    fi
-
-  }
-
-  winetricks_availcheck
-  if [[ $? -ne 0 ]]; then
-    winetricks_localdeb
-  fi
-
-}
-
-########################################################
-
 # Call DXVK compilation & installation subscript in the following function
 
 function dxvk_install_main() {
 
-  echo -e "Starting compilation & installation of DXVK\n\n\
+  echo -e "Starting compilation & installation of DXVK/D9VK\n\n\
 This can take up to 10-20 minutes depending on how many dependencies we need to build for it.\n"
 
   bash -c "cd ${ROOTDIR}/dxvkroot && bash dxvkbuild.sh \"${datedir}\" \"${params[*]}\""
-
 }
 
 ########################################################
@@ -347,6 +174,7 @@ function mainQuestions() {
 installed and the following packages may be compiled from source (depending on your choises):\n\n\
 \t- Wine/Wine Staging (latest git version)\n\
 \t- DXVK (latest git version)\n\
+\t- D9VK (latest git version)\n\
 \t- meson & glslang (latest git versions; these are build time dependencies for DXVK)\n\n\
 Do you want to continue? [Y/n]"
 
@@ -395,8 +223,8 @@ Do you really want to continue? [Y/n]"
 
 ####################
 
-  # This question is relevant only if DXVK stuff is compiled
-  if [[ ! -v NO_DXVK ]]; then
+  # This question is relevant only if DXVK or D9VK stuff is compiled
+  if [[ ! -v NO_DXVK ]] || [[ ! -v NO_D9VK ]]; then
     INFO_SEP
 
     echo -e "\e[1mQUESTION:\e[0m Update existing dependencies?\n\nIn a case you have old build time dependencies on your system, do you want to update them?\n\
@@ -439,8 +267,8 @@ function coredeps_check() {
 
 ########################################################
 
-# If either Wine or DXVK is to be compiled
-if [[ ! -v NO_WINE ]] || [[ ! -v NO_DXVK ]]; then
+# If either Wine, DXVK or D9VK is to be compiled
+if [[ ! -v NO_WINE ]] || [[ ! -v NO_DXVK ]] || [[ ! -v NO_D9VK ]]; then
   mainQuestions
   coredeps_check
 fi
@@ -456,23 +284,11 @@ fi
 
 ####################
 
-# Run winetricks installation, if needed
-if [[ ! -v NO_DXVK ]] && [[ ! -v NO_INSTALL ]]; then
-  if [[ ! -v NO_WINETRICKS ]]; then
-    winetricks_install_main
-  else
-    echo -e "Skipping Winetricks build & installation process.\n \
-    DXVK will not be installed, unless Winetricks is already installed on your system.\n"
-  fi
-fi
-
-####################
-
-# If DXVK is going to be installed, then 
-if [[ ! -v NO_DXVK ]]; then
+# If DXVK or D9VK is going to be installed, then 
+if [[ ! -v NO_DXVK ]] || [[ ! -v NO_D9VK ]]; then
   dxvk_install_main
 else
-  echo -e "Skipping DXVK build$(if [[ ! -v NO_INSTALL ]]; then printf " & installation"; fi) process.\n"
+  echo -e "Skipping DXVK/D9VK build$(if [[ ! -v NO_INSTALL ]]; then printf " & installation"; fi) process.\n"
 fi
 
 ####################
@@ -481,10 +297,4 @@ fi
 if [[ ! -v NO_POL ]]; then
   echo -e "\e[1mINFO:\e[0m Updating your PlayOnLinux Wine prefixes.\n"
   bash -c "cd ${ROOTDIR} && bash playonlinux_prefixupdate.sh"
-fi
-
-# If error occured during Winetricks script runtime, then
-if [[ -v WINETRICKS_ERROR ]]; then
-  echo -e "\e[1mWARNING:\e[0m Couldn't compile or install Winetricks.\
-  $(if [[ ! -v NO_DXVK ]]; then printf " DXVK installation may have failed, too."; fi)\n"
 fi

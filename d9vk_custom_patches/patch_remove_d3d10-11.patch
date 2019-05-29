@@ -1,0 +1,10 @@
+--- a/setup_dxvk.sh
++++ b/setup_dxvk.sh
+@@ -173,7 +173,3 @@
+ fi
+ 
+ $action d3d9
+-$action d3d10
+-$action d3d10_1
+-$action d3d10core
+-$action d3d11

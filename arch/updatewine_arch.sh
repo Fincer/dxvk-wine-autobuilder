@@ -1,6 +1,6 @@
 #!/bin/env bash
 
-#    Set up Wine Staging + DXVK on Arch Linux & Variants
+#    Set up Wine Staging + DXVK & D9VK on Arch Linux & Variants
 #    Copyright (C) 2018  Pekka Helenius
 #
 #    This program is free software: you can redistribute it and/or modify
@@ -46,10 +46,12 @@ done
 # variables!
 #
 git_commithash_dxvk=${params[0]}
-git_commithash_wine=${params[3]}
+git_commithash_d9vk=${params[1]}
+git_commithash_wine=${params[4]}
 
-git_branch_dxvk=${params[4]}
-git_branch_wine=${params[7]}
+git_branch_dxvk=${params[5]}
+git_branch_d9vk=${params[6]}
+git_branch_wine=${params[9]}
 
 ########################################################
 
@@ -83,6 +85,9 @@ for check in ${args[@]}; do
     --no-dxvk)
       NO_DXVK=
       ;;
+    --no-d9vk)
+      NO_D9VK=
+      ;;
     --no-pol)
       NO_POL=
       ;;
@@ -100,7 +105,7 @@ function INFO_SEP() { printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' - ; 
 # If the script is interrupted (Ctrl+C/SIGINT), do the following
 
 function Arch_intCleanup() {
-  rm -rf ${ARCH_BUILDROOT}/{0-wine-staging-git/{wine-patches,*.tar.xz},0-dxvk-git/{dxvk-git,*.tar.xz}}
+  rm -rf ${ARCH_BUILDROOT}/{0-wine-staging-git/{wine-patches,*.tar.xz},0-dxvk-git/{dxvk-git,*.tar.xz},0-d9vk-git/{d9vk-git,*.tar.xz}}
   exit 0
 }
 
@@ -125,6 +130,7 @@ function checkFiles() {
 
   local wine_files=('30-win32-aliases.conf' 'PKGBUILD')
   local dxvk_files=('PKGBUILD')
+  local d9vk_files=('PKGBUILD')
 
   function validatefiles() {
 
@@ -147,6 +153,10 @@ function checkFiles() {
 
   if [[ ! -v NO_DXVK ]]; then
     validatefiles "${dxvk_files[*]}" DXVK "${ARCH_BUILDROOT}/0-dxvk-git"
+  fi
+
+  if [[ ! -v NO_D9VK ]]; then
+    validatefiles "${d9vk_files[*]}" D9VK "${ARCH_BUILDROOT}/0-d9vk-git"
   fi
 
 }
@@ -243,9 +253,10 @@ $(for o in ${ERRPKGS[@]}; do printf '%s\n' ${o}; done)\
 
 function prepare_env() {
 
-  # Copy Wine & DXVK patch files
+  # Copy Wine, DXVK & D9VK patch files
   cp -rf ${ARCH_BUILDROOT}/../wine_custom_patches ${ARCH_BUILDROOT}/0-wine-staging-git/wine-patches
   cp -rf ${ARCH_BUILDROOT}/../dxvk_custom_patches ${ARCH_BUILDROOT}/0-dxvk-git/dxvk-patches
+  cp -rf ${ARCH_BUILDROOT}/../d9vk_custom_patches ${ARCH_BUILDROOT}/0-d9vk-git/d9vk-patches
 
   # Create identifiable directory for this build
   mkdir -p ${ARCH_BUILDROOT}/compiled_pkg/"${datedir}"
@@ -420,6 +431,12 @@ function build_pkg() {
       set_gitOverride "dxvk.git" "${git_commithash_dxvk}" ${pkgbuild_file}
       sed -i "s/\(^_git_branch_dxvk=\).*/\1${git_branch_dxvk}/" ${pkgbuild_file}
       sed -i "s/\(^_dxvk_commit=\).*/\1${git_commithash_dxvk}/" ${pkgbuild_file}
+
+    elif [[ ${pkgname} == d9vk ]]; then
+      local pkgbuild_file="${ARCH_BUILDROOT}/${pkgdir}/PKGBUILD"
+      set_gitOverride "d9vk.git" "${git_commithash_d9vk}" ${pkgbuild_file}
+      sed -i "s/\(^_git_branch_d9vk=\).*/\1${git_branch_d9vk}/" ${pkgbuild_file}
+      sed -i "s/\(^_d9vk_commit=\).*/\1${git_commithash_d9vk}/" ${pkgbuild_file}
     fi
 
   fi
@@ -481,6 +498,7 @@ function updatePOL() {
     done
   fi
 
+  # TODO remove duplicate functionality
   if [[ ! -v NO_DXVK ]]; then
     for wineprefix in $(find $HOME/.PlayOnLinux/wineprefix -mindepth 1 -maxdepth 1 -type d); do
       if [[ -d ${wineprefix}/dosdevices ]]; then
@@ -488,7 +506,13 @@ function updatePOL() {
       fi
     done
   fi
-
+  if [[ ! -v NO_D9VK ]]; then
+    for wineprefix in $(find $HOME/.PlayOnLinux/wineprefix -mindepth 1 -maxdepth 1 -type d); do
+      if [[ -d ${wineprefix}/dosdevices ]]; then
+        WINEPREFIX=${wineprefix} setup_d9vk
+      fi
+    done
+  fi
 }
 
 ##########################################################
@@ -496,7 +520,7 @@ function updatePOL() {
 # Clean these temporary folders & files
 
 # TODO Shall we remove git folders or keep them?
-dxvk_wine_cleanlist=('*.patch' '*.diff' 'pkg' 'src' '*-patches' '*.tar.xz') # dxvk-git wine-*git
+dxvk_wine_cleanlist=('*.patch' '*.diff' 'pkg' 'src' '*-patches' '*.tar.xz')
 
 ##########################################################
 
@@ -530,6 +554,10 @@ if [[ ! -v NO_DXVK ]]; then
   checkDepends "0-dxvk-git" "dxvk-git" depends makedepends
 fi
 
+if [[ ! -v NO_D9VK ]]; then
+  checkDepends "0-d9vk-git" "d9vk-git" depends makedepends
+fi
+
 check_alldeps
 
 #########################
@@ -544,6 +572,10 @@ fi
 
 if [[ ! -v NO_DXVK ]]; then
   build_pkg dxvk DXVK "0-dxvk-git" "${dxvk_wine_cleanlist[*]}" gitcheck
+fi
+
+if [[ ! -v NO_D9VK ]]; then
+  build_pkg d9vk D9VK "0-d9vk-git" "${dxvk_wine_cleanlist[*]}" gitcheck
 fi
 
 #########################

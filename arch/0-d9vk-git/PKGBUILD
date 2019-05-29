@@ -1,0 +1,90 @@
+# Maintainer: Pekka Helenius <fincer89 [at] hotmail [dot] com>
+# Contributor: Adrià Cereto i Massagué <ssorgatem at gmail.com>
+
+pkgname=d9vk-git
+pkgver=6125834
+pkgrel=1
+pkgdesc="A Vulkan-based compatibility layer for Direct3D 9 which allows running 3D applications on Linux using Wine"
+arch=('x86_64')
+url="https://github.com/Joshua-Ashton/d9vk"
+license=('zlib/libpng')
+makedepends=('ninja' 'meson>=0.43' 'glslang' 'git' 'wine')
+source=(
+  ${pkgname}::"git+https://github.com/Joshua-Ashton/d9vk.git#commit=HEAD"
+)
+sha256sums=('SKIP'
+            'SKIP'
+            'b67f3a88115b1d048fb373ff6df2140c3027fe9edecccf58c1a88efce01fb738')
+
+_git_branch_d9vk=master
+_d9vk_commit=HEAD
+
+##############################
+
+# Copy custom patches to correct location
+if [[ $(find "${startdir}/d9vk-patches" -mindepth 1 -maxdepth 1 -regex ".*\.\(patch\|diff\)$") ]]; then
+    cp -r "${startdir}/d9vk-patches/"*.{patch,diff} "${startdir}"/
+    p=0
+    for patch in $(find . -mindepth 1 -maxdepth 1 -regex ".*\.\(patch\|diff\)$"); do
+        patches[$p]="$(basename ${patch})"
+        let p++
+    done
+    unset p
+    source+=(${source[@]} ${patches[@]})
+fi
+
+# Reset git tree and apply custom patches
+prepare() {
+
+  cd "${srcdir}/${pkgname}"
+  git checkout ${_git_branch_d9vk}
+  git reset --hard ${_d9vk_commit} # Restore tracked files
+  git clean -d -x -f         # Delete untracked files
+
+  # Apply patches, if present
+  if [[ $(ls "${srcdir}"/*.{patch,diff} 2>/dev/null | wc -w) -ne 0 ]]; then
+
+  # Apply all custom patches
+  msg2 "Applying custom patches..."
+
+    for i in "${srcdir}"/*.{patch,diff}; do 
+      if [[ -f ${i} ]]; then
+        patch -Np1 < ${i}
+      fi
+    done
+
+  fi
+
+}
+
+##############################
+
+pkgver() {
+  cd "$srcdir/${pkgname}"
+  git describe --long --tags --always | sed 's/\([^-]*-g\)/r\1/;s/-/./g;s/v//g'
+}
+
+prepare() {
+  cd "$srcdir/${pkgname}"
+  patch -Np1 < "$srcdir"/patch_remove_d3d10-11.patch
+}
+
+build() {
+  cd "$srcdir/${pkgname}"
+  ./package-release.sh ${pkgver} build --no-package
+}
+
+package_d9vk-git() {
+    depends=('vulkan-icd-loader' 'wine' 'lib32-vulkan-icd-loader')
+
+    mkdir -p  "$pkgdir"/usr/share/dxvk/{x32,x64}
+
+    cd "$srcdir/${pkgname}"
+    install -m0644 build/dxvk-${pkgver}/x32/d3d9.dll "$pkgdir"/usr/share/dxvk/x32/d3d9.dll
+    install -m0644 build/dxvk-${pkgver}/x64/d3d9.dll "$pkgdir"/usr/share/dxvk/x64/d3d9.dll
+    install -m0755 build/dxvk-${pkgver}/setup_dxvk.sh "$pkgdir"/usr/share/dxvk/setup_d9vk.sh
+
+    mkdir "$pkgdir"/usr/bin
+    cd "$pkgdir"/usr/bin
+    ln -s /usr/share/dxvk/setup_d9vk.sh setup_d9vk
+}
