@@ -322,11 +322,11 @@ The following section contains important notes about the script usage.
 
 Runtime test done for the script to ensure it works as expected. Occasional test-runs are mandatory due to rapid development of the packages (Wine/DXVK/D9VK) it handles.
 
-**Latest test-run:** 23th November, 2018
+**Latest test-run:** 30th May, 2019
 
 **Linux Distributions:** 
 
-- Success: Arch Linux 64-bit, Linux Mint 19 64-bit, Ubuntu 18.04 64-bit, Debian 9 64-bit
+- Success: Arch Linux 64-bit, Ubuntu 18.04 64-bit
 
 - Failure: N/A
 
@@ -336,15 +336,7 @@ N/A
 
 #### Notes:
 
-Git commit freezing used for DXVK & meson. Reasons:
-
-- DXVK: can't compile DXVK - DXGI 1.4 headers are missing. See [doitsujin/dxvk - Build issue](https://github.com/doitsujin/dxvk/issues/766) for more info. Commit which break the compilation: [doitsujin/dxvk - [dxgi] Include DXGI 1.4 headers](https://github.com/doitsujin/dxvk/commit/f7b2194e0b1d152c8001d406c41efe0a093b1aa2)
-
-    - Latest commit used: [1af96347e1c6f1f2eb11aeb11009f380fd5761ec](https://github.com/doitsujin/dxvk/commit/1af96347e1c6f1f2eb11aeb11009f380fd5761ec)
-
-    - Provide newer MinGW packages? Requires own subscripts for that process (on Debian, at least)
-
-- Debian - Meson: can't compile DXVK - changes to Meson path functionality breaks it (suspected commit: [mesonbuild/meson - Store unexpanded library directory paths. Closes #4392.](https://github.com/mesonbuild/meson/commit/6a2dc7576e00e849510f7bc1f939d66d0b2f6f80))
+N/A
 
 ---------------------------
 
