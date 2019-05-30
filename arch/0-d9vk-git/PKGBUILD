@@ -76,11 +76,6 @@ pkgver() {
   git describe --long --tags --always | sed 's/\([^-]*-g\)/r\1/;s/-/./g;s/v//g'
 }
 
-prepare() {
-  cd "$srcdir/${pkgname}"
-  patch -Np1 < "$srcdir"/patch_remove_d3d10-11.patch
-}
-
 build() {
   cd "$srcdir/${pkgname}"
   ./package-release.sh ${pkgver} build --no-package
