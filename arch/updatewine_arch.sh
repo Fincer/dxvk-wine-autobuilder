@@ -412,13 +412,13 @@ function build_pkg() {
   cd "${ARCH_BUILDROOT}"/${pkgdir}
   bash -c "updpkgsums && makepkg -o"
 
+  local pkgbuild_file="${ARCH_BUILDROOT}/${pkgdir}/PKGBUILD"
+  
   # Check git commit hashes
   if [[ $? -eq 0 ]] && \
   [[ ${5} == gitcheck ]]; then
     if [[ ${pkgname} == wine ]]; then
       check_gitOverride_wine
-
-      local pkgbuild_file="${ARCH_BUILDROOT}/${pkgdir}/PKGBUILD"
 
       set_gitOverride "wine.git" "${git_commithash_wine}" ${pkgbuild_file}
       sed -i "s/\(^_wine_commit=\).*/\1${git_commithash_wine}/" ${pkgbuild_file}
@@ -430,13 +430,11 @@ function build_pkg() {
       fi
 
     elif [[ ${pkgname} == dxvk ]]; then
-      local pkgbuild_file="${ARCH_BUILDROOT}/${pkgdir}/PKGBUILD"
       set_gitOverride "dxvk.git" "${git_commithash_dxvk}" ${pkgbuild_file}
       sed -i "s/\(^_git_branch_dxvk=\).*/\1${git_branch_dxvk}/" ${pkgbuild_file}
       sed -i "s/\(^_dxvk_commit=\).*/\1${git_commithash_dxvk}/" ${pkgbuild_file}
 
     elif [[ ${pkgname} == d9vk ]]; then
-      local pkgbuild_file="${ARCH_BUILDROOT}/${pkgdir}/PKGBUILD"
       set_gitOverride "d9vk.git" "${git_commithash_d9vk}" ${pkgbuild_file}
       sed -i "s/\(^_git_branch_d9vk=\).*/\1${git_branch_d9vk}/" ${pkgbuild_file}
       sed -i "s/\(^_d9vk_commit=\).*/\1${git_commithash_d9vk}/" ${pkgbuild_file}
