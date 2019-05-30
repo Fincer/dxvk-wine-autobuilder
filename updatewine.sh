@@ -230,9 +230,78 @@ for githash in ${githash_overrides[@]}; do
   fi
 done
 
-#############################
+###########################################################
 
 params=(${datesuffix} ${githash_overrides[@]} ${gitbranch_overrides[@]} ${args[@]})
+
+###########################################################
+
+# General function for question responses
+function questionresponse() {
+
+  local response=${1}
+
+  read -r -p "" response
+  if [[ $(echo $response | sed 's/ //g') =~ ^([yY][eE][sS]|[yY])$ ]]; then
+    echo ""
+    return 0
+  else
+    return 1
+  fi
+
+}
+
+###########################################################
+
+function reqsCheck() {
+
+  local AVAIL_SPACE=$(df -h -B MB --output=avail . | sed '1d; s/[A-Z]*//g')
+  local REC_SPACE=8000
+  local MSG_SPACE="\e[1mWARNING:\e[0m Not sufficient storage space\n\nYou will possibly run out of space while compiling software.\n\
+The script strongly recommends ~\e[1m$((${REC_SPACE} / 1000)) GB\e[0m at least to compile software successfully but you have only\n\
+\e[1m${AVAIL_SPACE} MB\e[0m left on the filesystem the script is currently placed at.\n\n\
+Be aware that the script process may fail because of this, especially while compiling Wine Staging.\n\n\
+Do you really want to continue? [Y/n]"
+
+  local AVAIL_RAM=$(echo $(( $(grep -oP "(?<=^MemFree:).*[0-9]" /proc/meminfo | sed 's/ //g') / 1024 )))
+  local REC_RAM=4096
+  local MSG_RAM="\e[1mWARNING:\e[0m Not sufficient RAM available\n\nCompilation processes will likely fail.\n\
+The script strongly recommends ~\e[1m${REC_RAM} MB\e[0m at least to compile software successfully but you have only\n\
+\e[1m${AVAIL_RAM} MB\e[0m left on the computer the script is currently placed at.\n\n\
+Be aware that the script process may fail because of this, especially while compiling DXVK & D9VK.\n\n\
+Do you really want to continue? [Y/n]"
+
+  function reqs_property() {
+
+    local avail_prop="${1}"
+    local req_prop="${2}"
+    local req_message="${3}"
+    local req_installtargets="${4}"
+
+    local i=0
+    for req_installtarget in ${req_installtargets}; do
+      req_targetconditions[$i]=$(echo "[[ ! -v ${req_installtarget} ]] ||")
+      let i++
+    done
+
+    local req_targetconditions=($(echo ${req_targetconditions[@]} | sed 's/\(.*\) ||/\1 /'))
+    local fullcondition="[[ "${avail_prop}" -lt "${req_prop}" ]] && $(echo ${req_targetconditions[@]})"
+
+    if $(eval ${fullcondition}); then
+      INFO_SEP
+      echo -e "${req_message}"
+      questionresponse
+      if [[ $? -ne 0 ]]; then
+        echo -e "Cancelling.\n"
+        exit 1
+      fi
+      unset avail_prop req_prop req_installtarget req_targetconditions fullcondition
+    fi
+  }
+
+  reqs_property "${AVAIL_SPACE}" "${REC_SPACE}" "${MSG_SPACE}" "NO_WINE"
+  reqs_property "${AVAIL_RAM}" "${REC_RAM}" "${MSG_RAM}" "NO_DXVK NO_D9VK"
+}
 
 ###########################################################
 
@@ -320,6 +389,7 @@ This script comes with GPU driver installation scripts for Debian-based Linux di
 INFO_SEP
 
 if [[ ! -v NO_WINE ]] || [[ ! -v NO_DXVK ]] || [[ ! -v NO_D9VK ]]; then
+  reqsCheck
   sudoQuestion
   echo ""
 fi

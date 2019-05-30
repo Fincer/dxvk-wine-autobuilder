@@ -31,6 +31,7 @@ datedir="${1}"
 ########################################################
 
 # http://wiki.bash-hackers.org/snipplets/print_horizontal_line#a_line_across_the_entire_width_of_the_terminal
+# TODO: remove duplicate functionality. This function is defined in updatewine.sh
 function INFO_SEP() { printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' - ; }
 
 ########################################################
@@ -152,6 +153,7 @@ This can take up to 10-20 minutes depending on how many dependencies we need to 
 function mainQuestions() {
 
   # General function for question responses
+  # TODO: remove duplicate functionality. This function is defined in updatewine.sh
   function questionresponse() {
 
     local response=${1}
@@ -175,7 +177,7 @@ installed and the following packages may be compiled from source (depending on y
 \t- Wine/Wine Staging (latest git version)\n\
 \t- DXVK (latest git version)\n\
 \t- D9VK (latest git version)\n\
-\t- meson & glslang (latest git versions; these are build time dependencies for DXVK)\n\n\
+\t- meson & glslang (latest git versions; these are build time dependencies for DXVK & D9VK)\n\n\
 Do you want to continue? [Y/n]"
 
   questionresponse
@@ -195,30 +197,6 @@ Do you want to continue? [Y/n]"
 
   if [[ $? -eq 0 ]]; then
     params+=('--buildpkg-rm')
-  fi
-
-####################
-
-  AVAIL_SPACE=$(df -h -B MB --output=avail . | sed '1d; s/[A-Z]*//g')
-  REC_SPACE=8000
-
-  if [[ ${AVAIL_SPACE} -lt ${REC_SPACE} ]] && [[ ! -v NO_WINE ]]; then
-    INFO_SEP
-
-  echo -e "\e[1mWARNING:\e[0m Not sufficient storage space\n\nYou will possibly run out of space while compiling software.\n\
-The script strongly recommends ~\e[1m$((${REC_SPACE} / 1000)) GB\e[0m at least to compile software successfully but you have only\n\
-\e[1m${AVAIL_SPACE} MB\e[0m left on the filesystem the script is currently placed at.\n\n\
-Be aware that the script process may fail because of this, especially while compiling Wine Staging.\n\n\
-Do you really want to continue? [Y/n]"
-
-    questionresponse
-
-    if [[ $? -ne 0 ]]; then
-      echo -e "Cancelling.\n"
-      exit 1
-    fi
-
-    unset AVAIL_SPACE REC_SPACE
   fi
 
 ####################
