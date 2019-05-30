@@ -1,4 +1,4 @@
-#    Uninstall Wine-Staging, DXVK, meson & glslang buildtime deps on Debian
+#    Uninstall Wine-Staging, DXVK, D9VK, meson & glslang buildtime deps on Debian
 #    Copyright (C) 2018  Pekka Helenius
 #
 #    This program is free software: you can redistribute it and/or modify
@@ -133,12 +133,37 @@ wine_deps=(
 dxvk_deps=(
 'meson'
 'glslang'
-'gcc-mingw-w64-x86-64'
-'gcc-mingw-w64-i686'
-'g++-mingw-w64-x86-64'
-'g++-mingw-w64-i686'
+'gcc-mingw-w64-base'
+#'binutils-common'
+'mingw-w64-common'
+'binutils-mingw-w64-x86-64'
+'binutils-mingw-w64-i686'
+
 'mingw-w64-x86-64-dev'
+'gcc-mingw-w64-x86-64'
+'g++-mingw-w64-x86-64'
+
 'mingw-w64-i686-dev'
+'gcc-mingw-w64-i686'
+'g++-mingw-w64-i686'
+)
+
+d9vk_deps=(
+'meson'
+'glslang'
+'gcc-mingw-w64-base'
+#'binutils-common'
+'mingw-w64-common'
+'binutils-mingw-w64-x86-64'
+'binutils-mingw-w64-i686'
+
+'mingw-w64-x86-64-dev'
+'gcc-mingw-w64-x86-64'
+'g++-mingw-w64-x86-64'
+
+'mingw-w64-i686-dev'
+'gcc-mingw-w64-i686'
+'g++-mingw-w64-i686'
 )
 
 wine_deps_noremove=(
@@ -169,23 +194,26 @@ core_deps_noremove=(
 'make' 'cmake' 'gcc' 'git' 'build-essential' 'fakeroot'
 )
 
-removals_name=('Meson' 'Wine Staging' 'DXVK')
-removals=('${meson_deps[*]}' '${wine_deps[*]}' '${dxvk_deps[*]}')
+removals_name=('Meson' 'Wine Staging' 'DXVK' 'D9VK')
+removals=('${meson_deps[*]}' '${wine_deps[*]}' '${dxvk_deps[*]}' '${d9vk_deps[*]}')
 
-echo -e "This script removes any development/build time dependencies related to Wine & DXVK\n"
+echo -e "This script removes any development/build time dependencies related to Wine, DXVK & D9VK\n"
 
 i=0
 for k in ${removals[*]}; do
   echo -e "\nRemoving ${removals_name[$i]} buildtime dependencies\n"
-  sudo apt-get purge --remove $(eval echo ${k})
+  sudo dpkg --remove --force-remove-reinstreq $(eval echo ${k})
   let i++
 done
+
+# Manually obtained deb packages are expected to break system configuration, thus we need to fix it.
+sudo apt --fix-broken -y install
 
 echo -e "\nThe following Wine Staging buildtime dependencies were not removed:\n$(for o in ${wine_deps_noremove[*]}; do echo ${o}; done)\n"
 
 echo -e "\nThe following core buildtime dependencies were not removed:\n$(for o in ${core_deps_noremove[*]}; do echo ${o}; done)\n"
 
-read -r -p "Show list of auto removable packages which are no longer needed? [Y/n] " question
+read -r -p "Show list of auto removable packages which are no longer needed (use with precaution!)? [Y/n] " question
 
 if [[ $(echo $question | sed 's/ //g') =~ ^([yY][eE][sS]|[yY])$ ]]; then
   sudo apt-get purge --autoremove
