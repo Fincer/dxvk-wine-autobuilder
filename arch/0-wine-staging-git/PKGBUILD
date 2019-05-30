@@ -1,7 +1,6 @@
 # Maintainer: Pekka Helenius (~ Fincer) <fincer89 at hotmail dot com>
 # Contributor: Daniel Bermond < yahoo-com: danielbermond >
 
-
 # Enable Wine Staging? 1 = yes
 enable_staging=0
 
@@ -17,16 +16,15 @@ enable_64=1
 provides=('wine' 'wine-git' 'wine-staging' 'wine-staging-git' 'wine-staging-dxvk-git')
 
 if [[ enable_staging -eq 1 ]]; then
-    pkgname=wine-staging-git
-    pkgdesc="A compatibility layer for running Windows programs (staging branch, Git version)"
-    url="https://github.com/wine-staging/wine-staging/"
-    conflicts=('wine' 'wine-git' 'wine-staging')
+  pkgname=wine-staging-git
+  pkgdesc="A compatibility layer for running Windows programs (staging branch, Git version)"
+  url="https://github.com/wine-staging/wine-staging/"
+  conflicts=('wine' 'wine-git' 'wine-staging')
 else
-    pkgname=wine-git
-    pkgdesc="A compatibility layer for running Windows programs (Git version)"
-    url="https://source.winehq.org/git/wine.git/"
-    conflicts=('wine' 'wine-staging' 'wine-staging-git')
-
+  pkgname=wine-git
+  pkgdesc="A compatibility layer for running Windows programs (Git version)"
+  url="https://source.winehq.org/git/wine.git/"
+  conflicts=('wine' 'wine-staging' 'wine-staging-git')
 fi
 
 pkgver=wine.wine.3.0.3.r0.gf5ada74b31
@@ -62,7 +60,6 @@ makedepends=(
   'ncurses'
   'bison'
   'perl'
-  #'fontforge'
   'flex'
   'gcc>=4.5.0-2'
   'giflib'                'lib32-giflib'
@@ -86,6 +83,7 @@ makedepends=(
   'libva'                 'lib32-libva'
   'gst-plugins-base-libs' 'lib32-gst-plugins-base-libs'
   'samba'
+  #'fontforge'
   #'opencl-headers'
   #'gcc-multilib>=4.5.0-2'
 )
@@ -114,229 +112,226 @@ optdepends=(
   'samba'
   'dosbox'
 )
-# lib32-libtxc_dxtn
-#   'gtk3'             'lib32-gtk3'
+# 'lib32-libtxc_dxtn'
+# 'gtk3'
+# 'lib32-gtk3'
+
 options=('staticlibs')
 
 source=(
-    wine-git::'git://source.winehq.org/git/wine.git#commit=HEAD'
-    '30-win32-aliases.conf'
-    )
+  wine-git::'git://source.winehq.org/git/wine.git#commit=HEAD'
+  '30-win32-aliases.conf'
+)
+md5sums=('SKIP'
+         '1ff4e467f59409272088d92173a0f801')
 
 if [[ $(find ${PWD}/wine-patches -mindepth 1 -maxdepth 1 -regex ".*\.\(patch\|diff\)$") ]]; then
-    for file in ${PWD}/wine-patches/*.{patch,diff}; do
+  for file in ${PWD}/wine-patches/*.{patch,diff}; do
 
-      if [[ $(echo ${file}) == *"_nostaging"* ]] && [[ enable_staging -eq 1 ]]; then
-        continue
-      fi
+    if [[ $(echo ${file}) == *"_nostaging"* ]] && [[ enable_staging -eq 1 ]]; then
+      continue
+    fi
 
-      if [[ $(echo ${file}) == *"_staging"* ]] && [[ enable_staging -eq 0 ]]; then
-        continue
-      fi
+    if [[ $(echo ${file}) == *"_staging"* ]] && [[ enable_staging -eq 0 ]]; then
+      continue
+    fi
 
-      cp ${file} . 2>/dev/null
+    cp ${file} . 2>/dev/null
 
-    done
-    p=0
-    for patch in $(find . -mindepth 1 -maxdepth 1 -regex ".*\.\(patch\|diff\)$"); do
-        patches[$p]="$(basename ${patch})"
-        let p++
-    done
-    unset p
-    source+=(${source[@]} ${patches[@]})
+  done
+  p=0
+  for patch in $(find . -mindepth 1 -maxdepth 1 -regex ".*\.\(patch\|diff\)$"); do
+    patches[$p]="$(basename ${patch})"
+    let p++
+  done
+  unset p
+  source+=(${source[@]} ${patches[@]})
 fi
 
 if [[ enable_staging -eq 1 ]]; then
-    stagingsrc=wine-staging-git::'git://github.com/wine-staging/wine-staging.git#commit=HEAD'
-    source+=($stagingsrc)
+  stagingsrc=wine-staging-git::'git://github.com/wine-staging/wine-staging.git#commit=HEAD'
+  source+=($stagingsrc)
 fi
 
 if [[ "$CARCH" == "i686" ]]; then
-    # Strip lib32 etc. on i686
-    _depends=(${_depends[@]/*32-*/})
-    makedepends=(${makedepends[@]/*32-*/} ${_depends[@]})
-    makedepends=(${makedepends[@]/*-multilib*/})
-    optdepends=(${optdepends[@]/*32-*/})
+  # Strip lib32 etc. on i686
+  _depends=(${_depends[@]/*32-*/})
+  makedepends=(${makedepends[@]/*32-*/} ${_depends[@]})
+  makedepends=(${makedepends[@]/*-multilib*/})
+  optdepends=(${optdepends[@]/*32-*/})
 else
-    makedepends=(${makedepends[@]} ${_depends[@]})
+  makedepends=(${makedepends[@]} ${_depends[@]})
 fi
 
 pkgver() {
 
-    msg2 "Setting Wine versions..."
-    if [[ enable_staging -eq 1 ]]; then
-        cd "${srcdir}/wine-staging-git"
-        _staging_tag="$(git tag | sort -Vr | head -n1 | sed 's/-/./g;s/^v//')"
-        _staging_version="stg.$(git describe --long \
-                                    | sed 's/\([^-]*-g\)/r\1/;s/-/./g;s/^v//' \
-                                    | sed "s/^latest.release/${_staging_tag}/")"
-    fi
+  msg2 "Setting Wine versions..."
+  if [[ enable_staging -eq 1 ]]; then
+    cd "${srcdir}/wine-staging-git"
+    _staging_tag="$(git tag | sort -Vr | head -n1 | sed 's/-/./g;s/^v//')"
+    _staging_version="stg.$(git describe --long \
+                    | sed 's/\([^-]*-g\)/r\1/;s/-/./g;s/^v//' \
+                    | sed "s/^latest.release/${_staging_tag}/")"
+  fi
 
-    cd "${srcdir}/wine-git"
-    _wine_version="wine.$(git describe --long | sed 's/\([^-]*-g\)/r\1/;s/-/./g')"
+  cd "${srcdir}/wine-git"
+  _wine_version="wine.$(git describe --long | sed 's/\([^-]*-g\)/r\1/;s/-/./g')"
 
-    if [[ enable_staging -eq 1 ]]; then
-        printf "%s+%s" "$_staging_version" "$_wine_version"
-    else
-        printf "%s" "$_wine_version"
-    fi
+  if [[ enable_staging -eq 1 ]]; then
+    printf "%s+%s" "$_staging_version" "$_wine_version"
+  else
+    printf "%s" "$_wine_version"
+  fi
 }
 
 prepare() {
 
-    cd "${srcdir}/wine-git"
+  cd "${srcdir}/wine-git"
 
-    if [[ enable_staging -eq 0 ]]; then
-      git checkout ${_git_branch_wine}
-    fi
+  if [[ enable_staging -eq 0 ]]; then
+    git checkout ${_git_branch_wine}
+  fi
 
-    msg2 "Cleaning the wine source code tree..."
+  msg2 "Cleaning the wine source code tree..."
 
-    if [[ ${_wine_commit} == HEAD ]] && [[ enable_staging -eq 1 ]]; then
-        # Change back to the wine upstream commit that this version of wine-staging is based on
-        git checkout $(../"$pkgname"/patches/patchinstall.sh --upstream-commit)
-    fi
+  if [[ ${_wine_commit} == HEAD ]] && [[ enable_staging -eq 1 ]]; then
+    # Change back to the wine upstream commit that this version of wine-staging is based on
+    git checkout $(../"$pkgname"/patches/patchinstall.sh --upstream-commit)
+  fi
 
-    # Restore the wine tree to its git origin state, without wine-staging patches
-    #+(necessary for reapllying wine-staging patches in succedent builds,
-    #+otherwise the patches will fail to be reapplied)
-    git reset --hard ${_wine_commit} # Restore tracked files
-    git clean -d -x -f         # Delete untracked files
+  # Restore the wine tree to its git origin state, without wine-staging patches
+  #+(necessary for reapllying wine-staging patches in succedent builds,
+  #+otherwise the patches will fail to be reapplied)
+  git reset --hard ${_wine_commit} # Restore tracked files
+  git clean -d -x -f         # Delete untracked files
 }
 
 build() {
-    cd "${srcdir}"
+  cd "${srcdir}"
 
-    # Delete old build dirs (from previous builds) and make new ones
-    rm -rf "$pkgname"-{32,64}-build
-    mkdir --parents "$pkgname"-32-build
+  # Delete old build dirs (from previous builds) and make new ones
+  rm -rf "$pkgname"-{32,64}-build
+  mkdir --parents "$pkgname"-32-build
 
-    if [[ enable_staging -eq 1 ]]; then
-        # Apply all wine-staging patches
-        msg2 "Applying wine-staging patches..."
-        ./wine-staging-git/patches/patchinstall.sh DESTDIR="${srcdir}/wine-git" \
-        ${staging_patchsets[*]}
-    fi
+  if [[ enable_staging -eq 1 ]]; then
+    # Apply all wine-staging patches
+    msg2 "Applying wine-staging patches..."
+    ./wine-staging-git/patches/patchinstall.sh DESTDIR="${srcdir}/wine-git" \
+    ${staging_patchsets[*]}
+  fi
 
-    if [[ $(ls "${srcdir}"/*.{patch,diff} 2>/dev/null | wc -w) -ne 0 ]]; then
+  if [[ $(ls "${srcdir}"/*.{patch,diff} 2>/dev/null | wc -w) -ne 0 ]]; then
+    cd "${srcdir}"/wine-git
+    # Apply all custom patches
+    msg2 "Applying custom patches..."
 
-      cd "${srcdir}"/wine-git
-      # Apply all custom patches
-      msg2 "Applying custom patches..."
+    for i in "${srcdir}"/*.{patch,diff}; do 
+      if [[ -f ${i} ]]; then
+        patch -Np1 < ${i}
+      fi
+    done
+  fi
 
-      for i in "${srcdir}"/*.{patch,diff}; do 
-        if [[ -f ${i} ]]; then
-          patch -Np1 < ${i}
-        fi
-      done
-    fi
+  cd "${srcdir}"
 
-    cd "${srcdir}"
+  # Build wine 64-bit
+  # According to the wine wiki this 64-bit/32-bit building order is mandatory
 
-    # Build wine 64-bit
-    # According to the wine wiki this 64-bit/32-bit building order is mandatory
+  if [[ "$CARCH" = "x86_64" ]] && [[ enable_64 -eq 1 ]]; then
+    msg2 "Building Wine-64..."
 
-    if [[ "$CARCH" = "x86_64" ]] && [[ enable_64 -eq 1 ]]; then
-        msg2 "Building Wine-64..."
+    mkdir --parents "$pkgname"-64-build
+    cd  "$pkgname"-64-build
 
-        mkdir --parents "$pkgname"-64-build
-        cd  "$pkgname"-64-build
+    ../wine-git/configure \
+                    --with-x \
+                    --without-mingw \
+                    --with-gstreamer \
+                    --enable-win64 \
+                    --with-xattr \
+                    --disable-mscoree \
+                    --with-vulkan \
+                    --prefix=/usr \
+                    --libdir=/usr/lib
+    make
 
-        ../wine-git/configure \
-                        --with-x \
-                        --without-mingw \
-                        --with-gstreamer \
-                        --enable-win64 \
-                        --with-xattr \
-                        --disable-mscoree \
-                        --with-vulkan \
-                        --prefix=/usr \
-                        --libdir=/usr/lib
-        make
+    _wine32opts=(
+      --libdir=/usr/lib32
+      --with-wine64="${srcdir}/${pkgname}-64-build"
+    )
 
-        _wine32opts=(
-                --libdir=/usr/lib32
-                --with-wine64="${srcdir}/${pkgname}-64-build"
-                )
+    export PKG_CONFIG_PATH="/usr/lib32/pkgconfig"
+  fi
 
-        export PKG_CONFIG_PATH="/usr/lib32/pkgconfig"
-    fi
+  # Build wine 32-bit
+  if [[ enable_32 -eq 1 ]]; then
+    msg2 "Building Wine-32..."
 
-    # Build wine 32-bit
+    cd "$srcdir"/"$pkgname"-32-build
 
-    if [[ enable_32 -eq 1 ]]; then
-        msg2 "Building Wine-32..."
+    # Revert Wine commit 8f732c66ab37b54c30d63c74f7822ba1d4f04996
+    # Ref: https://source.winehq.org/git/wine.git/commit/8f732c66ab37b54c30d63c74f7822ba1d4f04996
+    CFLAGS="${CFLAGS} -fPIC" \
+    ../wine-git/configure \
+                    --with-x \
+                    --without-mingw \
+                    --with-gstreamer \
+                    --with-xattr \
+                    --disable-mscoree \
+                    --with-vulkan \
+                    "${_wine32opts[@]}" \
+                    --prefix=/usr
+    make
+  fi
 
-        cd "$srcdir"/"$pkgname"-32-build
-
-        # Revert Wine commit 8f732c66ab37b54c30d63c74f7822ba1d4f04996
-        # Ref: https://source.winehq.org/git/wine.git/commit/8f732c66ab37b54c30d63c74f7822ba1d4f04996
-        CFLAGS="${CFLAGS} -fPIC" \
-        ../wine-git/configure \
-                        --with-x \
-                        --without-mingw \
-                        --with-gstreamer \
-                        --with-xattr \
-                        --disable-mscoree \
-                        --with-vulkan \
-                        "${_wine32opts[@]}" \
-                        --prefix=/usr
-        make
-    fi
-
-    if [[ ! enable_32 -eq 1 ]] && [[ ! enable_64 -eq 1 ]]; then
-        msg2 "You must define at least one architecture in PKGBUILD! Aborting"
-        exit 1
-    fi
+  if [[ ! enable_32 -eq 1 ]] && [[ ! enable_64 -eq 1 ]]; then
+    msg2 "You must define at least one architecture in PKGBUILD! Aborting"
+    exit 1
+  fi
 }
 
 package() {
-    depends=(${_depends[@]})
+  depends=(${_depends[@]})
 
-    # Package wine 32-bit
-    # According to the wine wiki this reverse 32-bit/64-bit packaging order is important
+  # Package wine 32-bit
+  # According to the wine wiki this reverse 32-bit/64-bit packaging order is important
+  if [[ $enable_32 -eq 1 ]]; then
 
-    if [[ $enable_32 -eq 1 ]]; then
-
-        msg2 "Packaging Wine-32..."
-
-        cd "$srcdir"/"$pkgname"-32-build
-
-        if [ "$CARCH" = "i686" ]; then
-
-            make prefix="$pkgdir/usr" install
-
-        else
-            make prefix="${pkgdir}/usr" \
-                 libdir="${pkgdir}/usr/lib32" \
-                 dlldir="${pkgdir}/usr/lib32/wine" install
-        fi
+    msg2 "Packaging Wine-32..."
+    
+    cd "$srcdir"/"$pkgname"-32-build
+    if [ "$CARCH" = "i686" ]; then
+      make prefix="$pkgdir/usr" install
+    else
+      make prefix="${pkgdir}/usr" \
+           libdir="${pkgdir}/usr/lib32" \
+           dlldir="${pkgdir}/usr/lib32/wine" install
     fi
 
-    # Package wine 64-bit
+  fi
 
-    if [[ "$CARCH" == "x86_64" ]] && [[ enable_64 -eq 1 ]]; then
-        msg2 "Packaging Wine-64..."
+  # Package wine 64-bit
+  if [[ "$CARCH" == "x86_64" ]] && [[ enable_64 -eq 1 ]]; then
+  
+    msg2 "Packaging Wine-64..."
+    cd "$srcdir"/"$pkgname"-64-build
 
-        cd "$srcdir"/"$pkgname"-64-build
+    make prefix="${pkgdir}/usr" \
+         libdir="${pkgdir}/usr/lib" \
+         dlldir="${pkgdir}/usr/lib/wine" install
 
-        make prefix="${pkgdir}/usr" \
-             libdir="${pkgdir}/usr/lib" \
-             dlldir="${pkgdir}/usr/lib/wine" install
-
-        if [[ enable_dxvk -eq 1 ]]; then
-            mv "$srcdir"/dxvk-compiled/x64/{d3d11.dll,dxgi.dll} "${pkgdir}/usr/lib/wine/fakedlls/"
-            chmod 644 "${pkgdir}/usr/lib/wine/fakedlls/"{d3d11.dll,dxgi.dll}
-            mv "$srcdir"/dxvk-compiled/x32/{d3d11.dll,dxgi.dll} "${pkgdir}/usr/lib32/wine/fakedlls/"
-            chmod 644 "${pkgdir}/usr/lib32/wine/fakedlls/"{d3d11.dll,dxgi.dll}
-        fi
-
+    if [[ enable_dxvk -eq 1 ]]; then
+      mv "$srcdir"/dxvk-compiled/x64/{d3d11.dll,dxgi.dll} "${pkgdir}/usr/lib/wine/fakedlls/"
+      chmod 644 "${pkgdir}/usr/lib/wine/fakedlls/"{d3d11.dll,dxgi.dll}
+      mv "$srcdir"/dxvk-compiled/x32/{d3d11.dll,dxgi.dll} "${pkgdir}/usr/lib32/wine/fakedlls/"
+      chmod 644 "${pkgdir}/usr/lib32/wine/fakedlls/"{d3d11.dll,dxgi.dll}
     fi
 
-    # Font aliasing settings for Win32 applications
-    install -d "$pkgdir"/etc/fonts/conf.{avail,d}
-    install -m644 "${srcdir}/30-win32-aliases.conf" "${pkgdir}/etc/fonts/conf.avail"
-    ln -s ../conf.avail/30-win32-aliases.conf "${pkgdir}/etc/fonts/conf.d/30-win32-aliases.conf"
+  fi
+
+  # Font aliasing settings for Win32 applications
+  install -d "$pkgdir"/etc/fonts/conf.{avail,d}
+  install -m644 "${srcdir}/30-win32-aliases.conf" "${pkgdir}/etc/fonts/conf.avail"
+  ln -s ../conf.avail/30-win32-aliases.conf "${pkgdir}/etc/fonts/conf.d/30-win32-aliases.conf"
+  
 }
-md5sums=('SKIP'
-         '1ff4e467f59409272088d92173a0f801')

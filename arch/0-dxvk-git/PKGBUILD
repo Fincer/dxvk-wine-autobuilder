@@ -3,26 +3,35 @@
 
 pkgname=dxvk-git
 _pkgname=dxvk
-pkgver=0.92.7
+pkgver=1.2.1.4
 pkgrel=1
-
-arch=('i686' 'x86_64')
-conflicts=("dxvk-win64-bin")
-provides=("dxvk" "dxvk64")
-depends=('vulkan-icd-loader' 'wine')
-
 pkgdesc="A Vulkan-based compatibility layer for Direct3D 10/11 which allows running 3D applications on Linux using Wine."
-arch=('x86_64' 'i686')
-
 url="https://github.com/doitsujin/dxvk"
 license=('custom:zlib/libpng')
-makedepends=('ninja' 'meson>=0.43' 'glslang' 'mingw-w64-gcc' 'git' 'wine')
+
+arch=('x86_64')
+conflicts=(
+  'dxvk-bin'
+  'dxvk-winelib-git'
+  'dxvk-legacy-git'
+  'dxvk-mingw-git'
+)
+depends=('wine' 'vulkan-icd-loader' 'lib32-vulkan-icd-loader')
+makedepends=(
+  'ninja'
+  'meson>=0.43'
+  'glslang'
+  'mingw-w64-gcc'
+  'git'
+  'wine'
+)
+provides=('dxvk')
 options=(!strip !buildflags staticlibs)
-source=(${pkgname}::"git+https://github.com/doitsujin/dxvk.git#commit=1af96347e1c6f1f2eb11aeb11009f380fd5761ec")
+source=(${pkgname}::"git+https://github.com/doitsujin/dxvk.git#commit=HEAD")
 sha256sums=('SKIP')
 
 _git_branch_dxvk=master
-_dxvk_commit=1af96347e1c6f1f2eb11aeb11009f380fd5761ec
+_dxvk_commit=HEAD
 
 ##############################
 
@@ -66,22 +75,22 @@ prepare() {
 
 # Retrieve DXVK version tag
 pkgver() {
-    cd "${pkgname}"
-    printf '%s' $(git describe --long | sed 's/\-[a-z].*//; s/\-/\./; s/[a-z]//g')
+  cd "${pkgname}"
+  printf '%s' $(git describe --long --always | sed 's/\-[a-z].*//; s/\-/\./; s/[a-z]//g')
 }
 
 # Launch DXVK build script
 build() {
-    "${srcdir}/${pkgname}"/package-release.sh ${pkgver} "${srcdir}"/build --no-package
+  "${srcdir}/${pkgname}"/package-release.sh ${pkgver} "${srcdir}"/build --no-package
 }
 
 # Bundle the compiled files
 package() {
-    mkdir -p "${pkgdir}"/usr/{bin,share/dxvk}
-    cp -r "${srcdir}"/build/${_pkgname}-${pkgver}/* "${pkgdir}/usr/share/dxvk/"
+  mkdir -p "${pkgdir}"/usr/{bin,share/dxvk}
+  cp -r "${srcdir}"/build/${_pkgname}-${pkgver}/* "${pkgdir}/usr/share/dxvk/"
 
-    echo -e "#!/bin/sh\n/usr/share/dxvk/setup_dxvk.sh" \
-    > "${pkgdir}/usr/bin/setup_dxvk"
+  echo -e "#!/bin/sh\n/usr/share/dxvk/setup_dxvk.sh" \
+  > "${pkgdir}/usr/bin/setup_dxvk"
 
-    chmod +x "${pkgdir}/usr/bin/setup_dxvk"
+  chmod +x "${pkgdir}/usr/bin/setup_dxvk"
 }
