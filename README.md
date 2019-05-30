@@ -170,7 +170,7 @@ Any other vanilla Wine git branch setting than _master_ will be ignored if Wine 
 
 **NOTE:** This section doesn't concern Ubuntu or Mint users.
 
-Since Debian doesn't provide winetricks package on official repositories, it is strongly recommended that you use provided `debian_install_winetricks.sh` to install Winetricks if needed.
+Since Debian doesn't provide winetricks package on official repositories, it is recommended that you use provided `debian_install_winetricks.sh` to install the latest Winetricks if needed.
 
 ----------------
 
@@ -284,7 +284,7 @@ bash debian_cleanup_devpkgs.sh
 
 `bash updatewine.sh --no-staging --no-dxvk --no-pol`
 
-**8)** Compile D9VK, and make an installable package for it. Install the package, do not check PlayOnLinux wineprefixes:
+**9)** Compile D9VK, and make an installable package for it. Install the package, do not check PlayOnLinux wineprefixes:
 
 `bash updatewine.sh --no-wine --no-dxvk --no-pol`
 
