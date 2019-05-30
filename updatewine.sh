@@ -24,10 +24,10 @@
 BASH_CHECK=$(ps | grep `echo $$` | awk '{ print $4 }')
 
 if [ $BASH_CHECK != "bash" ]; then
-    echo  "
+  echo "
 Please run this script using bash (/usr/bin/bash).
-    "
-    exit 1
+"
+  exit 1
 fi
 
 ###########################################################
@@ -89,23 +89,23 @@ COMMANDS=(
 
 function checkCommands() {
 
-    if [[ $(which --help 2>/dev/null) ]] && [[ $(echo --help 2>/dev/null) ]]; then
+  if [[ $(which --help 2>/dev/null) ]] && [[ $(echo --help 2>/dev/null) ]]; then
 
-        local a=0
-        for command in ${@}; do
-            if [[ ! $(which $command 2>/dev/null) ]]; then
-                local COMMANDS_NOTFOUND[$a]=${command}
-                let a++
-            fi
-        done
+    local a=0
+    for command in ${@}; do
+      if [[ ! $(which $command 2>/dev/null) ]]; then
+        local COMMANDS_NOTFOUND[$a]=${command}
+        let a++
+      fi
+    done
 
-        if [[ -n $COMMANDS_NOTFOUND ]]; then
-            echo -e "\nError! The following commands could not be found: ${COMMANDS_NOTFOUND[*]}\nAborting\n"
-            exit 1
-        fi
-    else
-        exit 1
+    if [[ -n $COMMANDS_NOTFOUND ]]; then
+      echo -e "\nError! The following commands could not be found: ${COMMANDS_NOTFOUND[*]}\nAborting\n"
+      exit 1
     fi
+  else
+    exit 1
+  fi
 }
 
 checkCommands "${COMMANDS[*]}"
@@ -199,22 +199,22 @@ datesuffix=$(echo $(date '+%Y-%m-%d-%H%M%S'))
 # Pass them to subscripts, as well.
 
 githash_overrides=(
-"${git_commithash_dxvk}"
-"${git_commithash_d9vk}"
-"${git_commithash_glslang}"
-"${git_commithash_meson}"
-"${git_commithash_wine}"
+  "${git_commithash_dxvk}"
+  "${git_commithash_d9vk}"
+  "${git_commithash_glslang}"
+  "${git_commithash_meson}"
+  "${git_commithash_wine}"
 )
 
 # Add git branches to argument list
 # Pass them to subscripts, as well.
 
 gitbranch_overrides=(
-"${git_branch_dxvk}"
-"${git_branch_d9vk}"
-"${git_branch_glslang}"
-"${git_branch_meson}"
-"${git_branch_wine}"
+  "${git_branch_dxvk}"
+  "${git_branch_d9vk}"
+  "${git_branch_glslang}"
+  "${git_branch_meson}"
+  "${git_branch_wine}"
 )
 
 #############################

@@ -887,14 +887,14 @@ function wineCheck() {
 
   # Known Wine package names to check on Debian
   local known_wines=(
-  'wine'
-  'wine32'
-  'wine64'
-  'wine-git'
-  'wine-staging-git'
-  'libwine:amd64'
-  'libwine:i386'
-  'fonts-wine'
+    'wine'
+    'wine32'
+    'wine64'
+    'wine-git'
+    'wine-staging-git'
+    'libwine:amd64'
+    'libwine:i386'
+    'fonts-wine'
   )
 
   # Check if any of these Wine packages are present on the system

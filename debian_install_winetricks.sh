@@ -1,7 +1,7 @@
 #!/bin/env bash
 
 #    Winetricks package builder for Debian
-#    Copyright (C) 2018  Pekka Helenius
+#    Copyright (C) 2019  Pekka Helenius
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -24,10 +24,10 @@
 BASH_CHECK=$(ps | grep `echo $$` | awk '{ print $4 }')
 
 if [ $BASH_CHECK != "bash" ]; then
-    echo  "
+  echo "
 Please run this script using bash (/usr/bin/bash).
-    "
-    exit 1
+"
+  exit 1
 fi
 
 ########################################################
@@ -35,7 +35,7 @@ fi
 # Just a title & author for this script, used in initialization
 
 SCRIPT_TITLE="\e[1mWinetricks package builder & installer\e[0m"
-SCRIPT_AUTHOR="Pekka Helenius (~Fincer), 2018"
+SCRIPT_AUTHOR="Pekka Helenius (~Fincer), 2019"
 
 ########################################################
 
@@ -88,23 +88,23 @@ COMMANDS=(
 
 function checkCommands() {
 
-    if [[ $(which --help 2>/dev/null) ]] && [[ $(echo --help 2>/dev/null) ]]; then
+  if [[ $(which --help 2>/dev/null) ]] && [[ $(echo --help 2>/dev/null) ]]; then
 
-        local a=0
-        for command in ${@}; do
-            if [[ ! $(which $command 2>/dev/null) ]]; then
-                local COMMANDS_NOTFOUND[$a]=${command}
-                let a++
-            fi
-        done
-
-        if [[ -n $COMMANDS_NOTFOUND ]]; then
-            echo -e "\nError! The following commands could not be found: ${COMMANDS_NOTFOUND[*]}\nAborting\n"
-            exit 1
+    local a=0
+      for command in ${@}; do
+        if [[ ! $(which $command 2>/dev/null) ]]; then
+          local COMMANDS_NOTFOUND[$a]=${command}
+          let a++
         fi
-    else
+      done
+
+      if [[ -n $COMMANDS_NOTFOUND ]]; then
+        echo -e "\nError! The following commands could not be found: ${COMMANDS_NOTFOUND[*]}\nAborting\n"
         exit 1
-    fi
+      fi
+  else
+    exit 1
+  fi
 }
 
 checkCommands "${COMMANDS[*]}"
@@ -124,14 +124,14 @@ function runtimeCheck() {
   # 'dpkg -s' check is quite primitive,
   # do this additional check for Wine
   local known_wines=(
-  'wine'
-  'wine-stable'
-  'wine32'
-  'wine64'
-  'libwine:amd64'
-  'libwine:i386'
-  'wine-git'
-  'wine-staging-git'
+    'wine'
+    'wine-stable'
+    'wine32'
+    'wine64'
+    'libwine:amd64'
+    'libwine:i386'
+    'wine-git'
+    'wine-staging-git'
   )
 
 ##########################
