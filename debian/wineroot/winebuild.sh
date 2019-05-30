@@ -369,7 +369,7 @@ function Wine_intCleanup() {
 trap "Wine_intCleanup" INT
 
 # Error event
-trap "Wine_intCleanup" ERR
+#trap "Wine_intCleanup" ERR
 
 ########################################################
 

@@ -197,7 +197,7 @@ function DXVK_intCleanup() {
 trap "DXVK_intCleanup" INT
 
 # Error event
-trap "DXVK_intCleanup" ERR
+#trap "DXVK_intCleanup" ERR
 
 ########################################################
 

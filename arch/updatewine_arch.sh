@@ -113,7 +113,7 @@ function Arch_intCleanup() {
 trap "Arch_intCleanup" INT
 
 # Error event
-trap "Arch_intCleanup" ERR
+#trap "Arch_intCleanup" ERR
 
 ###########################################################
 

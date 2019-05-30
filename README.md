@@ -344,6 +344,8 @@ N/A
 
 - Add compilation/installation script for the latest AMDGPU on Debian/Ubuntu/Mint
 
+- Find a way to handle real error events (ignore silenced errors)
+
 - Add info about selected commits and branches (if they have not been set to default)
 
 - Unify error & warning messages layout, unify internal variable & function names
