@@ -1,7 +1,7 @@
 #!/bin/env bash
 
 #    Compile latest Nvidia drivers on a Debian-based Linux
-#    Copyright (C) 2018  Pekka Helenius
+#    Copyright (C) 2019  Pekka Helenius
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -24,10 +24,10 @@
 BASH_CHECK=$(ps | grep `echo $$` | awk '{ print $4 }')
 
 if [ $BASH_CHECK != "bash" ]; then
-    echo  "
+  echo "
 Please run this script using bash (/usr/bin/bash).
-    "
-    exit 1
+"
+  exit 1
 fi
 
 ########################################################
@@ -35,7 +35,7 @@ fi
 # Just a title & author for this script, used in initialization
 
 SCRIPT_TITLE="\e[1mNvidia drivers package builder & installer\e[0m"
-SCRIPT_AUTHOR="Pekka Helenius (~Fincer), 2018"
+SCRIPT_AUTHOR="Pekka Helenius (~Fincer), 2019"
 
 ########################################################
 
@@ -45,12 +45,11 @@ BUILD_MAINDIR=${PWD}/debian_nvidia
 
 _pkgname="nvidia"
 arch="x86_64"
-pkgver=396.54
+pkgver=430.14
 
 files=(
-"http://archive.ubuntu.com/ubuntu/pool/restricted/n/nvidia-graphics-drivers-390/nvidia-graphics-drivers-390_390.48-0ubuntu3.debian.tar.xz"
-
-"http://us.download.nvidia.com/XFree86/Linux-${arch}/${pkgver}/NVIDIA-Linux-${arch}-${pkgver}.run"
+  "http://archive.ubuntu.com/ubuntu/pool/restricted/n/nvidia-graphics-drivers-418/nvidia-graphics-drivers-418_418.56-0ubuntu1.debian.tar.xz"
+  "http://us.download.nvidia.com/XFree86/Linux-${arch}/${pkgver}/NVIDIA-Linux-${arch}-${pkgver}.run"
 )
 
 ###################
@@ -69,25 +68,25 @@ typeset -A library_fixes
 # Right side: new library version
 #
 library_fixes=(
-[libnvidia-egl-wayland.so.1.0.2]="libnvidia-egl-wayland.so.1.0.3"
+  [libnvidia-egl-wayland.so.1.0.2]='libnvidia-egl-wayland.so.1.0.3'
 )
 
 ###################
 
 # These are defined build dependencies in debian/control file
 nvidia_builddeps=(
-'dpkg-dev'
-'xz-utils'
-'dkms'
-'libwayland-client0'
-'libwayland-server0'
-'libxext6'
-'quilt'
-'po-debconf'
-'execstack'
-'dh-modaliases'
-'xserver-xorg-dev'
-'libglvnd-dev'
+  'dpkg-dev'
+  'xz-utils'
+  'dkms'
+  'libwayland-client0'
+  'libwayland-server0'
+  'libxext6'
+  'quilt'
+  'po-debconf'
+  'execstack'
+  'dh-modaliases'
+  'xserver-xorg-dev'
+  'libglvnd-dev'
 )
 
 ###################
@@ -96,24 +95,24 @@ nvidia_builddeps=(
 nvidia_required_packages=(
 
 # Required by libnvidia-gl
-"libwayland-client0"
-"libwayland-server0"
+  'libwayland-client0'
+  'libwayland-server0'
 
 # Required by libnvidia, libnvidia-decode & libnvidia-fbc1
-"libx11-6"
+  'libx11-6'
 
 # Required by libnvidia, libnvidia-decode, libnvidia-fbc1 & libnvidia-ifr1
-"libxext6"
+  'libxext6'
 
 # Required by libnvidia-fbc1 & libnvidia-ifr1
-"libgl1"
+  'libgl1'
 
 # Required by xserver-xorg-video-nvidia
-"xserver-xorg-core"
-"xorg-video-abi-23"
+  'xserver-xorg-core'
+  'xorg-video-abi-23'
 
 # Required by nvidia-compute-utils
-"adduser"
+  'adduser'
 
 )
 
@@ -121,25 +120,27 @@ nvidia_required_packages=(
 
 # Nvidia packages. THIS ORDER IS MANDATORY, DO NOT CHANGE!
 nvidia_install_packages=(
+
 # Similar than 'nvidia-dkms' package on Arch Linux
-"nvidia-kernel-source-${pkgver_major}"
+  "nvidia-kernel-source-${pkgver_major}"
 
 # Nvidia DKMS
-"nvidia-kernel-common-${pkgver_major}"
-"nvidia-dkms-${pkgver_major}"
+  "nvidia-kernel-common-${pkgver_major}"
+  "nvidia-dkms-${pkgver_major}"
 
 # Similar than 'nvidia-utils' package on Arch Linux
-"libnvidia-common-${pkgver_major}"
-"libnvidia-gl-${pkgver_major}"
-"libnvidia-cfg1-${pkgver_major}"
-"xserver-xorg-video-nvidia-${pkgver_major}"
-"libnvidia-compute-${pkgver_major}"
-"libnvidia-decode-${pkgver_major}"
-"libnvidia-encode-${pkgver_major}"
-"libnvidia-fbc1-${pkgver_major}"
-"libnvidia-ifr1-${pkgver_major}"
-"nvidia-compute-utils-${pkgver_major}"
-"nvidia-utils-${pkgver_major}"
+  "libnvidia-common-${pkgver_major}"
+  "libnvidia-gl-${pkgver_major}"
+  "libnvidia-cfg1-${pkgver_major}"
+  "xserver-xorg-video-nvidia-${pkgver_major}"
+  "libnvidia-compute-${pkgver_major}"
+  "libnvidia-decode-${pkgver_major}"
+  "libnvidia-encode-${pkgver_major}"
+  "libnvidia-fbc1-${pkgver_major}"
+  "libnvidia-ifr1-${pkgver_major}"
+  "nvidia-compute-utils-${pkgver_major}"
+  "nvidia-utils-${pkgver_major}"
+
 )
 
 ########################################################
@@ -188,17 +189,17 @@ fi
 # If the script is interrupted (Ctrl+C/SIGINT), do the following
 
 function Nvidia_intCleanup() {
-  rm -rf ${WORKDIR}/{${pkgdir}/{debian,NVIDIA-Linux,NVIDIA-Linux-amd64,NVIDIA-Linux-x86_64-${pkgver},LICENSE.txt,unpack-stamp},compiled_deb,compiled_other}
-  exit 0
+  rm -rf ${WORKDIR}/{${pkgdir}
 }
 
 # Allow interruption of the script at any time (Ctrl + C)
-trap "Nvidia_intCleanup" INT
+trap "Nvidia_intCleanup && exit 0" INT
 
-###########################################################
+# Error event
+#trap "Nvidia_intCleanup && exit 1" ERR
 
 # Remove old build files
-rm -rf ${WORKDIR}/{${pkgdir}/{debian,NVIDIA-Linux,NVIDIA-Linux-amd64,NVIDIA-Linux-x86_64-${pkgver},LICENSE.txt,unpack-stamp},compiled_deb,compiled_other}
+Nvidia_intCleanup
 
 ###########################################################
 
@@ -213,23 +214,22 @@ COMMANDS=(
 
 function checkCommands() {
 
-    if [[ $(which --help 2>/dev/null) ]] && [[ $(echo --help 2>/dev/null) ]]; then
+  if [[ $(which --help 2>/dev/null) ]] && [[ $(echo --help 2>/dev/null) ]]; then
+    local a=0
+    for command in ${@}; do
+      if [[ ! $(which $command 2>/dev/null) ]]; then
+        local COMMANDS_NOTFOUND[$a]=${command}
+        let a++
+      fi
+    done
 
-        local a=0
-        for command in ${@}; do
-            if [[ ! $(which $command 2>/dev/null) ]]; then
-                local COMMANDS_NOTFOUND[$a]=${command}
-                let a++
-            fi
-        done
-
-        if [[ -n $COMMANDS_NOTFOUND ]]; then
-            echo -e "\nError! The following commands could not be found: ${COMMANDS_NOTFOUND[*]}\nAborting\n"
-            exit 1
-        fi
-    else
-        exit 1
+    if [[ -n $COMMANDS_NOTFOUND ]]; then
+      echo -e "\nError! The following commands could not be found: ${COMMANDS_NOTFOUND[*]}\nAborting\n"
+      exit 1
     fi
+  else
+    exit 1
+  fi
 }
 
 checkCommands "${COMMANDS[*]}"
@@ -265,7 +265,7 @@ if [[ $? -ne 0 ]]; then
   echo -e "Cancelling.\n"
   exit 1
 else
-  rm -rv ${WORKDIR}/*.{deb,buildinfo,changes} 2>/dev/null
+  rm -rfv ${WORKDIR}/*.{deb,buildinfo,changes} 2>/dev/null
 fi
 
 ########################################################
@@ -293,7 +293,7 @@ if [[ $? -eq 0 ]]; then
 
   if [[ ${UID} -ne 0 ]]; then
     if [[ $(echo $(sudo -vn &>/dev/null)$?) -ne 0 ]]; then
-      echo -e "Installation requires root permissions. Please provide your sudo password now.\n"
+      echo -e "NVIDIA driver installation requires root permissions. Please provide your sudo password now.\n"
       sudo -v
     fi
     if [[ $? -eq 0 ]]; then
@@ -308,20 +308,27 @@ fi
 
 ########################################################
 
+function pkg_installcheck() {
+  RETURNVALUE=$(echo $(dpkg -s "${1}" &>/dev/null)$?)
+  return $RETURNVALUE
+}
+
+########################################################
+
 # Check and install package related dependencies if they are missing
 function pkgdependencies() {
 
   # Generate a list of missing dependencies
   local a=0
   for p in ${@}; do
-    if [[ $(echo $(dpkg -s ${p} &>/dev/null)$?) -ne 0 ]]; then
+    if [[ $(pkg_installcheck ${p}) -ne 0 ]]; then
       validlist[$a]=${p}
       let a++
     fi
   done
 
-  if [[ -n ${list[*]} ]]; then
-    echo -e "Some build time dependencies are missing. In order to continue, you must install them."
+  if [[ -n ${validlist[*]} ]]; then
+    echo -e "The following build time dependencies are missing. In order to continue, you must install them:\n$(for i in ${validlist[@]}; do echo ${i}; done)\n"
     if [[ ${UID} -ne 0 ]] && [[ $(echo $(sudo -vn &>/dev/null)$?) -ne 0 ]]; then
       echo -e "For that, sudo password is required. Please provide it now.\n"
       sudo -v
@@ -344,10 +351,6 @@ function pkgdependencies() {
       exit 1
     fi
   done
-  if [[ -n ${validlist[*]} ]]; then
-    # Add empty newline
-    echo ""
-  fi
 }
 
 ########################################################
@@ -360,6 +363,7 @@ function download_files() {
   for f in ${files[@]}; do
 
     if [[ ! -f ${WORKDIR}/${pkgdir}/${filebases[$i]} ]]; then
+      echo ${f}
 
       echo -e "\nDownloading ${filebases[$i]}"
       wget ${f} -o /dev/null --show-progress -O "${WORKDIR}/${pkgdir}/${filebases[$i]}"
@@ -561,8 +565,8 @@ function install_vulkan() {
 
 ########################################################
 
+pkgdependencies ${nvidia_builddeps[*]} && \
 download_files && \
-pkgdependencies ${nvidia_builddeps[*]}
 prepare_deb_sources && \
 compile_nvidia
 
@@ -572,7 +576,7 @@ if [[ $? -eq 0 ]] && [[ -v AUTOINSTALL ]]; then
 fi
 
 # If any buildtime deps were installed, inform the user
-if [[ -n ${list[*]} ]]; then
+if [[ -n ${validlist[*]} ]]; then
   echo -e "The following buildtime dependencies were installed, and they may not be required anymore:\n\n\
-$(for h in ${list[*]}; do echo ${h}; done)\n"
+$(for h in ${validlist[*]}; do echo ${h}; done)\n"
 fi
