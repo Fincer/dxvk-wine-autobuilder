@@ -263,7 +263,7 @@ The script strongly recommends ~\e[1m$((${REC_SPACE} / 1000)) GB\e[0m at least t
 Be aware that the script process may fail because of this, especially while compiling Wine Staging.\n\n\
 Do you really want to continue? [Y/n]"
 
-  local AVAIL_RAM=$(echo $(( $(grep -oP "(?<=^MemFree:).*[0-9]" /proc/meminfo | sed 's/ //g') / 1024 )))
+  local AVAIL_RAM=$(( $(grep -oP "(?<=^MemFree:).*[0-9]" /proc/meminfo | sed 's/ //g') / 1024 ))
   local REC_RAM=4096
   local MSG_RAM="\e[1mWARNING:\e[0m Not sufficient RAM available\n\nCompilation processes will likely fail.\n\
 The script strongly recommends ~\e[1m${REC_RAM} MB\e[0m at least to compile software successfully but you have only\n\
@@ -285,7 +285,7 @@ Do you really want to continue? [Y/n]"
     done
 
     local req_targetconditions=($(echo ${req_targetconditions[@]} | sed 's/\(.*\) ||/\1 /'))
-    local fullcondition="[[ "${avail_prop}" -lt "${req_prop}" ]] && $(echo ${req_targetconditions[@]})"
+    local fullcondition="[[ "${avail_prop}" -lt "${req_prop}" ]] && ($(echo ${req_targetconditions[@]}))"
 
     if $(eval ${fullcondition}); then
       INFO_SEP
