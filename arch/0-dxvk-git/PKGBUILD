@@ -1,6 +1,9 @@
 # Maintainer: Pekka Helenius (~Fincer) <fincer89 at hotmail dot com>
 # Contributor: Adrià Cereto i Massagué <ssorgatem at gmail.com>
 
+# Override /etc/makepkg.conf PKGDEST variable if it's enabled
+PKGDEST="${PWD}"
+
 pkgname=dxvk-git
 _pkgname=dxvk
 pkgver=1.2.1.4

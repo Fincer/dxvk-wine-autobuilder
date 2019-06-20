@@ -1,6 +1,9 @@
 # Maintainer: Pekka Helenius <fincer89 [at] hotmail [dot] com>
 # Contributor: Adrià Cereto i Massagué <ssorgatem at gmail.com>
 
+# Override /etc/makepkg.conf PKGDEST variable if it's enabled
+PKGDEST="${PWD}"
+
 pkgname=d9vk-git
 pkgver=6125834
 pkgrel=1

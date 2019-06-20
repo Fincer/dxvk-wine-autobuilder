@@ -1,6 +1,9 @@
 # Maintainer: Pekka Helenius (~ Fincer) <fincer89 at hotmail dot com>
 # Contributor: Daniel Bermond < yahoo-com: danielbermond >
 
+# Override /etc/makepkg.conf PKGDEST variable if it's enabled
+PKGDEST="${PWD}"
+
 # Enable Wine Staging? 1 = yes
 enable_staging=0
 
