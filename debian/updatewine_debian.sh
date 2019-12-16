@@ -75,9 +75,6 @@ for check in ${args[@]}; do
     --no-dxvk)
       NO_DXVK=
       ;;
-    --no-d9vk)
-      NO_D9VK=
-      ;;
     --no-pol)
       NO_POL=
       ;;
@@ -142,7 +139,7 @@ Using $(nproc --ignore 1) of $(nproc) available CPU cores for Wine source code c
 
 function dxvk_install_main() {
 
-  echo -e "Starting compilation & installation of DXVK/D9VK\n\n\
+  echo -e "Starting compilation & installation of DXVK\n\n\
 This can take up to 10-20 minutes depending on how many dependencies we need to build for it.\n"
 
   bash -c "cd ${ROOTDIR}/dxvkroot && bash dxvkbuild.sh \"${datedir}\" \"${params[*]}\""
@@ -176,8 +173,7 @@ function mainQuestions() {
 installed and the following packages may be compiled from source (depending on your choises):\n\n\
 \t- Wine/Wine Staging (latest git version)\n\
 \t- DXVK (latest git version)\n\
-\t- D9VK (latest git version)\n\
-\t- meson & glslang (latest git versions; these are build time dependencies for DXVK & D9VK)\n\n\
+\t- meson & glslang (latest git versions; these are build time dependencies for DXVK)\n\n\
 Do you want to continue? [Y/n]"
 
   questionresponse
@@ -201,8 +197,8 @@ Do you want to continue? [Y/n]"
 
 ####################
 
-  # This question is relevant only if DXVK or D9VK stuff is compiled
-  if [[ ! -v NO_DXVK ]] || [[ ! -v NO_D9VK ]]; then
+  # This question is relevant only if DXVK stuff is compiled
+  if [[ ! -v NO_DXVK ]]; then
     INFO_SEP
 
     echo -e "\e[1mQUESTION:\e[0m Update existing dependencies?\n\nIn a case you have old build time dependencies on your system, do you want to update them?\n\
@@ -245,8 +241,8 @@ function coredeps_check() {
 
 ########################################################
 
-# If either Wine, DXVK or D9VK is to be compiled
-if [[ ! -v NO_WINE ]] || [[ ! -v NO_DXVK ]] || [[ ! -v NO_D9VK ]]; then
+# If either Wine, DXVK is to be compiled
+if [[ ! -v NO_WINE ]] || [[ ! -v NO_DXVK ]]; then
   mainQuestions
   coredeps_check
 fi
@@ -262,11 +258,11 @@ fi
 
 ####################
 
-# If DXVK or D9VK is going to be installed, then 
-if [[ ! -v NO_DXVK ]] || [[ ! -v NO_D9VK ]]; then
+# If DXVK is going to be installed, then
+if [[ ! -v NO_DXVK ]]; then
   dxvk_install_main
 else
-  echo -e "Skipping DXVK/D9VK build$(if [[ ! -v NO_INSTALL ]]; then printf " & installation"; fi) process.\n"
+  echo -e "Skipping DXVK build$(if [[ ! -v NO_INSTALL ]]; then printf " & installation"; fi) process.\n"
 fi
 
 ####################

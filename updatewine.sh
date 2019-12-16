@@ -1,6 +1,6 @@
 #!/bin/env bash
 
-#    DXVK/D9VK/Wine-Staging scripts dispatcher for various Linux distributions
+#    DXVK/Wine-Staging scripts dispatcher for various Linux distributions
 #    Copyright (C) 2019  Pekka Helenius
 #
 #    This program is free software: you can redistribute it and/or modify
@@ -34,7 +34,7 @@ fi
 
 # Just a title & author for this script, used in initialization and help page
 
-SCRIPT_TITLE="\e[1mWine/Wine Staging, DXVK & D9VK package builder & auto-installer\e[0m"
+SCRIPT_TITLE="\e[1mWine/Wine Staging & DXVK package builder & auto-installer\e[0m"
 SCRIPT_AUTHOR="Pekka Helenius (~Fincer), 2019"
 
 ########################################################
@@ -50,9 +50,6 @@ SCRIPT_AUTHOR="Pekka Helenius (~Fincer), 2019"
 
 git_commithash_dxvk=HEAD
 git_branch_dxvk=master
-
-git_commithash_d9vk=HEAD
-git_branch_d9vk=master
 
 git_commithash_wine=HEAD
 git_branch_wine=master
@@ -157,10 +154,6 @@ for arg in ${@}; do
       # Skip DXVK build & installation process all together
       NO_DXVK=
       ;;
-    --no-d9vk)
-      # Skip D9VK build & installation process all together
-      NO_D9VK=
-      ;;
     --no-pol)
       # Skip PlayOnLinux Wine prefixes update process
       ;;
@@ -169,9 +162,8 @@ for arg in ${@}; do
 \
 ${SCRIPT_TITLE} by ${SCRIPT_AUTHOR}\n\n\
 Usage:\n\nbash updatewine.sh\n\nArguments:\n\n\
---no-install\tDo not install Wine, DXVK or D9VK. Just compile them. Wine, meson & glslang must be installed for DXVK & D9VK compilation.\n\
+--no-install\tDo not install Wine or DXVK. Just compile them. Wine, meson & glslang must be installed for DXVK compilation.\n\
 --no-dxvk\tDo not compile or install DXVK\n\
---no-d9vk\tDo not compile or install D9VK\n\
 --no-pol\tDo not update PlayOnLinux Wine prefixes\n\n\
 --no-staging\tCompile Wine instead of Wine Staging\n\
 --no-wine\tDo not compile or install Wine/Wine Staging\n\n\
@@ -200,7 +192,6 @@ datesuffix=$(echo $(date '+%Y-%m-%d-%H%M%S'))
 
 githash_overrides=(
   "${git_commithash_dxvk}"
-  "${git_commithash_d9vk}"
   "${git_commithash_glslang}"
   "${git_commithash_meson}"
   "${git_commithash_wine}"
@@ -211,7 +202,6 @@ githash_overrides=(
 
 gitbranch_overrides=(
   "${git_branch_dxvk}"
-  "${git_branch_d9vk}"
   "${git_branch_glslang}"
   "${git_branch_meson}"
   "${git_branch_wine}"
@@ -268,7 +258,7 @@ Do you really want to continue? [Y/n]"
   local MSG_RAM="\e[1mWARNING:\e[0m Not sufficient RAM available\n\nCompilation processes will likely fail.\n\
 The script strongly recommends ~\e[1m${REC_RAM} MB\e[0m at least to compile software successfully but you have only\n\
 \e[1m${AVAIL_RAM} MB\e[0m left on the computer the script is currently placed at.\n\n\
-Be aware that the script process may fail because of this, especially while compiling DXVK & D9VK.\n\n\
+Be aware that the script process may fail because of this, especially while compiling DXVK.\n\n\
 Do you really want to continue? [Y/n]"
 
   function reqs_property() {
@@ -300,7 +290,7 @@ Do you really want to continue? [Y/n]"
   }
 
   reqs_property "${AVAIL_SPACE}" "${REC_SPACE}" "${MSG_SPACE}" "NO_WINE"
-  reqs_property "${AVAIL_RAM}" "${REC_RAM}" "${MSG_RAM}" "NO_DXVK NO_D9VK"
+  reqs_property "${AVAIL_RAM}" "${REC_RAM}" "${MSG_RAM}" "NO_DXVK"
 }
 
 ###########################################################
@@ -371,7 +361,7 @@ function determineDistroFamily() {
   esac
 }
 
-if [[ ! -v NO_WINE ]] || [[ ! -v NO_DXVK ]] || [[ ! -v NO_D9VK ]]; then
+if [[ ! -v NO_WINE ]] || [[ ! -v NO_DXVK ]]; then
   echo -e "\n${SCRIPT_TITLE}\n\nBuild identifier:\t${datesuffix}\n"
 else
   echo ""
@@ -384,11 +374,11 @@ fi
 determineDistroFamily
 
 INFO_SEP
-echo -e "\e[1mNOTE: \e[0mDXVK/D9VK requires very latest Nvidia/AMD drivers to work.\nMake sure these drivers are available on your Linux distribution.\n\
+echo -e "\e[1mNOTE: \e[0mDXVK requires very latest Nvidia/AMD drivers to work.\nMake sure these drivers are available on your Linux distribution.\n\
 This script comes with GPU driver installation scripts for Debian-based Linux distributions.\n"
 INFO_SEP
 
-if [[ ! -v NO_WINE ]] || [[ ! -v NO_DXVK ]] || [[ ! -v NO_D9VK ]]; then
+if [[ ! -v NO_WINE ]] || [[ ! -v NO_DXVK ]]; then
   reqsCheck
   sudoQuestion
   echo ""

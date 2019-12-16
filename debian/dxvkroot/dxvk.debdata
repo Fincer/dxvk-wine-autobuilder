@@ -10,7 +10,7 @@ pkg_arch="all"
 
 dxvk_relative_builddir="debian/source/dxvk-master"
 
-pkg_commondesc="Vulkan-based D3D11 and D3D10 implementation for Linux / Wine"
+pkg_commondesc="Vulkan-based D3D11, D3D10 & D3D9 implementation for Linux / Wine"
 pkg_longdesc="
 A Vulkan-based translation layer for Direct3D 10/11 which
 allows running 3D applications on Linux using Wine.
@@ -80,7 +80,7 @@ empty
 
 # Debian control file Conflicts section
 pkg_conflicts=(
-empty
+d9vk-git
 )
 
 # Debian control file Breaks section

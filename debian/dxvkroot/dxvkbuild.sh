@@ -1,6 +1,6 @@
 #!/bin/env bash
 
-#    Compile DXVK & D9VK git on Debian/Ubuntu/Mint and variants
+#    Compile DXVK git on Debian/Ubuntu/Mint and variants
 #    Copyright (C) 2019  Pekka Helenius
 #
 #    This program is free software: you can redistribute it and/or modify
@@ -46,14 +46,12 @@ done
 # variables!
 #
 git_commithash_dxvk=${params[0]}
-git_commithash_d9vk=${params[1]}
-git_commithash_glslang=${params[2]}
-git_commithash_meson=${params[3]}
+git_commithash_glslang=${params[1]}
+git_commithash_meson=${params[2]}
 
-git_branch_dxvk=${params[5]}
-git_branch_d9vk=${params[6]}
-git_branch_glslang=${params[7]}
-git_branch_meson=${params[8]}
+git_branch_dxvk=${params[3]}
+git_branch_glslang=${params[5]}
+git_branch_meson=${params[6]}
 
 ########################################################
 
@@ -85,9 +83,6 @@ for check in ${args[@]}; do
     --no-dxvk)
       NO_DXVK=
       ;;
-    --no-d9vk)
-      NO_D9VK=
-      ;;
   esac
 
 done
@@ -108,7 +103,7 @@ known_wines=(
   'wine-staging-git'
 )
 
-# Alternative remote dependency packages for Debian distributions which offer too old packages for DXVK/D9VK
+# Alternative remote dependency packages for Debian distributions which offer too old packages for DXVK
 #
 # Left side:  <package name in repositories>,<version_number>
 # Right side: package alternative source URL
@@ -142,7 +137,7 @@ alternatives=(
   [i686-w64-mingw32-g++]="i686-w64-mingw32-g++-posix"
 )
 
-# Temporary symbolic links for DXVK & D9VK compilation
+# Temporary symbolic links for DXVK compilation
 #
 typeset -A tempLinks
 tempLinks=(
@@ -171,8 +166,8 @@ function runtimeCheck() {
   done
 
   if [[ -z ${pkglist[*]} ]]; then
-    echo -e "\e[1mWARNING:\e[0m Not installing DXVK/D9VK because \e[1m${pkgreq_name}\e[0m is missing on your system.\n\
-${pkgreq_name} should be installed in order to use DXVK/D9VK. Just compiling DXVK/D9VK for later use.\n"
+    echo -e "\e[1mWARNING:\e[0m Not installing DXVK because \e[1m${pkgreq_name}\e[0m is missing on your system.\n\
+${pkgreq_name} should be installed in order to use DXVK. Just compiling DXVK for later use.\n"
 
     # Do this check separately so we can warn about all missing runtime dependencies above
     if [[ ! -v NO_INSTALL ]]; then
@@ -188,7 +183,7 @@ ${pkgreq_name} should be installed in order to use DXVK/D9VK. Just compiling DXV
 # If the script is interrupted (Ctrl+C/SIGINT), do the following
 
 function DXVK_intCleanup() {
-  rm -rf ${DXVKROOT}/{dxvk-git,d9vk-git,meson,glslang,*.deb}
+  rm -rf ${DXVKROOT}/{dxvk-git,meson,glslang,*.deb}
   rm -rf ${DXVKROOT}/../compiled_deb/"${datedir}"
   exit 0
 }
@@ -624,9 +619,6 @@ function compile_and_install_deb() {
   if [[ "${_pkg_name}" == *"dxvk"* ]]; then
     dxvk_install_custom "dxvk_custom_patches"
   fi
-  if [[ "${_pkg_name}" == *"d9vk"* ]]; then
-    dxvk_install_custom "d9vk_custom_patches"
-  fi
 
   pkg_debianbuild
 
@@ -744,11 +736,6 @@ pkgcompilecheck pkg_install_main glslang "${DXVKROOT}/glslang.debdata"
 if [[ ! -v NO_DXVK ]]; then
   # DXVK - compile (& install)
   pkg_install_main "${DXVKROOT}/dxvk.debdata"
-fi
-
-if [[ ! -v NO_D9VK ]]; then
-  # D9VK - compile (& install)
-  pkg_install_main "${DXVKROOT}/d9vk.debdata"
 fi
 
 # Clean buildtime dependencies

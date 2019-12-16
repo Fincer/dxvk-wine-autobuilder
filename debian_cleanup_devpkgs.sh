@@ -1,4 +1,4 @@
-#    Uninstall Wine-Staging, DXVK, D9VK, meson & glslang buildtime deps on Debian
+#    Uninstall Wine-Staging, DXVK, meson & glslang buildtime deps on Debian
 #    Copyright (C) 2018  Pekka Helenius
 #
 #    This program is free software: you can redistribute it and/or modify
@@ -148,24 +148,6 @@ dxvk_deps=(
 'g++-mingw-w64-i686'
 )
 
-d9vk_deps=(
-'meson'
-'glslang'
-'gcc-mingw-w64-base'
-#'binutils-common'
-'mingw-w64-common'
-'binutils-mingw-w64-x86-64'
-'binutils-mingw-w64-i686'
-
-'mingw-w64-x86-64-dev'
-'gcc-mingw-w64-x86-64'
-'g++-mingw-w64-x86-64'
-
-'mingw-w64-i686-dev'
-'gcc-mingw-w64-i686'
-'g++-mingw-w64-i686'
-)
-
 wine_deps_noremove=(
 'gcc-multilib'
 'g++-multilib'
@@ -194,10 +176,10 @@ core_deps_noremove=(
 'make' 'cmake' 'gcc' 'git' 'build-essential' 'fakeroot'
 )
 
-removals_name=('Meson' 'Wine Staging' 'DXVK' 'D9VK')
-removals=('${meson_deps[*]}' '${wine_deps[*]}' '${dxvk_deps[*]}' '${d9vk_deps[*]}')
+removals_name=('Meson' 'Wine Staging' 'DXVK')
+removals=('${meson_deps[*]}' '${wine_deps[*]}' '${dxvk_deps[*]}')
 
-echo -e "This script removes any development/build time dependencies related to Wine, DXVK & D9VK\n"
+echo -e "This script removes any development/build time dependencies related to Wine & DXVK\n"
 
 i=0
 for k in ${removals[*]}; do
