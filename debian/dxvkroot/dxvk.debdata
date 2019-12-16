@@ -105,6 +105,7 @@ pkg_deps_build=(
 #${_coredeps[*]}
 'meson'
 'glslang'
+'ninja-build (>= 1.5)'
 'gcc-mingw-w64-base'
 #'binutils-common'
 'mingw-w64-common'
