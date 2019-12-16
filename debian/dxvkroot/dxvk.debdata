@@ -80,7 +80,7 @@ empty
 
 # Debian control file Conflicts section
 pkg_conflicts=(
-d9vk-git
+empty
 )
 
 # Debian control file Breaks section

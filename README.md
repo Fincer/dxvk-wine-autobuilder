@@ -324,6 +324,8 @@ N/A
 
 ### TODO
 
+- Fix bug: when other than 'empty' values are used in Debian debdata files (conflicts,replaces ...etc), additional space is added to generated control file. However, Debian building system can't handle such situations, and throws an error instead. TL;DR: Remove spaces from generated control contents which is described by variable '_pkg_debcontrol'. Maybe a simple grep command can handle this?
+
 - Add compilation/installation script for the latest AMDGPU on Debian/Ubuntu/Mint
 
 - Find a way to handle real error events (ignore silenced errors)
