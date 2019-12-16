@@ -589,10 +589,14 @@ function compile_and_install_deb() {
     bash -c "${_pkg_debbuilder}"
 
     # Once our deb package is compiled, install and store it
-    # We do not make installation optional because this is a core dependency for DXVK
+    # We do not make installation optional for deps because they are required by DXVK
     if [[ $? -eq 0 ]]; then
-      rm -rf ../*.{changes,buildinfo,tar.xz} && \
-      sudo dpkg -i ../${_pkg_name}*.deb && \
+      rm -rf ../*.{changes,buildinfo,tar.xz}
+      if [[ "${_pkg_name}" == *"dxvk"* ]] && [[ ! -v NO_INSTALL ]]; then
+        sudo dpkg -i ../${_pkg_name}*.deb
+      elif [[ "${_pkg_name}" != *"dxvk"* ]]; then
+        sudo dpkg -i ../${_pkg_name}*.deb
+      fi
       mv ../${_pkg_name}*.deb ../../../compiled_deb/"${datedir}" && \
       echo -e "Compiled ${_pkg_name} is stored at '$(readlink -f ../../../compiled_deb/"${datedir}")/'\n"
       cd ../..
