@@ -187,7 +187,10 @@ Do you want to continue? [Y/n]"
 
   INFO_SEP
 
-  echo -e "\e[1mQUESTION:\e[0m Do you want to remove unneeded build time dependencies after package build process? [Y/n]"
+  echo -e "\e[1mQUESTION:\e[0m Do you want to remove unneeded build time dependencies after package build process? [Y/n] \n\n
+  WARNING: The check is not perfect. Answering [y] MAY DAMAGE YOUR SYSTEM!\n \
+  Safer approach is to answer [n] and get the list of installed packages, thus you can manually decide which packages to uninstall.
+  "
 
   questionresponse
 
