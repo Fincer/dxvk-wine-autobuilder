@@ -235,9 +235,11 @@ function check_alldeps() {
     echo -e "\e[1mERROR:\e[0m The following dependencies are missing:\n\e[91m\
 $(for o in ${ERRPKGS[@]}; do printf '%s\n' ${o}; done)\
 \e[0m\n"
+
+    echo -e "Please install them and try again.\n"
+
     exit 1
   fi
-
 }
 
 ###########################################################
