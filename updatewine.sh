@@ -84,6 +84,11 @@ COMMANDS=(
   wget
 )
 
+SUDO_GROUPS=(
+  sudo
+  wheel
+)
+
 function checkCommands() {
 
   if [[ $(which --help 2>/dev/null) ]] && [[ $(echo --help 2>/dev/null) ]]; then
@@ -119,10 +124,19 @@ if [[ $(uname -a | grep -c x86_64) -eq 0 ]]; then
   exit 1
 fi
 
-if [[ $(groups | grep -c sudo) -eq 0 ]]; then
+for i in ${SUDO_GROUPS[@]}; do
+  if [[ $(groups | grep -c ${i}) -ne 0 ]]; then
+    break
+    sudogrp=true
+  fi
+done
+
+if [[ ! $sudogrp ]]; then
   echo "You must belong to sudo group."
   exit 1
 fi
+
+unset sudogrp
 
 if [[ $UID -eq 0 ]]; then
   echo "Run as a regular user."
