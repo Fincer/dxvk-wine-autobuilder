@@ -179,7 +179,6 @@ fi
 
 pkgver() {
 
-  msg2 "Setting Wine versions..."
   if [[ enable_staging -eq 1 ]]; then
     cd "${srcdir}/wine-staging-git"
     _staging_tag="$(git tag | sort -Vr | head -n1 | sed 's/-/./g;s/^v//')"
