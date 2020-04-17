@@ -124,14 +124,7 @@ if [[ $(uname -a | grep -c x86_64) -eq 0 ]]; then
   exit 1
 fi
 
-for i in ${SUDO_GROUPS[@]}; do
-  if [[ $(groups | grep -c ${i}) -ne 0 ]]; then
-    break
-    sudogrp=true
-  fi
-done
-
-if [[ ! $sudogrp ]]; then
+if [[ $(groups | grep -cE $(echo ${SUDO_GROUPS[*]} | sed 's/ /|/g')) -eq 0 ]]; then
   echo "You must belong to a sudo group (checked groups: ${SUDO_GROUPS[*]})."
   exit 1
 fi
