@@ -5,7 +5,7 @@
 PKGDEST="${PWD}"
 
 # Enable Wine Staging? 1 = yes
-enable_staging=0
+enable_staging=1
 
 # Staging patchsets. Default: all patchsets. Please see Wine Staging patchinstall.sh file for individual patchset names.
 staging_patchsets=(--all) # In order to disable all patchsets, use #(--all) and add desired patchsets individually here 
@@ -30,7 +30,7 @@ else
   conflicts=('wine' 'wine-staging' 'wine-staging-git')
 fi
 
-pkgver=wine.wine.3.0.3.r0.gf5ada74b31
+pkgver=stg.5.4.r8.g53b02cd0+wine.wine.5.4.r128.gc43998cb51
 pkgrel=1
 arch=('i686' 'x86_64')
 
@@ -126,29 +126,40 @@ source=(
   '30-win32-aliases.conf'
 )
 md5sums=('SKIP'
-         '1ff4e467f59409272088d92173a0f801')
+         '1ff4e467f59409272088d92173a0f801'
+         'SKIP'
+         '1ff4e467f59409272088d92173a0f801'
+         '4ffb1f4b3b34d386595e603b35e92b0b'
+         'SKIP')
 
-if [[ $(find ${PWD}/wine-patches -mindepth 1 -maxdepth 1 -regex ".*\.\(patch\|diff\)$") ]]; then
-  for file in ${PWD}/wine-patches/*.{patch,diff}; do
+if [[ -d ${PWD}/wine-patches ]]; then
+  if [[ $(find ${PWD}/wine-patches -mindepth 1 -maxdepth 1 -regex ".*\.\(patch\|diff\)$") ]]; then
 
-    if [[ $(echo ${file}) == *"_nostaging"* ]] && [[ enable_staging -eq 1 ]]; then
-      continue
-    fi
+    for file in ${PWD}/wine-patches/*.{patch,diff}; do
 
-    if [[ $(echo ${file}) == *"_staging"* ]] && [[ enable_staging -eq 0 ]]; then
-      continue
-    fi
+      if [[ -f ${file} ]]; then
 
-    cp ${file} . 2>/dev/null
+        if [[ $(echo ${file}) == *"_nostaging"* ]] && [[ enable_staging -eq 1 ]]; then
+          continue
+        fi
 
-  done
-  p=0
-  for patch in $(find . -mindepth 1 -maxdepth 1 -regex ".*\.\(patch\|diff\)$"); do
-    patches[$p]="$(basename ${patch})"
-    let p++
-  done
-  unset p
-  source+=(${source[@]} ${patches[@]})
+        if [[ $(echo ${file}) == *"_staging"* ]] && [[ enable_staging -eq 0 ]]; then
+          continue
+        fi
+
+        cp ${file} . 2>/dev/null
+
+      fi
+
+    done
+    p=0
+    for patch in $(find . -mindepth 1 -maxdepth 1 -regex ".*\.\(patch\|diff\)$"); do
+      patches[$p]="$(basename ${patch})"
+      let p++
+    done
+    unset p
+    source+=(${source[@]} ${patches[@]})
+  fi
 fi
 
 if [[ enable_staging -eq 1 ]]; then
