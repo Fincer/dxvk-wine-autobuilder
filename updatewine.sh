@@ -132,7 +132,7 @@ for i in ${SUDO_GROUPS[@]}; do
 done
 
 if [[ ! $sudogrp ]]; then
-  echo "You must belong to sudo group."
+  echo "You must belong to a sudo group (checked groups: ${SUDO_GROUPS[*]})."
   exit 1
 fi
 
