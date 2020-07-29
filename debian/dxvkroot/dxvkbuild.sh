@@ -110,22 +110,95 @@ known_wines=(
 #
 # NOTE: Determine these packages in corresponding debdata files as runtime or buildtime dependencies
 #
-typeset -A remotePackagesAlt
-remotePackagesAlt=(
-  [gcc-mingw-w64-base,830]="http://mirrors.kernel.org/ubuntu/pool/universe/g/gcc-mingw-w64/gcc-mingw-w64-base_8.3.0-6ubuntu1+21.1build2_amd64.deb"
-  [mingw-w64-common,600]="http://mirrors.kernel.org/ubuntu/pool/universe/m/mingw-w64/mingw-w64-common_6.0.0-3_all.deb"
-#  [binutils-common,232]="http://mirrors.kernel.org/ubuntu/pool/main/b/binutils/binutils-common_2.32-7ubuntu4_amd64.deb"
-  [binutils-mingw-w64-x86-64,232]="http://mirrors.kernel.org/ubuntu/pool/universe/b/binutils-mingw-w64/binutils-mingw-w64-x86-64_2.32-7ubuntu4+8.3ubuntu2_amd64.deb"
-  [binutils-mingw-w64-i686,232]="http://mirrors.kernel.org/ubuntu/pool/universe/b/binutils-mingw-w64/binutils-mingw-w64-i686_2.32-7ubuntu4+8.3ubuntu2_amd64.deb"
+# As this seems to be a dependency for binutils-mingw packages
+function binutils_common_ver() {
 
-  [mingw-w64-x86-64-dev,600]="http://mirrors.kernel.org/ubuntu/pool/universe/m/mingw-w64/mingw-w64-x86-64-dev_6.0.0-3_all.deb"
-  [gcc-mingw-w64-x86-64,830]="http://mirrors.kernel.org/ubuntu/pool/universe/g/gcc-mingw-w64/gcc-mingw-w64-x86-64_8.3.0-6ubuntu1+21.1build2_amd64.deb"
-  [g++-mingw-w64-x86-64,830]="http://mirrors.kernel.org/ubuntu/pool/universe/g/gcc-mingw-w64/g++-mingw-w64-x86-64_8.3.0-6ubuntu1+21.1build2_amd64.deb"
+  if [[ $(dpkg -s binutils-common &>/dev/null)$? -ne 0 ]]; then
+    sudo apt -y install binutils-common
+  fi
 
-  [mingw-w64-i686-dev,600]="http://mirrors.kernel.org/ubuntu/pool/universe/m/mingw-w64/mingw-w64-i686-dev_6.0.0-3_all.deb"
-  [gcc-mingw-w64-i686,830]="http://mirrors.kernel.org/ubuntu/pool/universe/g/gcc-mingw-w64/gcc-mingw-w64-i686_8.3.0-6ubuntu1+21.1build2_amd64.deb"
-  [g++-mingw-w64-i686,830]="http://mirrors.kernel.org/ubuntu/pool/universe/g/gcc-mingw-w64/g++-mingw-w64-i686_8.3.0-6ubuntu1+21.1build2_amd64.deb"
+  if [[ $? -eq 0 ]]; then
+    binutils_ver=$(dpkg -s binutils-common | sed -rn 's/^Version: ([0-9\.]+).*$/\1/p')
+  fi
+
+}
+
+binutils_common_ver
+
+remotePackagesUrls=(
+  "http://mirrors.edge.kernel.org/ubuntu/pool/universe/b/binutils-mingw-w64"
+  "http://mirrors.edge.kernel.org/ubuntu/pool/universe/g/gcc-mingw-w64"
+  "http://mirrors.edge.kernel.org/ubuntu/pool/universe/m/mingw-w64"
 )
+
+remotePackagesPool=(
+  "gcc-mingw-w64-base"
+  "mingw-w64-common"
+  "binutils-mingw-w64-x86-64"
+  "binutils-mingw-w64-i686"
+  "mingw-w64-x86-64-dev"
+  "gcc-mingw-w64-x86-64"
+  "g++-mingw-w64-x86-64"
+  "mingw-w64-i686-dev"
+  "gcc-mingw-w64-i686"
+  "g++-mingw-w64-i686"
+)
+
+typeset -A remotePackagesAlt
+
+for rpp in ${remotePackagesPool[@]}; do
+
+  for URL in "${remotePackagesUrls[@]}"; do
+
+    # Fetch exact package name and associated date
+    pkg_data=$(curl -s "${URL}/" | sed -rn 's/.*href="(.*(amd64|all)\.deb)">.*([0-9]{2}\-[A-Za-z]{3}\-[0-9]{4}).*/\1 \3/p' | sed 's/%2B/+/g' | grep "${rpp}")
+    
+    if [[ ${pkg_data} = "" ]]; then
+      continue
+    fi
+    
+    # Associate Unix-formatted date with the exact package name
+    IFS=$'\n'
+    for ps in ${pkg_data[@]}; do
+      ps_pkg=$(printf "%s" "${ps}" | awk '{print $1}')
+      ps_date=$(date --date=$(printf "%s" "${ps}" | awk '{print $NF}') +%s)
+      remotePackagesAltDate+=("${ps_date}|${ps_pkg}")
+    done
+    IFS=" "
+    
+    # Sort exact package names by date
+    remotePackagesAltDateSorted=($(sort <<<"${remotePackagesAltDate[*]}"))
+
+    # binutils packages depend on system binutils-common. Versions must match, even if not the newest package available.
+    if [[ ${ps_pkg} =~ binutils ]] && [[ ${binutils_ver} != "" ]]; then
+      for b in ${remotePackagesAltDateSorted[@]}; do
+        if [[ ${b} =~ ${binutils_ver} ]]; then
+          remotePackagesAltBinUtils+=(${b})
+        fi
+      done
+      unset remotePackagesAltDateSorted
+      remotePackagesAltDateSorted=(${remotePackagesAltBinUtils[@]})
+      unset remotePackagesAltBinUtils
+    fi
+
+    # Get the newest exact package name
+    pkg=$(printf "%s" ${remotePackagesAltDateSorted[-1]} | sed -r 's/^[0-9]+\|(.*)/\1/')
+    unset remotePackagesAltDate
+    unset remotePackagesAltDateSorted
+    
+    # Prepare and set a well-formatted value into remotePackagesAlt associative array
+    if [ ! "${pkg}" == "" ]; then
+      rpp_url=$(printf "%s/%s" "${URL}" "${pkg}")
+      rpp_shortver=$(printf "%s" "${pkg}" | sed -r 's/.*_(.*[0-9]+)\-.*_(all|amd64).*/\1/g; s/[^0-9]//g')
+      
+      rpp_token=$(printf "%s,%d" "${rpp}" "${rpp_shortver}")
+      remotePackagesAlt+=(["${rpp_token}"]="${rpp_url}")
+
+      break 1
+    fi
+  done
+
+done
 
 # Posix-compliant MingW alternative executables
 #
