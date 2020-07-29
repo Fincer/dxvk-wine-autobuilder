@@ -304,11 +304,11 @@ The following section contains important notes about the script usage.
 
 Runtime test done for the script to ensure it works as expected. Occasional test-runs are mandatory due to rapid development of the packages (Wine/DXVK) it handles.
 
-**Latest test-run:** 30th May, 2019
+**Latest test-run:** 29th July, 2020
 
 **Linux Distributions:** 
 
-- Success: Arch Linux 64-bit, Ubuntu 18.04 64-bit
+- Success: Arch Linux 64-bit, Xubuntu 20.04 LTS 64-bit
 
 - Failure: N/A
 
