@@ -26,6 +26,12 @@ pkg_gitver="git describe --long | sed 's/\-[a-z].*//; s/\-/\./; s/[a-z]//g'"
 pkg_installfile="./debian/install"
 pkg_controlfile="./debian/control"
 pkg_rulesfile="./debian/rules"
+pkg_compatfile="./debian/compat"
+
+########################################################
+# Debian compatibility flag
+
+pkg_debcompat="9"
 
 ########################################################
 # Debian rules file section

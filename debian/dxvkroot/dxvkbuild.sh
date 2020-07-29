@@ -344,6 +344,8 @@ function compile_and_install_deb() {
   local _pkg_deps_build="${13}"
   local _pkg_deps_runtime="${14}"
   local _pkg_debbuilder="${15}"
+  local _pkg_debcompat="${16}"
+  local _pkg_compatfile="${17}"
 
 ############################
 # COMMON - ARRAY PARAMETER FIX
@@ -379,8 +381,7 @@ function compile_and_install_deb() {
 ############################
 
   function pkg_installcheck() {
-    RETURNVALUE=$(echo $(dpkg -s "${1}" &>/dev/null)$?)
-    return $RETURNVALUE
+    return $(echo $(dpkg -s "${1}" &>/dev/null)$?)
   }
 
 ############################
@@ -416,7 +417,7 @@ function compile_and_install_deb() {
     # Generate a list of missing dependencies
     local a=0
     for p in ${_pkg_list[@]}; do
-      if [[ $(pkg_installcheck ${p}) -eq 0 ]]; then
+      if [[ $(pkg_installcheck ${p})$? -eq 0 ]]; then
         local _validlist[$a]=${p}
         let a++
 
@@ -439,7 +440,7 @@ function compile_and_install_deb() {
 
     function pkg_configure() {
       if [[ $(sudo dpkg-reconfigure ${1} | grep "is broken or not fully installed") ]]; then
-        if [[ -v ${2} ]]; then
+        if [[ -v ${2} ]]; then
           pkg_localinstall ${2} ${1}
         else
           pkg_remoteinstall ${1}
@@ -457,7 +458,7 @@ function compile_and_install_deb() {
             altRemotepkg=$(echo ${altRemote} | awk -F ',' '{print $1}')
             altRemotever=$(echo ${altRemote} | awk -F ',' '{print $2}')
           if [[ "${_pkg_dep}" == "${altRemotepkg}" ]]; then
-            if [[ $(pkg_installcheck ${altRemotepkg}) -ne 0 ]]; then
+            if [[ $(pkg_installcheck ${altRemotepkg})$? -ne 0 ]]; then
 
               # TODO remove duplicate functionality
               if [[ $(apt-cache show "${altRemotepkg}" | grep -m1 -oP "(?<=^Version: )[0-9|\.]*" | sed 's/\.//g') < ${altRemotever} ]]; then
@@ -481,7 +482,7 @@ function compile_and_install_deb() {
         done
       fi
 
-      if [[ $(pkg_installcheck ${_pkg_dep}) -ne 0 ]]; then
+      if [[ $(pkg_installcheck ${_pkg_dep})$? -ne 0 ]]; then
         pkg_remoteinstall "${_pkg_dep}"
         pkg_configure "${_pkg_dep}"
       fi
@@ -571,6 +572,7 @@ function compile_and_install_deb() {
       pkg_override_debianfile "${_pkg_debinstall}" "${_pkg_installfile}"
       pkg_override_debianfile "${_pkg_debcontrol}" "${_pkg_controlfile}"
       pkg_override_debianfile "${_pkg_debrules}" "${_pkg_rulesfile}"
+      pkg_override_debianfile "${_pkg_debcompat}" "${_pkg_compatfile}"
 
     else
       echo -e "\e[1mERROR:\e[0m Error while downloading source of ${_pkg_name} package. Aborting\n"
@@ -722,7 +724,9 @@ function pkg_install_main() {
   "${pkg_rulesfile}" \
   "${pkg_deps_build}" \
   "${pkg_deps_runtime}" \
-  "${pkg_debbuilder}"
+  "${pkg_debbuilder}" \
+  "${pkg_debcompat}" \
+  "${pkg_compatfile}"
 
 }
 

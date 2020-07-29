@@ -71,6 +71,8 @@ wine_deps_build_amd64=(
 'libxi-dev:amd64'
 'libxt-dev:amd64'
 'libxmu-dev:amd64'
+'libgl-dev:amd64'
+'libglx-dev:amd64|optional'
 'libx11-dev:amd64'
 'libxext-dev:amd64'
 'libxfixes-dev:amd64'
@@ -123,6 +125,8 @@ wine_deps_build_i386=(
 'libxi-dev:i386'
 'libxt-dev:i386'
 'libxmu-dev:i386'
+'libgl-dev:i386'
+'libglx-dev:i386|optional'
 'libx11-dev:i386'
 'libxext-dev:i386'
 'libxfixes-dev:i386'
@@ -621,7 +625,8 @@ function WineDeps() {
     # Generate a list of missing/removable dependencies, depending on the logic
     local a=0
     for p in ${deplist[@]}; do
-      if [[ $(echo $(dpkg -s ${p} &>/dev/null)$?) -ne ${checkstatus} ]]; then
+      pf=$(printf "%s" ${p} | sed -r 's/^(.*)\|.*/\1/')
+      if [[ $(echo $(dpkg -s ${pf} &>/dev/null)$?) -ne ${checkstatus} ]]; then
         local validlist[$a]=${p}
         let a++
 
@@ -637,9 +642,16 @@ function WineDeps() {
     # Install missing/Remove existing dependencies, be informative
     local b=0
     for pkgdep in ${validlist[@]}; do
+
+      optional=0
+      if [[ ${pkgdep} =~ \|optional ]]; then
+        pkgdep=$(printf "%s" ${pkgdep} | sed -r 's/^(.*)\|.*/\1/')
+        optional=1
+      fi
+
       echo -e "$(( $b + 1 ))/$(( ${#validlist[*]} )) - ${str} ${depsname} dependency ${pkgdep}"
       eval ${mgrcmd} ${pkgdep} &> /dev/null
-      if [[ $? -eq 0 ]]; then
+      if [[ $? -eq 0 ]] || [[ ${optional} == 1 ]]; then
         let b++
       else
         echo -e "\n\e[1mERROR:\e[0m Error occured while processing ${pkgdep}. Aborting.\n"
@@ -840,7 +852,7 @@ function buildDebianArchive() {
   dh_make --createorig -s -y -c lgpl
   rm debian/*.{ex,EX}
   printf "usr/* /usr" > debian/install
-
+  printf "9" > debian/compat
   feed_debiancontrol
 
   # Start compilation process
