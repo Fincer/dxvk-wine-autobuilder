@@ -28,7 +28,7 @@ pkg_compatfile="./debian/compat"
 ########################################################
 # Debian compatibility flag
 
-pkg_debcompat="9"
+pkg_debcompat="12"
 
 ########################################################
 # Debian rules file section

@@ -852,7 +852,7 @@ function buildDebianArchive() {
   dh_make --createorig -s -y -c lgpl
   rm debian/*.{ex,EX}
   printf "usr/* /usr" > debian/install
-  printf "9" > debian/compat
+  printf "12" > debian/compat
   feed_debiancontrol
 
   # Start compilation process
