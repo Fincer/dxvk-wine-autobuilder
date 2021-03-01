@@ -57,7 +57,7 @@ override_dh_install:
 	# Make a proper executable script folder for setup_dxvk.sh file
 	mkdir -p ${dxvk_relative_builddir}/bin
 
-	printf '%s\n%s' \"#!/bin/sh\" \"/usr/share/dxvk/setup_dxvk.sh\" > \"${dxvk_relative_builddir}/bin/setup_dxvk\"
+	printf '%s\n%s %s' \"#!/bin/sh\" \"/usr/share/dxvk/setup_dxvk.sh\" \"\${@}\" > \"${dxvk_relative_builddir}/bin/setup_dxvk\"
 	chmod +x "${dxvk_relative_builddir}/bin/setup_dxvk"
 	dh_install
 "
