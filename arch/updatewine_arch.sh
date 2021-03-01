@@ -427,7 +427,7 @@ function build_pkg() {
     fi
   fi
 
-  if [[ $? -eq 0 ]]; then bash -c "updpkgsums && makepkg"; else exit 1; fi
+  if [[ $? -eq 0 ]]; then bash -c "updpkgsums && makepkg -Cf"; else exit 1; fi
 
   # After successful compilation...
   if [[ $(ls ./${pkgname}-*tar.xz 2>/dev/null | wc -l) -ne 0 ]]; then
