@@ -16,6 +16,8 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+source options.conf
+
 ##############################################################################
 
 # Check if we're using bash or sh to run the script. If bash, OK.
@@ -36,30 +38,6 @@ fi
 
 SCRIPT_TITLE="\e[1mWine/Wine Staging & DXVK package builder & auto-installer\e[0m"
 SCRIPT_AUTHOR="Pekka Helenius (~Fincer), 2019"
-
-########################################################
-
-# Should we freeze Git versions of these packages?
-# This is handy in some cases, if breakages occur
-# (although we actually compile an older version of a package)
-#
-# Define a commit hash to freeze to
-# Use keyword 'HEAD' if you want to use the latest git
-# version available
-# Do NOT leave these variable empty!
-
-git_commithash_dxvk=HEAD
-git_branch_dxvk=master
-
-git_commithash_wine=HEAD
-git_branch_wine=master
-
-# These apply only on Debian/Ubuntu/Mint
-git_commithash_meson=5d6dcf8850fcc5d552f55943b6aa3582754dedf8
-git_branch_meson=master
-
-git_commithash_glslang=HEAD
-git_branch_glslang=master
 
 ###########################################################
 # Allow interruption of the script at any time (Ctrl + C)
