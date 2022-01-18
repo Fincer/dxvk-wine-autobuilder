@@ -108,7 +108,7 @@ All supported arguments are:
 
 You can force/lock specific Wine, Wine Staging, DXVK, meson & glslang versions.
 
-There are two switches for that: Set a specific **1)** _commit_ **2)** _git branch_ you want to use
+There are two variables for that, prefixed with **1)** _commit_ and **2)** _git branch_ in `options.conf` file.
 
 This is handy if you encounter issues during package compilation (DXVK/glslang or meson, for instance). You should consider forcing package versions either by defining the latest git commit which still works for you or by using a specific git branch for your build. You can do this by specifying the following variables in `updatewine.sh`:
 
@@ -132,8 +132,6 @@ This is handy if you encounter issues during package compilation (DXVK/glslang o
 
 ### Force/Lock package versions: How-to (git commit)
 
-Take a look on `updatewine.sh`. You can find above variables listed there.
-
 Each variable applies values which must be match package git commit tree. The value format is as follows:
 
 - **A)** 40 characters long commit hash. Use this if you want this commit to be the latest to be used in package compilation, not anything after it.
@@ -147,8 +145,6 @@ Each variable applies values which must be match package git commit tree. The va
 Git commit version freezing can be used on all supported platforms (Debian/Ubuntu/Mint/Arch Linux/Manjaro).
 
 ### Force/Lock package versions: How-to (git branch)
-
-Take a look on `updatewine.sh`. You can find above variables listed there.
 
 Each variable applies values which must be match package git branch available. The value format is as follows:
 
