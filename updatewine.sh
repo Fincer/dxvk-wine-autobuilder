@@ -16,9 +16,11 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+##############################################################################
+
 source options.conf
 
-##############################################################################
+###########################################################
 
 # Check if we're using bash or sh to run the script. If bash, OK.
 # If another one, ask user to run the script with bash.
