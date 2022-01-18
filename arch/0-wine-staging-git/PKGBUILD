@@ -30,7 +30,7 @@ else
   conflicts=('wine' 'wine-staging' 'wine-staging-git')
 fi
 
-pkgver=stg.5.4.r8.g53b02cd0+wine.wine.5.4.r128.gc43998cb51
+pkgver=stg.5.15.2.r6.g663c3ba4+wine.wine.5.15.r83.g13ea90d80f
 pkgrel=1
 arch=('i686' 'x86_64')
 
@@ -122,14 +122,11 @@ optdepends=(
 options=('staticlibs')
 
 source=(
-  wine-git::'git://source.winehq.org/git/wine.git#commit=HEAD'
+  wine-git::"git://source.winehq.org/git/wine.git#commit=${_wine_commit}"
   '30-win32-aliases.conf'
 )
 md5sums=('SKIP'
          '1ff4e467f59409272088d92173a0f801'
-         'SKIP'
-         '1ff4e467f59409272088d92173a0f801'
-         '4ffb1f4b3b34d386595e603b35e92b0b'
          'SKIP')
 
 if [[ -d ${PWD}/wine-patches ]]; then
@@ -163,7 +160,7 @@ if [[ -d ${PWD}/wine-patches ]]; then
 fi
 
 if [[ enable_staging -eq 1 ]]; then
-  stagingsrc=wine-staging-git::'git://github.com/wine-staging/wine-staging.git#commit=HEAD'
+  stagingsrc=wine-staging-git::"git://github.com/wine-staging/wine-staging.git#commit=${_staging_commit}"
   source+=($stagingsrc)
 fi
 
@@ -238,7 +235,7 @@ build() {
     # Apply all custom patches
     msg2 "Applying custom patches..."
 
-    for i in "${srcdir}"/*.{patch,diff}; do 
+    for i in "${srcdir}"/*.{patch,diff}; do
       if [[ -f ${i} ]]; then
         patch -Np1 < ${i}
       fi
@@ -311,7 +308,7 @@ package() {
   if [[ $enable_32 -eq 1 ]]; then
 
     msg2 "Packaging Wine-32..."
-    
+
     cd "$srcdir"/"$pkgname"-32-build
     if [ "$CARCH" = "i686" ]; then
       make prefix="$pkgdir/usr" install
@@ -325,7 +322,7 @@ package() {
 
   # Package wine 64-bit
   if [[ "$CARCH" == "x86_64" ]] && [[ enable_64 -eq 1 ]]; then
-  
+
     msg2 "Packaging Wine-64..."
     cd "$srcdir"/"$pkgname"-64-build
 
@@ -346,5 +343,5 @@ package() {
   install -d "$pkgdir"/etc/fonts/conf.{avail,d}
   install -m644 "${srcdir}/30-win32-aliases.conf" "${pkgdir}/etc/fonts/conf.avail"
   ln -s ../conf.avail/30-win32-aliases.conf "${pkgdir}/etc/fonts/conf.d/30-win32-aliases.conf"
-  
+
 }

@@ -35,13 +35,14 @@ makedepends=(
   'git'
   'wine'
 )
-provides=('dxvk')
-options=(!strip !buildflags staticlibs)
-source=(${pkgname}::"git+https://github.com/doitsujin/dxvk.git#commit=HEAD")
-sha256sums=('SKIP')
 
 _git_branch_dxvk=master
 _dxvk_commit=HEAD
+
+provides=('dxvk')
+options=(!strip !buildflags staticlibs)
+source=(${pkgname}::"git+https://github.com/doitsujin/dxvk.git#commit=${_dxvk_commit}")
+sha256sums=('SKIP')
 
 ##############################
 
@@ -71,7 +72,7 @@ prepare() {
   # Apply all custom patches
   msg2 "Applying custom patches..."
 
-    for i in "${srcdir}"/*.{patch,diff}; do 
+    for i in "${srcdir}"/*.{patch,diff}; do
       if [[ -f ${i} ]]; then
         patch -Np1 < ${i}
       fi

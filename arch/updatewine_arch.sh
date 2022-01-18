@@ -366,20 +366,6 @@ function check_gitOverride_wine() {
 
 ###########################################################
 
-function set_gitOverride() {
-  local git_name=${1}
-  local git_commithash=${2}
-  local pkgbuild_file=${3}
-
-  # Match string ${git_name}#commit=<replacethis>
-  # where replace <replacethis>, but exclude ' " and ) after that
-  #
-  # TODO consider when there is nothing/no string after = symbol
-  sed -i "s!\(${git_name}#commit=\)\(.*[^'|^\"|^\)]\)!\1${git_commithash}!" "${pkgbuild_file}"
-}
-
-###########################################################
-
 # Remove any existing pkg,src or tar.xz packages left by previous pacman commands
 
 function cleanUp() {
@@ -404,24 +390,21 @@ function build_pkg() {
   bash -c "updpkgsums && makepkg -o"
 
   local pkgbuild_file="${ARCH_BUILDROOT}/${pkgdir}/PKGBUILD"
-  
+
   # Check git commit hashes
   if [[ $? -eq 0 ]] && \
   [[ ${5} == gitcheck ]]; then
     if [[ ${pkgname} == wine ]]; then
       check_gitOverride_wine
 
-      set_gitOverride "wine.git" "${git_commithash_wine}" ${pkgbuild_file}
       sed -i "s/\(^_wine_commit=\).*/\1${git_commithash_wine}/" ${pkgbuild_file}
       sed -i "s/\(^_git_branch_wine=\).*/\1${git_branch_wine}/" ${pkgbuild_file}
 
       if [[ ! -v NO_STAGING ]]; then
-        set_gitOverride "wine-staging.git" "${git_commithash_winestaging}" ${pkgbuild_file}
         sed -i "s/\(^_staging_commit=\).*/\1${git_commithash_winestaging}/" ${pkgbuild_file}
       fi
 
     elif [[ ${pkgname} == dxvk ]]; then
-      set_gitOverride "dxvk.git" "${git_commithash_dxvk}" ${pkgbuild_file}
       sed -i "s/\(^_git_branch_dxvk=\).*/\1${git_branch_dxvk}/" ${pkgbuild_file}
       sed -i "s/\(^_dxvk_commit=\).*/\1${git_commithash_dxvk}/" ${pkgbuild_file}
     fi
