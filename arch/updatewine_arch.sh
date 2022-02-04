@@ -373,7 +373,7 @@ function check_gitOverride_wine() {
 # Remove any existing pkg,src or tar.xz packages left by previous pacman commands
 
 function cleanUp() {
-  rm -rf ${ARCH_BUILDROOT}/*/{pkg,src,*.tar.xz,*.patch,*.diff}
+  rm -rf ${ARCH_BUILDROOT}/*/{pkg,src,*.tar.xz,*.patch,*.diff,*.sig}
 }
 
 ###########################################################
