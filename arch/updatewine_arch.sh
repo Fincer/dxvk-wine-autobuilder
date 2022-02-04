@@ -53,7 +53,7 @@ git_branch_wine=${params[7]}
 
 git_source_dxvk=${params[8]}
 git_source_wine=${params[11]}
-git_source_wine-staging=${params[12]}
+git_source_winestaging=${params[12]}
 
 ########################################################
 
@@ -401,17 +401,23 @@ function build_pkg() {
     if [[ ${pkgname} == wine ]]; then
       check_gitOverride_wine
 
-      sed -i "s/\(^_wine_gitsrc=\).*/\1${git_source_wine}/" ${pkgbuild_file}
+      git_source_wine=$(echo ${git_source_wine} | sed 's/\//\\\//g; s/\./\\\./g')
+      sed -i "s/\(^_wine_gitsrc=\).*/\1\"${git_source_wine}\"/" ${pkgbuild_file}
+
       sed -i "s/\(^_wine_commit=\).*/\1${git_commithash_wine}/" ${pkgbuild_file}
       sed -i "s/\(^_git_branch_wine=\).*/\1${git_branch_wine}/" ${pkgbuild_file}
 
       if [[ ! -v NO_STAGING ]]; then
-        sed -i "s/\(^_staging_gitsrc=\).*/\1${git_source_wine-staging}/" ${pkgbuild_file}
+        git_source_winestaging=$(echo ${git_source_winestaging} | sed 's/\//\\\//g; s/\./\\\./g')
+        sed -i "s/\(^_staging_gitsrc=\).*/\1\"${git_source_winestaging}\"/" ${pkgbuild_file}
+
         sed -i "s/\(^_staging_commit=\).*/\1${git_commithash_winestaging}/" ${pkgbuild_file}
       fi
 
     elif [[ ${pkgname} == dxvk ]]; then
-      sed -i "s/\(^_dxvk_gitsrc=\).*/\1${git_source_dxvk}/" ${pkgbuild_file}
+      git_source_dxvk=$(echo ${git_source_dxvk} | sed 's/\//\\\//g; s/\./\\\./g')
+      sed -i "s/\(^_dxvk_gitsrc=\).*/\1\"${git_source_dxvk}\"/" ${pkgbuild_file}
+
       sed -i "s/\(^_git_branch_dxvk=\).*/\1${git_branch_dxvk}/" ${pkgbuild_file}
       sed -i "s/\(^_dxvk_commit=\).*/\1${git_commithash_dxvk}/" ${pkgbuild_file}
     fi
