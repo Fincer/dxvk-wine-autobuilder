@@ -317,7 +317,7 @@ git_commithash_wine=${params[3]}
 git_branch_wine=${params[7]}
 
 git_source_wine=${params[11]}
-git_source_wine-staging=${params[12]}
+git_source_winestaging=${params[12]}
 
 ########################################################
 
@@ -407,7 +407,7 @@ function girl_check() {
 function getWine() {
 
   local winesrc_url="${git_source_wine}"
-  local winestagingsrc_url="${git_source_wine-staging}"
+  local winestagingsrc_url="${git_source_winestaging}"
 
   function cleanOldBuilds() {
     if [[ $(find "${BUILDROOT}" -type d -name "winebuild_*" | wc -l) -ne 0 ]]; then

@@ -203,7 +203,7 @@ gitsources=(
   "${git_source_glslang}"      # 9
   "${git_source_meson}"        # 10
   "${git_source_wine}"         # 11
-  "${git_source_wine-staging}" # 12
+  "${git_source_winestaging}"  # 12
 )
 
 #############################
