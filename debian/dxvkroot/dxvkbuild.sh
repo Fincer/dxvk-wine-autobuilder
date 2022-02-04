@@ -156,11 +156,11 @@ for rpp in ${remotePackagesPool[@]}; do
 
     # Fetch exact package name and associated date
     pkg_data=$(curl -s "${URL}/" | sed -rn 's/.*href="(.*(amd64|all)\.deb)">.*([0-9]{2}\-[A-Za-z]{3}\-[0-9]{4}).*/\1 \3/p' | sed 's/%2B/+/g' | grep "${rpp}")
-    
+
     if [[ ${pkg_data} = "" ]]; then
       continue
     fi
-    
+
     # Associate Unix-formatted date with the exact package name
     IFS=$'\n'
     for ps in ${pkg_data[@]}; do
@@ -169,7 +169,7 @@ for rpp in ${remotePackagesPool[@]}; do
       remotePackagesAltDate+=("${ps_date}|${ps_pkg}")
     done
     IFS=" "
-    
+
     # Sort exact package names by date
     remotePackagesAltDateSorted=($(sort <<<"${remotePackagesAltDate[*]}"))
 
@@ -189,12 +189,12 @@ for rpp in ${remotePackagesPool[@]}; do
     pkg=$(printf "%s" ${remotePackagesAltDateSorted[-1]} | sed -r 's/^[0-9]+\|(.*)/\1/')
     unset remotePackagesAltDate
     unset remotePackagesAltDateSorted
-    
+
     # Prepare and set a well-formatted value into remotePackagesAlt associative array
     if [ ! "${pkg}" == "" ]; then
       rpp_url=$(printf "%s/%s" "${URL}" "${pkg}")
       rpp_shortver=$(printf "%s" "${pkg}" | sed -r 's/.*_(.*[0-9]+)\-.*_(all|amd64).*/\1/g; s/[^0-9]//g')
-      
+
       rpp_token=$(printf "%s,%d" "${rpp}" "${rpp_shortver}")
       remotePackagesAlt+=(["${rpp_token}"]="${rpp_url}")
 
@@ -349,7 +349,7 @@ function dxvk_install_custom() {
     # Get our current directory, since we will change it during patching process below
     # We want to go back here after having applied the patches
     local CURDIR="${PWD}"
-    
+
     # Check if the following folder exists, and proceed.
     if [[ -d "${DXVKROOT}/../../${PATCHDIR}" ]]; then
       cp -r "${DXVKROOT}/../../${PATCHDIR}/"*.{patch,diff} "${DXVKROOT}/${pkg_name}/" 2>/dev/null
