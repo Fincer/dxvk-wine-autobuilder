@@ -100,7 +100,7 @@ function INFO_SEP() { printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' - ; 
 # If the script is interrupted (Ctrl+C/SIGINT), do the following
 
 function Arch_intCleanup() {
-  rm -rf ${ARCH_BUILDROOT}/{0-wine-staging-git/{wine-patches,*.tar.xz},0-dxvk-git/{dxvk-git,*.tar.xz}}
+  rm -rf ${ARCH_BUILDROOT}/{0-wine-staging-git/{wine-patches,*.tar.xz,*.sig},0-dxvk-git/{dxvk-git,*.tar.xz,*.sig}}
   exit 0
 }
 
@@ -482,7 +482,7 @@ function updatePOL() {
 # Clean these temporary folders & files
 
 # TODO Shall we remove git folders or keep them?
-dxvk_wine_cleanlist=('*.patch' '*.diff' 'pkg' 'src' '*-patches' '*.tar.xz')
+dxvk_wine_cleanlist=('*.patch' '*.diff' 'pkg' 'src' '*-patches' '*.tar.xz' '*.sig')
 
 ##########################################################
 
