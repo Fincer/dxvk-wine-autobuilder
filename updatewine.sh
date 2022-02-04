@@ -179,20 +179,31 @@ datesuffix=$(echo $(date '+%Y-%m-%d-%H%M%S'))
 # Pass them to subscripts, as well.
 
 githash_overrides=(
-  "${git_commithash_dxvk}"
-  "${git_commithash_glslang}"
-  "${git_commithash_meson}"
-  "${git_commithash_wine}"
+  "${git_commithash_dxvk}"     # 0
+  "${git_commithash_glslang}"  # 1
+  "${git_commithash_meson}"    # 2
+  "${git_commithash_wine}"     # 3
 )
 
 # Add git branches to argument list
 # Pass them to subscripts, as well.
 
 gitbranch_overrides=(
-  "${git_branch_dxvk}"
-  "${git_branch_glslang}"
-  "${git_branch_meson}"
-  "${git_branch_wine}"
+  "${git_branch_dxvk}"         # 4
+  "${git_branch_glslang}"      # 5
+  "${git_branch_meson}"        # 6
+  "${git_branch_wine}"         # 7
+)
+
+# Add git sources to argument list
+# Pass them to subscripts, as well.
+
+gitsources=(
+  "${git_source_dxvk}"         # 8
+  "${git_source_glslang}"      # 9
+  "${git_source_meson}"        # 10
+  "${git_source_wine}"         # 11
+  "${git_source_wine-staging}" # 12
 )
 
 #############################
@@ -210,7 +221,7 @@ done
 
 ###########################################################
 
-params=(${datesuffix} ${githash_overrides[@]} ${gitbranch_overrides[@]} ${args[@]})
+params=(${datesuffix} ${githash_overrides[@]} ${gitbranch_overrides[@]} ${gitsources[@]} ${args[@]})
 
 ###########################################################
 

@@ -15,7 +15,7 @@ productivity. It does this by providing a fast, simple and easy to\n\
 use interface for modern software development tools and practices.
 "
 
-pkg_giturl="https://github.com/mesonbuild/meson"
+pkg_giturl="${git_source_meson}"
 pkg_homeurl="http://mesonbuild.com"
 pkg_gitbranch=${git_branch_meson}
 

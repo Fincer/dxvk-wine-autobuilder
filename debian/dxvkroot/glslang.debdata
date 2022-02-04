@@ -13,7 +13,7 @@ pkg_longdesc="
 Khronos reference front-end for GLSL and ESSL, and sample SPIR-V generator
 "
 
-pkg_giturl="https://github.com/KhronosGroup/glslang"
+pkg_giturl="${git_source_glslang}"
 pkg_homeurl="https://www.khronos.org/opengles/sdk/tools/Reference-Compiler/"
 pkg_gitbranch=${git_branch_glslang}
 

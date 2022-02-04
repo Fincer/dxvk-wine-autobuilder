@@ -16,7 +16,7 @@ A Vulkan-based translation layer for Direct3D 10/11 which
 allows running 3D applications on Linux using Wine.
 "
 
-pkg_giturl="https://github.com/doitsujin/dxvk"
+pkg_giturl="${git_source_dxvk}"
 pkg_homeurl="https://github.com/doitsujin/dxvk"
 pkg_gitbranch=${git_branch_dxvk}
 

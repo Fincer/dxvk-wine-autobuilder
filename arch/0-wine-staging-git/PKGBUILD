@@ -8,7 +8,7 @@ PKGDEST="${PWD}"
 enable_staging=1
 
 # Staging patchsets. Default: all patchsets. Please see Wine Staging patchinstall.sh file for individual patchset names.
-staging_patchsets=(--all) # In order to disable all patchsets, use #(--all) and add desired patchsets individually here 
+staging_patchsets=(--all) # In order to disable all patchsets, use #(--all) and add desired patchsets individually here
 
 # Enable 32-bit compilation? 1 = yes
 enable_32=1
@@ -34,6 +34,8 @@ pkgver=stg.5.15.2.r6.g663c3ba4+wine.wine.5.15.r83.g13ea90d80f
 pkgrel=1
 arch=('i686' 'x86_64')
 
+_wine_gitsrc=
+_staging_gitsrc=
 _wine_commit=HEAD
 _staging_commit=HEAD
 _git_branch_wine=master
@@ -122,7 +124,7 @@ optdepends=(
 options=('staticlibs')
 
 source=(
-  wine-git::"git://source.winehq.org/git/wine.git#commit=${_wine_commit}"
+  wine-git::"${_wine_gitsrc}#commit=${_wine_commit}"
   '30-win32-aliases.conf'
 )
 md5sums=('SKIP'
@@ -160,7 +162,7 @@ if [[ -d ${PWD}/wine-patches ]]; then
 fi
 
 if [[ enable_staging -eq 1 ]]; then
-  stagingsrc=wine-staging-git::"git://github.com/wine-staging/wine-staging.git#commit=${_staging_commit}"
+  stagingsrc=wine-staging-git::"${_staging_gitsrc}#commit=${_staging_commit}"
   source+=($stagingsrc)
 fi
 

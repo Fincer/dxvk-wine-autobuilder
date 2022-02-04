@@ -316,6 +316,9 @@ done
 git_commithash_wine=${params[3]}
 git_branch_wine=${params[7]}
 
+git_source_wine=${params[11]}
+git_source_wine-staging=${params[12]}
+
 ########################################################
 
 # Parse input arguments, filter user parameters
@@ -403,8 +406,8 @@ function girl_check() {
 
 function getWine() {
 
-  local winesrc_url="git://source.winehq.org/git/wine.git"
-  local winestagingsrc_url="git://github.com/wine-staging/wine-staging.git"
+  local winesrc_url="${git_source_wine}"
+  local winestagingsrc_url="${git_source_wine-staging}"
 
   function cleanOldBuilds() {
     if [[ $(find "${BUILDROOT}" -type d -name "winebuild_*" | wc -l) -ne 0 ]]; then

@@ -53,6 +53,10 @@ git_branch_dxvk=${params[3]}
 git_branch_glslang=${params[5]}
 git_branch_meson=${params[6]}
 
+git_source_dxvk=${params[8]}
+git_source_glslang=${params[9]}
+git_source_meson=${params[10]}
+
 ########################################################
 
 # Parse input arguments, filter user parameters
