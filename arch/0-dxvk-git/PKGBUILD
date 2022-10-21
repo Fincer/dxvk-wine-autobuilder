@@ -66,6 +66,7 @@ prepare() {
   git checkout ${_git_branch_dxvk}
   git reset --hard ${_dxvk_commit} # Restore tracked files
   git clean -d -x -f         # Delete untracked files
+  git submodule update --init --recursive
 
   # Apply patches, if present
   if [[ $(ls "${srcdir}"/*.{patch,diff} 2>/dev/null | wc -w) -ne 0 ]]; then
