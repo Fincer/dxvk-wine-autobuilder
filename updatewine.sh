@@ -72,12 +72,15 @@ SUDO_GROUPS=(
 
 function checkCommands() {
 
+  local COMMANDS_NOTFOUND
+  local a
+
   if [[ $(which --help 2>/dev/null) ]] && [[ $(echo --help 2>/dev/null) ]]; then
 
-    local a=0
+    a=0
     for command in ${@}; do
       if [[ ! $(which $command 2>/dev/null) ]]; then
-        local COMMANDS_NOTFOUND[$a]=${command}
+        COMMANDS_NOTFOUND[$a]=${command}
         let a++
       fi
     done
@@ -244,17 +247,24 @@ function questionresponse() {
 
 function reqsCheck() {
 
-  local AVAIL_SPACE=$(df -h -B MB --output=avail . | sed '1d; s/[A-Z]*//g')
-  local REC_SPACE=8000
-  local MSG_SPACE="\e[1mWARNING:\e[0m Not sufficient storage space\n\nYou will possibly run out of space while compiling software.\n\
+  local AVAIL_SPACE
+  local REC_SPACE
+  local MSG_SPACE
+  local AVAIL_RAM
+  local REC_RAM
+  local MSG_RAM
+
+  AVAIL_SPACE=$(df -h -B MB --output=avail . | sed '1d; s/[A-Z]*//g')
+  REC_SPACE=8000
+  MSG_SPACE="\e[1mWARNING:\e[0m Not sufficient storage space\n\nYou will possibly run out of space while compiling software.\n\
 The script strongly recommends ~\e[1m$((${REC_SPACE} / 1000)) GB\e[0m at least to compile software successfully but you have only\n\
 \e[1m${AVAIL_SPACE} MB\e[0m left on the filesystem the script is currently placed at.\n\n\
 Be aware that the script process may fail because of this, especially while compiling Wine Staging.\n\n\
 Do you really want to continue? [Y/n]"
 
-  local AVAIL_RAM=$(( $(grep -oP "(?<=^MemFree:).*[0-9]" /proc/meminfo | sed 's/ //g') / 1024 ))
-  local REC_RAM=4096
-  local MSG_RAM="\e[1mWARNING:\e[0m Not sufficient RAM available\n\nCompilation processes will likely fail.\n\
+  AVAIL_RAM=$(( $(grep -oP "(?<=^MemFree:).*[0-9]" /proc/meminfo | sed 's/ //g') / 1024 ))
+  REC_RAM=4096
+  MSG_RAM="\e[1mWARNING:\e[0m Not sufficient RAM available\n\nCompilation processes will likely fail.\n\
 The script strongly recommends ~\e[1m${REC_RAM} MB\e[0m at least to compile software successfully but you have only\n\
 \e[1m${AVAIL_RAM} MB\e[0m left on the computer the script is currently placed at.\n\n\
 Be aware that the script process may fail because of this, especially while compiling DXVK.\n\n\
@@ -262,19 +272,27 @@ Do you really want to continue? [Y/n]"
 
   function reqs_property() {
 
-    local avail_prop="${1}"
-    local req_prop="${2}"
-    local req_message="${3}"
-    local req_installtargets="${4}"
+    local avail_prop
+    local req_prop
+    local req_message
+    local req_installtargets
+    local req_targetconditions
+    local fullcondition
+    local i
 
-    local i=0
+    avail_prop="${1}"
+    req_prop="${2}"
+    req_message="${3}"
+    req_installtargets="${4}"
+
+    i=0
     for req_installtarget in ${req_installtargets}; do
       req_targetconditions[$i]=$(echo "[[ ! -v ${req_installtarget} ]] ||")
       let i++
     done
 
-    local req_targetconditions=($(echo ${req_targetconditions[@]} | sed 's/\(.*\) ||/\1 /'))
-    local fullcondition="[[ "${avail_prop}" -lt "${req_prop}" ]] && ($(echo ${req_targetconditions[@]}))"
+    req_targetconditions=($(echo ${req_targetconditions[@]} | sed 's/\(.*\) ||/\1 /'))
+    fullcondition="[[ "${avail_prop}" -lt "${req_prop}" ]] && ($(echo ${req_targetconditions[@]}))"
 
     if $(eval ${fullcondition}); then
       INFO_SEP

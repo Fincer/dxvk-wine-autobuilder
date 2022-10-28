@@ -214,11 +214,14 @@ COMMANDS=(
 
 function checkCommands() {
 
+  local COMMANDS_NOTFOUND
+  local a
+
   if [[ $(which --help 2>/dev/null) ]] && [[ $(echo --help 2>/dev/null) ]]; then
-    local a=0
+    a=0
     for command in ${@}; do
       if [[ ! $(which $command 2>/dev/null) ]]; then
-        local COMMANDS_NOTFOUND[$a]=${command}
+        COMMANDS_NOTFOUND[$a]=${command}
         let a++
       fi
     done
@@ -240,7 +243,9 @@ checkCommands "${COMMANDS[*]}"
 
 function questionresponse() {
 
-  local response=${1}
+  local response
+
+  response=${1}
 
   read -r -p "" response
   if [[ $(echo $response | sed 's/ //g') =~ ^([yY][eE][sS]|[yY])$ ]]; then
@@ -318,8 +323,11 @@ function pkg_installcheck() {
 # Check and install package related dependencies if they are missing
 function pkgdependencies() {
 
+  local a
+  local b
+
   # Generate a list of missing dependencies
-  local a=0
+  a=0
   for p in ${@}; do
     if [[ $(pkg_installcheck ${p}) -ne 0 ]]; then
       validlist[$a]=${p}
@@ -340,7 +348,7 @@ function pkgdependencies() {
   fi
 
   # Install missing dependencies, be informative
-  local b=0
+  b=0
   for pkgdep in ${validlist[@]}; do
     echo -e "$(( $b + 1 ))/$(( ${#validlist[*]} )) - Installing ${_pkgname} dependency ${pkgdep}"
     sudo apt install -y ${pkgdep} &> /dev/null
@@ -383,6 +391,11 @@ function download_files() {
 
 function prepare_deb_sources() {
 
+  local oldlib_sed
+  local lib_sed
+  local oldlib_files
+  local i
+
   # Extract debian control files
   cd ${WORKDIR}/${pkgdir}/
   tar xf ${filebases[0]}
@@ -394,17 +407,17 @@ function prepare_deb_sources() {
       for oldlib in ${!library_fixes[@]}; do
 
         # sed-friendly name
-        local oldlib_sed=$(printf '%s' ${oldlib} | sed 's/\./\\\./g')
+        oldlib_sed=$(printf '%s' ${oldlib} | sed 's/\./\\\./g')
 
         for lib in ${library_fixes[$oldlib]}; do
 
           # sed-friendly name
-          local lib_sed=$(printf '%s' ${lib} | sed 's/\./\\\./g')
+          lib_sed=$(printf '%s' ${lib} | sed 's/\./\\\./g')
 
           # Files which have old library files mentioned
-          local i=0
+          i=0
           for oldlib_file in $(grep -rl "${oldlib}" debian/ | tr '\n' ' '); do
-            local oldlib_files[$i]=${oldlib_file}
+            oldlib_files[$i]=${oldlib_file}
             let i++
           done
 
@@ -418,6 +431,9 @@ function prepare_deb_sources() {
 
     function rename_deb_files() {
 
+      local n_new
+      local IFS
+    
       # Remove this suffix
       sed -i 's/\-no\-compat32//' debian/rules.defs
 
@@ -431,7 +447,7 @@ function prepare_deb_sources() {
       sed -i "s/384/${pkgver_major}/g" debian/templates/control.in
       ############
 
-      local IFS=$'\n'
+      IFS=$'\n'
       for n in $(ls debian/ -w 1); do
 
         # IMPORTANT! KEEP THIS IF STATEMENT ORDER BELOW!!
@@ -445,7 +461,7 @@ function prepare_deb_sources() {
         fi
 
         if [[ $(printf '%s' ${n} | grep ${oldver_major}) ]]; then
-          local n_new=$(printf '%s' ${n} | sed "s/${oldver_major}/${pkgver_major}/")
+          n_new=$(printf '%s' ${n} | sed "s/${oldver_major}/${pkgver_major}/")
           mv debian/${n} debian/${n_new}
 
           if [[ $? -ne 0 ]]; then
@@ -512,6 +528,9 @@ function compile_nvidia() {
 
 function install_nvidia() {
 
+  local oldpkg
+  local oldpkg_check
+
   for syspkg in ${nvidia_required_packages[@]}; do
     if [[ $(echo $(dpkg -s ${syspkg} &>/dev/null)$?) -ne 0 ]]; then
       echo -e "Installing missing dependency ${syspkg}\n"
@@ -526,8 +545,8 @@ function install_nvidia() {
   cd ${WORKDIR}/compiled_deb
   for pkg in ${nvidia_install_packages[@]}; do
 
-    local oldpkg=$(printf '%s' ${pkg} | sed 's/\-[0-9]*$//')
-    local oldpkg_check=$(dpkg --get-selections | grep ${oldpkg} | awk '{print $1}')
+    oldpkg=$(printf '%s' ${pkg} | sed 's/\-[0-9]*$//')
+    oldpkg_check=$(dpkg --get-selections | grep ${oldpkg} | awk '{print $1}')
 
     if [[ $(echo ${oldpkg_check} | wc -w) -eq 1 ]]; then
       if [[ ! ${oldpkg_check} =~ ^*${pkgver_major}$ ]]; then
@@ -553,9 +572,11 @@ function install_nvidia() {
 
 function install_vulkan() {
 
+  local syspkg
+
   # Vulkan loader
   if [[ $? -eq 0 ]]; then
-    local syspkg=libvulkan1
+    syspkg=libvulkan1
     if [[ $(echo $(dpkg -s ${syspkg} &>/dev/null)$?) -ne 0 ]]; then
       sudo apt update && sudo apt install -y ${syspkg}
     fi
