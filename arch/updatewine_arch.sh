@@ -101,8 +101,11 @@ function INFO_SEP() { printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' - ; 
 
 ###########################################################
 
+# TODO Shall we remove git folders or keep them?
+dxvk_wine_cleanlist=('*.patch' '*.diff' 'pkg' 'src' '*-patches' '*.tar.xz' '*.sig')
+
 function cleanUp() {
-  rm -rf ${ARCH_BUILDROOT}/*/{pkg,src,*.tar.xz,*.patch,*.diff,*.sig}
+  rm -rf ${ARCH_BUILDROOT}/*/{$(echo "${dxvk_wine_cleanlist[@]}" | tr ' ' ',')}
 }
 
 # Allow interruption of the script at any time (Ctrl + C)
@@ -518,13 +521,6 @@ function updatePOL() {
     done
   fi
 }
-
-##########################################################
-
-# Clean these temporary folders & files
-
-# TODO Shall we remove git folders or keep them?
-dxvk_wine_cleanlist=('*.patch' '*.diff' 'pkg' 'src' '*-patches' '*.tar.xz' '*.sig')
 
 ##########################################################
 
