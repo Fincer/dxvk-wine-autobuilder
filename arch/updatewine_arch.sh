@@ -188,7 +188,7 @@ function checkStaging() {
 # annoying situations which could occur later while the script
 # is already running.
 
-# Just for "packages which are not found" array <=> ERRPKGS
+# Just for "packages which are not found" array <=> errpkgs
 # We need to set it outside of checkDepends function
 # because it is a global variable for all checked packages
 l=0
@@ -201,7 +201,7 @@ function checkDepends() {
   local file_vars
   local field
   local i
-  local PKGS
+  local pkgs
 
   packagedir=${1}
   package=${2}
@@ -221,18 +221,18 @@ function checkDepends() {
     i=0
     for parse in ${field[*]}; do
       if [[ ! $parse =~ ^# ]]; then
-        PKGS[$i]=$(printf '%s' $parse | sed 's/[=|>|<].*$//')
+        pkgs[$i]=$(printf '%s' $parse | sed 's/[=|>|<].*$//')
         let i++
       fi
     done
 
     # Sort list and delete duplicate index values
-    PKGS=($(sort -u <<< "${PKGS[*]}"))
+    pkgs=($(sort -u <<< "${pkgs[*]}"))
 
-    for pkg in ${PKGS[*]}; do
+    for pkg in ${pkgs[*]}; do
 
       if [[ $(printf $(pacman -Q ${pkg} &>/dev/null)$?) -ne 0 ]]; then
-        ERRPKGS[$l]=${pkg}
+        errpkgs[$l]=${pkg}
         echo -e "\e[91mERROR:\e[0m Dependency '${pkg}' not found, required by '${package}' (${file} => ${var})"
         let l++
       fi
@@ -246,9 +246,9 @@ function checkDepends() {
 
 function check_alldeps() {
 
-  if [[ -v ERRPKGS ]]; then
+  if [[ -v errpkgs ]]; then
     echo -e "\e[1mERROR:\e[0m The following dependencies are missing:\n\e[91m\
-$(for o in ${ERRPKGS[@]}; do printf '%s\n' ${o}; done)\
+$(for o in ${errpkgs[@]}; do printf '%s\n' ${o}; done)\
 \e[0m\n"
 
     echo -e "Please install them and try again.\n"
