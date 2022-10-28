@@ -124,14 +124,21 @@ function ccacheCheck() {
 
 function checkFiles() {
 
-  local wine_files=('30-win32-aliases.conf' 'PKGBUILD')
-  local dxvk_files=('PKGBUILD')
+  local wine_files
+  local dxvk_files
+
+  wine_files=('30-win32-aliases.conf' 'PKGBUILD')
+  dxvk_files=('PKGBUILD')
 
   function validatefiles() {
 
-    local list=${1}
-    local name=${2}
-    local path=${3}
+    local list
+    local name
+    local path
+  
+    list=${1}
+    name=${2}
+    path=${3}
 
     for file in ${list[@]}; do
       if [[ ! -f "${path}/${file}" ]]; then
@@ -185,32 +192,39 @@ l=0
 
 function checkDepends() {
 
-  # The first and the second argument
-  local packagedir=${1}
-  local package=${2}
+  local packagedir
+  local package
+  local file
+  local file_vars
+  local field
+  local i
+  local PKGS
+
+  packagedir=${1}
+  package=${2}
 
   # We get necessary variables to check from this file
-  local file="./${packagedir}/PKGBUILD"
+  file="./${packagedir}/PKGBUILD"
 
   # All but the (zero), the first and the second argument
   # We check the value of these file variables
-  local file_vars=${@:3}
+  file_vars=${@:3}
 
   for var in ${file_vars[*]}; do
     # Get the variable and set it as a new variable in the current shell
     # This is applicable only to variable arrays! Do not use if the variable is not an array.
-    local field=$(awk "/^${var}/,/)/" ${file} | sed -r "s/^${var}=|[)|(|']//g")
+    field=$(awk "/^${var}/,/)/" ${file} | sed -r "s/^${var}=|[)|(|']//g")
 
-    local i=0
+    i=0
     for parse in ${field[*]}; do
       if [[ ! $parse =~ ^# ]]; then
-        local PKGS[$i]=$(printf '%s' $parse | sed 's/[=|>|<].*$//')
+        PKGS[$i]=$(printf '%s' $parse | sed 's/[=|>|<].*$//')
         let i++
       fi
     done
 
     # Sort list and delete duplicate index values
-    local PKGS=($(sort -u <<< "${PKGS[*]}"))
+    PKGS=($(sort -u <<< "${PKGS[*]}"))
 
     for pkg in ${PKGS[*]}; do
 
@@ -252,7 +266,7 @@ function prepare_env() {
   
   mkdir -p ${ARCH_BUILDROOT}/0-wine-staging-git/wine-patches
   mkdir -p ${ARCH_BUILDROOT}/0-dxvk-git/dxvk-patches
-  
+
   # Copy new Wine & DXVK patch files
   find ${ARCH_BUILDROOT}/../wine_custom_patches \
     -mindepth 1 -maxdepth 1 -type f \( -iname "*.patch" -or -iname "*.diff" \) \
@@ -286,6 +300,10 @@ function check_gitOverride_wine() {
 
     function form_commit_array() {
 
+      local array_name
+      local commits_raw
+      local i
+    
       cd "${commit_dir}"
 
       if [[ $? -ne 0 ]]; then
@@ -293,10 +311,10 @@ function check_gitOverride_wine() {
         exit 1
       fi
 
-      local array_name=${1}
-      local commits_raw=$(eval ${2})
+      array_name=${1}
+      commits_raw=$(eval ${2})
 
-      local i=0
+      i=0
       for commit in ${commits_raw[*]}; do
         eval ${array_name}[$i]="${commit}"
         let i++
@@ -313,13 +331,20 @@ function check_gitOverride_wine() {
 
     function staging_change_freeze_commit() {
 
-      local wine_commits_raw="git log --pretty=oneline | awk '{print \$1}' | tr '\n' ' '"
+      local wine_commits_raw
+      local staging_refcommits_raw
+      local staging_rebasecommits_raw
+      local i
+      local k
+      local wine_dropcommits
+    
+      wine_commits_raw="git log --pretty=oneline | awk '{print \$1}' | tr '\n' ' '"
 
       # TODO this check may break quite easily
       # It depends on the exact comment syntax Wine Staging developers are using (Rebase against ...)
       # Length and order of these two "array" variables MUST MATCH!
-      local staging_refcommits_raw="git log --pretty=oneline | awk '{ if ((length(\$NF)==40 || length(\$NF)==41) && \$(NF-1)==\"against\") print \$1; }'"
-      local staging_rebasecommits_raw="git log --pretty=oneline | awk '{ if ((length(\$NF)==40 || length(\$NF)==41) && \$(NF-1)==\"against\") print substr(\$NF,1,40); }' | tr '\n' ' '"
+      staging_refcommits_raw="git log --pretty=oneline | awk '{ if ((length(\$NF)==40 || length(\$NF)==41) && \$(NF-1)==\"against\") print \$1; }'"
+      staging_rebasecommits_raw="git log --pretty=oneline | awk '{ if ((length(\$NF)==40 || length(\$NF)==41) && \$(NF-1)==\"against\") print substr(\$NF,1,40); }' | tr '\n' ' '"
 
       # Syntax: <function> <array_name> <raw_commit_list>
       commit_dir="${ARCH_BUILDROOT}/0-wine-staging-git/wine-git"
@@ -337,12 +362,12 @@ function check_gitOverride_wine() {
       # Filter all newer than defined in 'git_commithash_wine'
       #
       echo -e "Determining valid Wine Staging git commit. This takes a while.\n"
-      local i=0
+      i=0
       for dropcommit in ${wine_commits[@]}; do
         if [[ "${dropcommit}" == "${git_commithash_wine}" ]]; then
           break
         else
-          local wine_dropcommits[$i]="${dropcommit}"
+          wine_dropcommits[$i]="${dropcommit}"
           let i++
         fi
       done
@@ -351,7 +376,7 @@ function check_gitOverride_wine() {
       # For the filtered array list, iterate through 'staging_rebasecommits' array list until
       # we get a match
       for vanilla_commit in ${wine_commits[@]}; do
-        local k=0
+        k=0
         for rebase_commit in ${staging_rebasecommits[@]}; do
           if [[ "${vanilla_commit}" == "${rebase_commit}" ]]; then
             # This is the commit we use for vanilla Wine
@@ -380,10 +405,16 @@ function check_gitOverride_wine() {
 
 function build_pkg() {
 
-  local pkgname=${1}
-  local pkgname_friendly=${2}
-  local pkgdir=${3}
-  local cleanlist=${4}
+  local pkgname
+  local pkgname_friendly
+  local pkgdir
+  local cleanlist
+  local pkgbuild_file
+
+  pkgname=${1}
+  pkgname_friendly=${2}
+  pkgdir=${3}
+  cleanlist=${4}
 
   # Create package and install it to the system
   # We need to download git sources beforehand in order
@@ -391,7 +422,7 @@ function build_pkg() {
   cd "${ARCH_BUILDROOT}"/${pkgdir}
   bash -c "updpkgsums && makepkg -o"
 
-  local pkgbuild_file="${ARCH_BUILDROOT}/${pkgdir}/PKGBUILD"
+  pkgbuild_file="${ARCH_BUILDROOT}/${pkgdir}/PKGBUILD"
 
   # Check git commit hashes
   if [[ $? -eq 0 ]] && \
