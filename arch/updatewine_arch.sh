@@ -101,18 +101,12 @@ function INFO_SEP() { printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' - ; 
 
 ###########################################################
 
-# If the script is interrupted (Ctrl+C/SIGINT), do the following
-
-function Arch_intCleanup() {
-  rm -rf ${ARCH_BUILDROOT}/{0-wine-staging-git/{wine-patches,*.tar.xz,*.sig},0-dxvk-git/{dxvk-git,*.tar.xz,*.sig}}
-  exit 0
+function cleanUp() {
+  rm -rf ${ARCH_BUILDROOT}/*/{pkg,src,*.tar.xz,*.patch,*.diff,*.sig}
 }
 
 # Allow interruption of the script at any time (Ctrl + C)
-trap "Arch_intCleanup" INT
-
-# Error event
-#trap "Arch_intCleanup" ERR
+trap "cleanUp" SIGINT SIGTERM SIGQUIT
 
 ###########################################################
 
@@ -378,14 +372,6 @@ function check_gitOverride_wine() {
     git_branch_wine=master
     git_commithash_winestaging=HEAD
   fi
-}
-
-###########################################################
-
-# Remove any existing pkg,src or tar.xz packages left by previous pacman commands
-
-function cleanUp() {
-  rm -rf ${ARCH_BUILDROOT}/*/{pkg,src,*.tar.xz,*.patch,*.diff,*.sig}
 }
 
 ###########################################################
