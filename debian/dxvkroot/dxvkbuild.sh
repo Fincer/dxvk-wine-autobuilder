@@ -228,16 +228,20 @@ tempLinks=(
 
 function runtimeCheck() {
 
+  local pkgreq_name
+  local known_pkgs
+  local pkglist
+
   # Friendly name for this package
-  local pkgreq_name=${1}
+  pkgreq_name=${1}
   # Known package names to check on Debian
-  local known_pkgs=${2}
+  known_pkgs=${2}
 
   # Check if any of these Wine packages are present on the system
   i=0
   for pkg in ${known_pkgs[@]}; do
     if [[ $(echo $(dpkg -s ${pkg} &>/dev/null)$?) -eq 0 ]]; then
-      local pkglist[$i]=${pkg}
+      pkglist[$i]=${pkg}
       let i++
     fi
   done
@@ -293,9 +297,13 @@ fi
 
 function pkgcompilecheck() {
 
-  local install_function=${1}
-  local pkg=${2}
-  local pkg_data=${3}
+  local install_function
+  local pkg
+  local pkg_data
+
+  install_function=${1}
+  pkg=${2}
+  pkg_data=${3}
 
   if [[ $(echo $(dpkg -s ${pkg} &>/dev/null)$?) -ne 0 ]] || [[ -v UPDATE_OVERRIDE ]]; then
     ${install_function} ${pkg_data}
@@ -312,7 +320,9 @@ function pkgcompilecheck() {
 
 function dxvk_install_custom() {
 
-  local PATCHDIR="${1}"
+  local PATCHDIR
+
+  PATCHDIR="${1}"
 
   # Use posix alternates for MinGW binaries
   function dxvk_posixpkgs() {
@@ -346,15 +356,19 @@ function dxvk_install_custom() {
   # Add and apply custom DXVK patches
   function dxvk_custompatches() {
 
+    local CURDIR
+    local dxvk_builddir_name
+    local dxvk_builddir_path
+    
     # Get our current directory, since we will change it during patching process below
     # We want to go back here after having applied the patches
-    local CURDIR="${PWD}"
+    CURDIR="${PWD}"
 
     # Check if the following folder exists, and proceed.
     if [[ -d "${DXVKROOT}/../../${PATCHDIR}" ]]; then
       cp -r "${DXVKROOT}/../../${PATCHDIR}/"*.{patch,diff} "${DXVKROOT}/${pkg_name}/" 2>/dev/null
 
-      local dxvk_builddir_name=$(ls -l "${DXVKROOT}/${pkg_name}" | grep ^d | awk '{print $NF}')
+      dxvk_builddir_name=$(ls -l "${DXVKROOT}/${pkg_name}" | grep ^d | awk '{print $NF}')
 
       # TODO Expecting just one folder here. This method doesn't work with multiple dirs present
       if [[ $(echo ${dxvk_builddir_name} | wc -l) -gt 1 ]]; then
@@ -362,7 +376,7 @@ function dxvk_install_custom() {
         exit 1
       fi
 
-      local dxvk_builddir_path="${DXVKROOT}/${pkg_name}/${dxvk_builddir_name}"
+      dxvk_builddir_path="${DXVKROOT}/${pkg_name}/${dxvk_builddir_name}"
 
       cd "${dxvk_builddir_path}"
       for pfile in ../*.{patch,diff}; do
@@ -433,16 +447,21 @@ function compile_and_install_deb() {
 
   function arrayparser_reverse() {
 
-    local arrays=(
+    local arrays
+    local s
+    local IFS
+    local y
+  
+    arrays=(
     '_pkg_deps_build'
     '_pkg_deps_runtime'
     )
 
     for w in ${arrays[@]}; do
-      local s=\${${w}}
+      s=\${${w}}
 
-      local IFS='|'
-      local y=0
+      IFS='|'
+      y=0
 
       for t in $(eval printf '%s\|' ${s}); do
         eval ${w}[$y]=\"${t}\"
@@ -472,18 +491,27 @@ function compile_and_install_deb() {
 
   function pkg_dependencies() {
 
-    local _pkg_list="${1}"
-    local _pkg_type="${2}"
-    local IFS=$'\n'
+    local _pkg_list
+    local _pkg_type
+    local _pkg_type_str
+    local a
+    local b
+    local _validlist
+    local IFS
+  
+    _pkg_list="${1}"
+    _pkg_type="${2}"
+
+    IFS=$'\n'
     _pkg_list=$(echo "${_pkg_list}" | sed 's/([^)]*)//g')
     unset IFS
 
     case ${_pkg_type} in
       buildtime)
-        local _pkg_type_str="build time"
+        _pkg_type_str="build time"
         ;;
       runtime)
-        local _pkg_type_str="runtime"
+        _pkg_type_str="runtime"
         ;;
     esac
 
@@ -492,10 +520,10 @@ function compile_and_install_deb() {
     fi
 
     # Generate a list of missing dependencies
-    local a=0
+    a=0
     for p in ${_pkg_list[@]}; do
       if [[ $(pkg_installcheck ${p})$? -eq 0 ]]; then
-        local _validlist[$a]=${p}
+        _validlist[$a]=${p}
         let a++
 
         # Global array to track installed build dependencies
@@ -526,7 +554,7 @@ function compile_and_install_deb() {
     }
 
     # Install missing dependencies, be informative
-    local b=0
+    b=0
     for _pkg_dep in ${_validlist[@]}; do
       echo -e "$(( $b + 1 ))/$(( ${#_validlist[*]} )) - Installing ${_pkg_name} ${_pkg_type_str} dependency ${_pkg_dep}"
 
@@ -610,8 +638,11 @@ function compile_and_install_deb() {
 
   function pkg_override_debianfile() {
 
-    local contents=${1}
-    local targetfile=${2}
+    local contents
+    local targetfile
+
+    contents=${1}
+    targetfile=${2}
 
     if [[ ${contents} != "empty" ]]; then
       echo "${contents}" > "${targetfile}"
@@ -749,8 +780,10 @@ function buildpkg_removal() {
 
 function pkg_install_main() {
 
+  local pkg_datafile
+
   # Read necessary variables from debdata file
-  local pkg_datafile=${1}
+  pkg_datafile=${1}
 
   if [[ -f ${pkg_datafile} ]]; then
     source ${pkg_datafile}
@@ -765,7 +798,12 @@ function pkg_install_main() {
   # Separate each array index with | in these arrays
   function pkg_arrayparser() {
 
-    local pkg_arrays=(
+    local pkg_arrays
+    local IFS
+    local s
+    local t
+
+    pkg_arrays=(
       'pkg_deps_build'
       'pkg_deps_runtime'
     )
@@ -774,8 +812,8 @@ function pkg_install_main() {
 
     for w in ${pkg_arrays[@]}; do
 
-      local s=\${${w}[@]}
-      local t=$(eval printf '%s\|' ${s})
+      s=\${${w}[@]}
+      t=$(eval printf '%s\|' ${s})
       unset ${w}
       eval ${w}=\"${t}\"
 

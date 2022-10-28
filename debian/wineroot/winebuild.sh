@@ -406,8 +406,11 @@ function girl_check() {
 
 function getWine() {
 
-  local winesrc_url="${git_source_wine}"
-  local winestagingsrc_url="${git_source_winestaging}"
+  local winesrc_url
+  local winestagingsrc_url
+
+  winesrc_url="${git_source_wine}"
+  winestagingsrc_url="${git_source_winestaging}"
 
   function cleanOldBuilds() {
     if [[ $(find "${BUILDROOT}" -type d -name "winebuild_*" | wc -l) -ne 0 ]]; then
@@ -462,7 +465,9 @@ function getWine() {
 
 function getDebianFiles() {
 
-  local debian_archive=wine_3.0-1ubuntu1.debian.tar.xz
+  local debian_archive
+
+  debian_archive=wine_3.0-1ubuntu1.debian.tar.xz
 
   cd "${WINEDIR}"
   wget http://archive.ubuntu.com/ubuntu/pool/universe/w/wine/${debian_archive}
@@ -490,6 +495,9 @@ function check_gitOverride() {
 
     function form_commit_array() {
 
+      local array_name
+      local commits_raw
+    
       cd "${commit_dir}"
 
       if [[ $? -ne 0 ]]; then
@@ -497,8 +505,8 @@ function check_gitOverride() {
         exit 1
       fi
 
-      local array_name=${1}
-      local commits_raw=$(eval ${2})
+      array_name=${1}
+      commits_raw=$(eval ${2})
 
       local i=0
       for commit in ${commits_raw[*]}; do
@@ -517,13 +525,20 @@ function check_gitOverride() {
 
     function staging_change_freeze_commit() {
 
-      local wine_commits_raw="git log --pretty=oneline | awk '{print \$1}' | tr '\n' ' '"
+      local wine_commits_raw
+      local staging_refcommits_raw
+      local staging_rebasecommits_raw
+      local i
+      local k
+      local wine_dropcommits
+    
+      wine_commits_raw="git log --pretty=oneline | awk '{print \$1}' | tr '\n' ' '"
 
       # TODO this check may break quite easily
       # It depends on the exact comment syntax Wine Staging developers are using (Rebase against ...)
       # Length and order of these two "array" variables MUST MATCH!
-      local staging_refcommits_raw="git log --pretty=oneline | awk '{ if ((length(\$NF)==40 || length(\$NF)==41) && \$(NF-1)==\"against\") print \$1; }'"
-      local staging_rebasecommits_raw="git log --pretty=oneline | awk '{ if ((length(\$NF)==40 || length(\$NF)==41) && \$(NF-1)==\"against\") print substr(\$NF,1,40); }' | tr '\n' ' '"
+      staging_refcommits_raw="git log --pretty=oneline | awk '{ if ((length(\$NF)==40 || length(\$NF)==41) && \$(NF-1)==\"against\") print \$1; }'"
+      staging_rebasecommits_raw="git log --pretty=oneline | awk '{ if ((length(\$NF)==40 || length(\$NF)==41) && \$(NF-1)==\"against\") print substr(\$NF,1,40); }' | tr '\n' ' '"
 
       # Syntax: <function> <array_name> <raw_commit_list>
       commit_dir="${WINEDIR}"
@@ -541,12 +556,12 @@ function check_gitOverride() {
       # Filter all newer than defined in 'git_commithash_wine'
       #
       echo -e "Determining valid Wine Staging git commit. This takes a while.\n"
-      local i=0
+      i=0
       for dropcommit in ${wine_commits[@]}; do
         if [[ "${dropcommit}" == "${git_commithash_wine}" ]]; then
           break
         else
-          local wine_dropcommits[$i]="${dropcommit}"
+          wine_dropcommits[$i]="${dropcommit}"
           let i++
         fi
       done
@@ -555,7 +570,7 @@ function check_gitOverride() {
       # For the filtered array list, iterate through 'staging_rebasecommits' array list until
       # we get a match
       for vanilla_commit in ${wine_commits[@]}; do
-        local k=0
+        k=0
         for rebase_commit in ${staging_rebasecommits[@]}; do
           if [[ "${vanilla_commit}" == "${rebase_commit}" ]]; then
             # This is the commit we use for vanilla Wine
@@ -587,19 +602,26 @@ z=0
 
 function WineDeps() {
 
-  local method=${1}
-  local deps="${2}"
-  local depsname=${3}
-  local pkgtype=${4}
+  local method
+  local deps
+  local depsname
+  local pkgtype
+  local str
+  local mgrcmd
+
+  method=${1}
+  deps="${2}"
+  depsname=${3}
+  pkgtype=${4}
 
   case ${method} in
     install)
-      local str="Installing"
-      local mgrcmd="sudo apt install -y"
+      str="Installing"
+      mgrcmd="sudo apt install -y"
       ;;
     remove)
-      local str="Removing"
-      local mgrcmd="sudo apt purge --remove -y"
+      str="Removing"
+      mgrcmd="sudo apt purge --remove -y"
       ;;
     *)
       echo -e "\e[1mERROR:\e[0m Unknown package management input method. Aborting\n"
@@ -611,26 +633,32 @@ function WineDeps() {
   # Check and install/remove package related dependencies if they are missing/installed
   function pkgdependencies() {
 
-    local deplist="${1}"
+    local deplist
+    local checkstatus
+    local a
+    local b
+    local validlist
+
+    deplist="${1}"
 
     # Get a valid logic for generating 'list' array below
     case ${method} in
       install)
         # Package is not installed, install it
-        local checkstatus=0
+        checkstatus=0
         ;;
       remove)
         # Package is installed, remove it
-        local checkstatus=1
+        checkstatus=1
         ;;
     esac
 
     # Generate a list of missing/removable dependencies, depending on the logic
-    local a=0
+    a=0
     for p in ${deplist[@]}; do
       pf=$(printf "%s" ${p} | sed -r 's/^(.*)\|.*/\1/')
       if [[ $(echo $(dpkg -s ${pf} &>/dev/null)$?) -ne ${checkstatus} ]]; then
-        local validlist[$a]=${p}
+        validlist[$a]=${p}
         let a++
 
         # Global array to track installed build dependencies
@@ -643,7 +671,7 @@ function WineDeps() {
     done
 
     # Install missing/Remove existing dependencies, be informative
-    local b=0
+    b=0
     for pkgdep in ${validlist[@]}; do
 
       optional=0

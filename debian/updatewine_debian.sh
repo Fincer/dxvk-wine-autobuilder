@@ -153,7 +153,9 @@ function mainQuestions() {
   # TODO: remove duplicate functionality. This function is defined in updatewine.sh
   function questionresponse() {
 
-    local response=${1}
+    local response
+  
+    response=${1}
 
     read -r -p "" response
     if [[ $(echo $response | sed 's/ //g') =~ ^([yY][eE][sS]|[yY])$ ]]; then
