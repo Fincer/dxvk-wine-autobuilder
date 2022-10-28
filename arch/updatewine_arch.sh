@@ -252,9 +252,21 @@ $(for o in ${ERRPKGS[@]}; do printf '%s\n' ${o}; done)\
 
 function prepare_env() {
 
-  # Copy Wine & DXVK patch files
-  cp -rf ${ARCH_BUILDROOT}/../wine_custom_patches ${ARCH_BUILDROOT}/0-wine-staging-git/wine-patches
-  cp -rf ${ARCH_BUILDROOT}/../dxvk_custom_patches ${ARCH_BUILDROOT}/0-dxvk-git/dxvk-patches
+  # Remove old Wine & DXVK patch files
+  rm -rf ${ARCH_BUILDROOT}/0-wine-staging-git/wine-patches
+  rm -rf ${ARCH_BUILDROOT}/0-dxvk-git/dxvk-patches
+  
+  mkdir -p ${ARCH_BUILDROOT}/0-wine-staging-git/wine-patches
+  mkdir -p ${ARCH_BUILDROOT}/0-dxvk-git/dxvk-patches
+  
+  # Copy new Wine & DXVK patch files
+  find ${ARCH_BUILDROOT}/../wine_custom_patches \
+    -mindepth 1 -maxdepth 1 -type f \( -iname "*.patch" -or -iname "*.diff" \) \
+    -exec cp {} ${ARCH_BUILDROOT}/0-wine-staging-git/wine-patches/ \;
+
+  find ${ARCH_BUILDROOT}/../dxvk_custom_patches \
+    -mindepth 1 -maxdepth 1 -type f \( -iname "*.patch" -or -iname "*.diff" \) \
+    -exec cp {} ${ARCH_BUILDROOT}/0-dxvk-git/dxvk-patches \;
 
   # Create identifiable directory for this build
   mkdir -p ${ARCH_BUILDROOT}/compiled_pkg/"${datedir}"
