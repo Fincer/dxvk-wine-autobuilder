@@ -1,26 +1,27 @@
 ########################################################
 # Common properties
 
-pkg_name="meson"
-pkg_license="apache"
+pkg_name="dxvk-git"
+pkg_license="custom --copyrightfile ../LICENSE"
 pkg_maintainer="${USER} <${USER}@unknown>"
-pkg_section="devel"
+pkg_section="otherosfs"
 pkg_priority="optional"
 pkg_arch="all"
 
-pkg_commondesc="high-productivity build system"
+pkg_relative_builddir="debian/source/dxvk-master"
+
+pkg_commondesc="Vulkan-based D3D11, D3D10 & D3D9 implementation for Linux / Wine"
 pkg_longdesc="
-Meson is a build system designed to increase programmer\n\
-productivity. It does this by providing a fast, simple and easy to\n\
-use interface for modern software development tools and practices.
+A Vulkan-based translation layer for Direct3D 10/11 which
+allows running 3D applications on Linux using Wine.
 "
 
-pkg_giturl="${git_source_meson}"
-pkg_homeurl="http://mesonbuild.com"
-pkg_gitbranch=${git_branch_meson}
+pkg_giturl="${git_source_dxvk_debian}"
+pkg_homeurl="https://github.com/doitsujin/dxvk"
+pkg_gitbranch=${git_branch_dxvk}
 
-git_commithash=${git_commithash_meson}
-pkg_gitver="git describe --long | sed 's/\-[a-z].*//; s/\-/\./; s/[a-z]//g'"
+git_commithash=${git_commithash_dxvk}
+pkg_gitver="git describe --long | sed 's/\-[a-z].*//; s/\-/\./g; s/[a-z]//g'"
 
 pkg_installfile="./debian/install"
 pkg_controlfile="./debian/control"
@@ -37,46 +38,38 @@ pkg_debcompat="12"
 
 pkg_debrules="\
 #!/usr/bin/make -f
-# Original script by Jussi Pakkanen
 
-export MESON_PRINT_TEST_OUTPUT=1
-export QT_SELECT=qt5
-export LC_ALL=C.UTF-8
 %:
-	dh \$@ --with python3 --buildsystem=pybuild
+	dh \$@
 
 override_dh_auto_configure:
 
-override_dh_auto_build:
-
-override_dh_auto_test:
-
-override_dh_clean:
-	dh_clean
-	rm -f *.pyc
-	rm -rf __pycache__
-	rm -rf mesonbuild/__pycache__
-	rm -rf mesonbuild/*/__pycache__
-	rm -rf work\ area
-	rm -rf install\ dir/*
-	rm -f meson-test-run.txt meson-test-run.xml
-	rm -rf meson.egg-info
-	rm -rf build
-	rm -rf .pybuild
+override_dh_usrlocal:
 
 override_dh_install:
-# Helper script to autogenerate cross files.
-	python3 setup.py install --root=\$\$(pwd)/debian/meson --prefix=/usr --install-layout=deb --install-lib=/usr/share/meson --install-scripts=/usr/share/meson
-	rm -rf \$\$(pwd)/debian/meson/usr/share/meson/mesonbuild/__pycache__
-	rm -rf \$\$(pwd)/debian/meson/usr/share/meson/mesonbuild/*/__pycache__
-	rm \$\$(pwd)/debian/meson/usr/bin/meson
-	ln -s ../share/meson/meson \$\$(pwd)/debian/meson/usr/bin/meson
+
+	# Compile DXVK
+	bash ./package-release.sh master debian/source/ --no-package
+
+	# Tell deb builder to create DXVK x32 & x64 subfolders
+	for arch in 32 64; do mkdir -p ${pkg_relative_builddir}/x${arch}; done 
+
+	# Make a proper executable script folder for setup_dxvk.sh file
+	mkdir -p ${pkg_relative_builddir}/bin
+
+	printf '%s\n%s\n%s %s' \"#!/bin/sh\" \"cd /usr/share/dxvk/\" \"./setup_dxvk.sh\" \"\${@}\" > \"${pkg_relative_builddir}/bin/setup_dxvk\"
+	chmod +x "${pkg_relative_builddir}/bin/setup_dxvk"
+	dh_install
 "
 
 ########################################################
 # Debian install file section
 
-pkg_debinstall="empty"
+pkg_debinstall="\
+${pkg_relative_builddir}/setup_dxvk.sh usr/share/dxvk/
+${pkg_relative_builddir}/bin/* usr/bin/
+$(for arch in 32 64; do echo -e ${pkg_relative_builddir}/x${arch}/* usr/share/dxvk/x${arch}/; done)
+"
 
 ########################################################
 # Debian control file subfields
@@ -115,24 +108,36 @@ empty
 
 # Build time dependencies
 pkg_deps_build=(
-'python3 (>= 3.5)'
-'dh-python'
-'python3-setuptools'
-'ninja-build (>= 1.6)'
+#${_coredeps[*]}
+'meson'
+'glslang'
+'ninja-build (>= 1.5)'
+'gcc-mingw-w64-base'
+#'binutils-common'
+'mingw-w64-common'
+'binutils-mingw-w64-x86-64'
+'binutils-mingw-w64-i686'
+
+'mingw-w64-x86-64-dev'
+'gcc-mingw-w64-x86-64'
+'g++-mingw-w64-x86-64'
+
+'mingw-w64-i686-dev'
+'gcc-mingw-w64-i686'
+'g++-mingw-w64-i686'
 )
 
 # Runtime dependencies
 pkg_deps_runtime=(
-'ninja-build (>=1.6)'
-'python3'
+'wine'
 )
 
-# Extra fields for Debian control file Source (start) section
+# Extra fields for Debian control file Source section
 pkg_extra_1=(
-'X-Python3-Version: >= 3.5'
+empty
 )
 
-# Extra fields for Debian control file Package (end) section
+# Extra fields for Debian control file Package section
 pkg_extra_2=(
 empty
 )
@@ -141,7 +146,7 @@ empty
 
 # Deb builder execution field
 # Do not build either debug symbols or doc files
-pkg_debbuilder="DEB_BUILD_OPTIONS=\"strip nodocs noddebs nocheck\" dpkg-buildpackage -rfakeroot -b -us -uc -d"
+pkg_debbuilder="DEB_BUILD_OPTIONS=\"strip nodocs noddebs\" dpkg-buildpackage -us -uc -b -d --source-option=--include-binaries"
 
 ########################################################
 # Contents of Debian control file

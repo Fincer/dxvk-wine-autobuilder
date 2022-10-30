@@ -54,7 +54,7 @@ done
 # Filter all but <args>, i.e. the first 0-8 arguments
 
 i=0
-for arg in ${params[@]:8}; do
+for arg in ${params[@]:24}; do
   args[$i]="${arg}"
   let i++
 done
@@ -66,21 +66,27 @@ done
 for check in ${args[@]}; do
 
   case ${check} in
-    --no-wine)
-      NO_WINE=
-      ;;
     --no-staging)
       NO_STAGING=
+      ;;
+    --no-install)
+      NO_INSTALL=
+      # Do not check for PlayOnLinux wine prefixes
+      NO_POL=
+      ;;
+    --no-wine)
+      NO_WINE=
       ;;
     --no-dxvk)
       NO_DXVK=
       ;;
-    --no-pol)
-      NO_POL=
+    --no-vkd3d)
+      NO_VKD3D=
       ;;
-    --no-install)
-      NO_INSTALL=
-      # If this option is given, do not check PoL wineprefixes
+    --no-nvapi)
+      NO_NVAPI=
+      ;;
+    --no-pol)
       NO_POL=
       ;;
   esac
@@ -135,14 +141,19 @@ Using $(nproc --ignore 1) of $(nproc) available CPU cores for Wine source code c
 
 ########################################################
 
-# Call DXVK compilation & installation subscript in the following function
+# Call DXVK/DXVK NVAPI/VKD3D Proton compilation & installation subscript in the following function
 
-function dxvk_install_main() {
+function wine_addons_install_main() {
 
-  echo -e "Starting compilation & installation of DXVK\n\n\
+  local addon_names
+
+  addon_names=("${@}")
+  addon_names_str=$(echo ${addon_names[@]} | tr ' ' ', ')
+
+  echo -e "Starting compilation & installation of ${addon_names_str}\n\n\
 This can take up to 10-20 minutes depending on how many dependencies we need to build for it.\n"
 
-  bash -c "cd ${ROOTDIR}/dxvkroot && bash dxvkbuild.sh \"${datedir}\" \"${params[*]}\""
+  bash -c "cd ${ROOTDIR}/wine_addons_root && bash wine_addons_build.sh \"${datedir}\" \"${params[*]}\""
 }
 
 ########################################################
@@ -175,6 +186,8 @@ function mainQuestions() {
 installed and the following packages may be compiled from source (depending on your choises):\n\n\
 \t- Wine/Wine Staging (latest git version)\n\
 \t- DXVK (latest git version)\n\
+\t- DXVK NVAPI (latest git version)\n\
+\t- VKD3D Proton (latest git version)\n\
 \t- meson & glslang (latest git versions; these are build time dependencies for DXVK)\n\n\
 Do you want to continue? [Y/n]"
 
@@ -202,8 +215,8 @@ Do you want to continue? [Y/n]"
 
 ####################
 
-  # This question is relevant only if DXVK stuff is compiled
-  if [[ ! -v NO_DXVK ]]; then
+  # This question is relevant only if DXVK, DXVK NVAPI or VKD3D Proton stuff is compiled
+  if [[ ! -v NO_DXVK ]] || [[ ! -v NO_NVAPI ]] || [[ ! -v NO_VKD3D ]]; then
     INFO_SEP
 
     echo -e "\e[1mQUESTION:\e[0m Update existing dependencies?\n\nIn a case you have old build time dependencies on your system, do you want to update them?\n\
@@ -246,8 +259,8 @@ function coredeps_check() {
 
 ########################################################
 
-# If either Wine, DXVK is to be compiled
-if [[ ! -v NO_WINE ]] || [[ ! -v NO_DXVK ]]; then
+# If either Wine, DXVK, DXVK NVAPI or VKD3D Proton is to be compiled
+if [[ ! -v NO_WINE ]] || [[ ! -v NO_DXVK ]] || [[ ! -v NO_NVAPI ]] || [[ ! -v NO_VKD3D ]]; then
   mainQuestions
   coredeps_check
 fi
@@ -263,11 +276,17 @@ fi
 
 ####################
 
-# If DXVK is going to be installed, then
-if [[ ! -v NO_DXVK ]]; then
-  dxvk_install_main
+# If DXVK/DXVK NVAPI or VKD3D Proton is going to be installed, then
+if [[ ! -v NO_DXVK ]] || [[ ! -v NO_NVAPI ]] || [[ ! -v NO_VKD3D ]]; then
+
+  addons=()
+  [[ ! -v NO_DXVK ]] && addons+=("DXVK")
+  [[ ! -v NO_NVAPI ]] && addons+=("DXVK NVAPI")
+  [[ ! -v NO_VKD3D ]] && addons+=("VKD3D Proton")
+
+  wine_addons_install_main ${addons[@]}
 else
-  echo -e "Skipping DXVK build$(if [[ ! -v NO_INSTALL ]]; then printf " & installation"; fi) process.\n"
+  echo -e "Skipping Wine addons build$(if [[ ! -v NO_INSTALL ]]; then printf " & installation"; fi) process.\n"
 fi
 
 ####################

@@ -23,7 +23,7 @@
 ########################################################
 
 # Root directory of this script file
-DXVKROOT="${PWD}"
+WINE_ADDONS_ROOT="${PWD}"
 
 # datedir variable supplied by ../updatewine_debian.sh script file
 datedir="${1}"
@@ -45,17 +45,17 @@ done
 # array in ../updatewine.sh, make sure to update these
 # variables!
 #
-git_commithash_dxvk=${params[0]}
-git_commithash_glslang=${params[1]}
-git_commithash_meson=${params[2]}
+git_commithash_dxvk=${params[2]}
+git_commithash_glslang=${params[3]}
+git_commithash_meson=${params[4]}
 
-git_branch_dxvk=${params[3]}
-git_branch_glslang=${params[5]}
-git_branch_meson=${params[6]}
+git_branch_dxvk=${params[8]}
+git_branch_glslang=${params[9]}
+git_branch_meson=${params[10]}
 
-git_source_dxvk=${params[8]}
-git_source_glslang=${params[9]}
-git_source_meson=${params[10]}
+git_source_dxvk=${params[14]}
+git_source_glslang=${params[15]}
+git_source_meson=${params[16]}
 
 ########################################################
 
@@ -87,6 +87,12 @@ for check in ${args[@]}; do
     --no-dxvk)
       NO_DXVK=
       ;;
+    --no-nvapi)
+      NO_NVAPI=
+      ;;
+    --no-vkd3d)
+      NO_VKD3D=
+      ;;
   esac
 
 done
@@ -94,7 +100,7 @@ done
 ########################################################
 
 # Check presence of Wine. Some version of Wine should
-# be found in the system in order to install DXVK.
+# be found in the system in order to install DXVK/DXVK NVAPI/VKD3D Proton.
 
 known_wines=(
   'wine'
@@ -247,14 +253,11 @@ function runtimeCheck() {
   done
 
   if [[ -z ${pkglist[*]} ]]; then
-    echo -e "\e[1mWARNING:\e[0m Not installing DXVK because \e[1m${pkgreq_name}\e[0m is missing on your system.\n\
-${pkgreq_name} should be installed in order to use DXVK. Just compiling DXVK for later use.\n"
+    echo -e "\e[1mWARNING:\e[0m Not compiling Wine addons because \e[1m${pkgreq_name}\e[0m is missing on your system.\n\
+${pkgreq_name} should be installed in order to use DXVK, DXVK NVAPI and VKD3D Proton.\n"
 
-    # Do this check separately so we can warn about all missing runtime dependencies above
-    if [[ ! -v NO_INSTALL ]]; then
-      # Force --no-install switch
-      NO_INSTALL=
-    fi
+    exit 1
+
   fi
 
 }
@@ -263,17 +266,14 @@ ${pkgreq_name} should be installed in order to use DXVK. Just compiling DXVK for
 
 # If the script is interrupted (Ctrl+C/SIGINT), do the following
 
-function DXVK_intCleanup() {
-  rm -rf ${DXVKROOT}/{dxvk-git,meson,glslang,*.deb}
-  rm -rf ${DXVKROOT}/../compiled_deb/"${datedir}"
+function wineAddonsIntCleanup() {
+  rm -rf ${WINE_ADDONS_ROOT}/{dxvk-git,meson,glslang,*.deb}
+  rm -rf ${WINE_ADDONS_ROOT}/../compiled_deb/"${datedir}"
   exit 0
 }
 
 # Allow interruption of the script at any time (Ctrl + C)
-trap "DXVK_intCleanup" INT
-
-# Error event
-#trap "DXVK_intCleanup" ERR
+trap "wineAddonsIntCleanup" INT
 
 ########################################################
 
@@ -313,19 +313,19 @@ function pkgcompilecheck() {
 
 ########################################################
 
-# DXVK CUSTOM INSTALLATION HOOKS
+# ADDON CUSTOM INSTALLATION HOOKS
 
-# These are custom installation instructions for DXVK
+# These are custom installation instructions for addon
 # They are not used independently.
 
-function dxvk_install_custom() {
+function addon_install_custom() {
 
   local PATCHDIR
 
   PATCHDIR="${1}"
 
   # Use posix alternates for MinGW binaries
-  function dxvk_posixpkgs() {
+  function addon_posixpkgs() {
 
     for alt in ${!alternatives[@]}; do
       echo "Linking MingW executable ${alt} to ${alternatives[$alt]}"
@@ -351,10 +351,10 @@ function dxvk_install_custom() {
   }
 
 ############################
-# DXVK - CUSTOM PATCHES
+# ADDON - CUSTOM PATCHES
 
-  # Add and apply custom DXVK patches
-  function dxvk_custompatches() {
+  # Add and apply custom addon patches
+  function addon_custompatches() {
 
     local CURDIR
     local dxvk_builddir_name
@@ -365,10 +365,10 @@ function dxvk_install_custom() {
     CURDIR="${PWD}"
 
     # Check if the following folder exists, and proceed.
-    if [[ -d "${DXVKROOT}/../../${PATCHDIR}" ]]; then
-      cp -r "${DXVKROOT}/../../${PATCHDIR}/"*.{patch,diff} "${DXVKROOT}/${pkg_name}/" 2>/dev/null
+    if [[ -d "${WINE_ADDONS_ROOT}/../../${PATCHDIR}" ]]; then
+      cp -r "${WINE_ADDONS_ROOT}/../../${PATCHDIR}/"*.{patch,diff} "${WINE_ADDONS_ROOT}/${pkg_name}/" 2>/dev/null
 
-      dxvk_builddir_name=$(ls -l "${DXVKROOT}/${pkg_name}" | grep ^d | awk '{print $NF}')
+      dxvk_builddir_name=$(ls -l "${WINE_ADDONS_ROOT}/${pkg_name}" | grep ^d | awk '{print $NF}')
 
       # TODO Expecting just one folder here. This method doesn't work with multiple dirs present
       if [[ $(echo ${dxvk_builddir_name} | wc -l) -gt 1 ]]; then
@@ -376,7 +376,7 @@ function dxvk_install_custom() {
         exit 1
       fi
 
-      dxvk_builddir_path="${DXVKROOT}/${pkg_name}/${dxvk_builddir_name}"
+      dxvk_builddir_path="${WINE_ADDONS_ROOT}/${pkg_name}/${dxvk_builddir_name}"
 
       cd "${dxvk_builddir_path}"
       for pfile in ../*.{patch,diff}; do
@@ -400,10 +400,28 @@ function dxvk_install_custom() {
   }
 
 ############################
-# DXVK - CUSTOM HOOKS EXECUTION
+# ADDON - CUSTOM HOOKS EXECUTION
 
-  dxvk_custompatches && \
-  dxvk_posixpkgs
+  addon_custompatches && \
+  addon_posixpkgs
+}
+
+###########################################################
+
+# Fetch extra package files
+
+function fetch_extra_pkg_files() {
+
+  local pkgname
+  local pkgdir
+  local extra_files_dir
+  
+  pkgname=${1}
+  pkgdir=${2}
+  extra_files_dir=${3}
+
+  cp -r ${extra_files_dir}/ ${pkgdir}/
+
 }
 
 ########################################################
@@ -437,6 +455,12 @@ function compile_and_install_deb() {
   local _pkg_debbuilder="${15}"
   local _pkg_debcompat="${16}"
   local _pkg_compatfile="${17}"
+  
+  local extra_files_dir=$(find "../../extra_files/" -type d -iname "${_pkg_name%-git}")
+
+  if [[ -d ${extra_files_dir} ]]; then
+    fetch_extra_pkg_files ${_pkg_name} "debian/source" ${extra_files_dir}
+  fi
 
 ############################
 # COMMON - ARRAY PARAMETER FIX
@@ -539,8 +563,8 @@ function compile_and_install_deb() {
     }
 
     function pkg_localinstall() {
-      wget ${1} -O ${DXVKROOT}/"${2}".deb
-      sudo dpkg -i --force-all ${DXVKROOT}/"${2}".deb
+      wget ${1} -O ${WINE_ADDONS_ROOT}/"${2}".deb
+      sudo dpkg -i --force-all ${WINE_ADDONS_ROOT}/"${2}".deb
     }
 
     function pkg_configure() {
@@ -699,12 +723,10 @@ function compile_and_install_deb() {
     bash -c "${_pkg_debbuilder}"
 
     # Once our deb package is compiled, install and store it
-    # We do not make installation optional for deps because they are required by DXVK
+    # We do not make installation optional for deps because they may be required by the addon
     if [[ $? -eq 0 ]]; then
       rm -rf ../*.{changes,buildinfo,tar.xz}
-      if [[ "${_pkg_name}" == *"dxvk"* ]] && [[ ! -v NO_INSTALL ]]; then
-        sudo dpkg -i ../${_pkg_name}*.deb
-      elif [[ "${_pkg_name}" != *"dxvk"* ]]; then
+      if [[ ! -v NO_INSTALL ]]; then
         sudo dpkg -i ../${_pkg_name}*.deb
       fi
       mv ../${_pkg_name}*.deb ../../../compiled_deb/"${datedir}" && \
@@ -730,8 +752,15 @@ function compile_and_install_deb() {
   pkg_folderprepare
 
   # TODO use package name or separate override switch here?
-  if [[ "${_pkg_name}" == *"dxvk"* ]]; then
-    dxvk_install_custom "dxvk_custom_patches"
+  if [[ "${_pkg_name%-git}" == "dxvk" ]]; then
+    addon_install_custom "dxvk_custom_patches"
+
+  elif [[ "${_pkg_name%-git}" == "dxvk-nvapi" ]]; then
+    addon_install_custom "dxvk-nvapi_custom_patches"
+
+  elif [[ "${_pkg_name%-git}" == "vkd3d-proton" ]]; then
+    addon_install_custom "vkd3d-proton_custom_patches"
+
   fi
 
   pkg_debianbuild
@@ -851,14 +880,24 @@ function pkg_install_main() {
 runtimeCheck Wine "${known_wines[*]}"
 
 # Meson - compile (& install)
-pkgcompilecheck pkg_install_main meson "${DXVKROOT}/meson.debdata"
+pkgcompilecheck pkg_install_main meson "${WINE_ADDONS_ROOT}/../debdata/meson.debdata"
 
 # Glslang - compile (& install)
-pkgcompilecheck pkg_install_main glslang "${DXVKROOT}/glslang.debdata"
+pkgcompilecheck pkg_install_main glslang "${WINE_ADDONS_ROOT}/../debdata/glslang.debdata"
 
 if [[ ! -v NO_DXVK ]]; then
   # DXVK - compile (& install)
-  pkg_install_main "${DXVKROOT}/dxvk.debdata"
+  pkg_install_main "${WINE_ADDONS_ROOT}/../debdata/dxvk.debdata"
+fi
+
+if [[ ! -v NO_NVAPI ]]; then
+  # DXVK NVAPI - compile (& install)
+  pkg_install_main "${WINE_ADDONS_ROOT}/../debdata/dxvk_nvapi.debdata"
+fi
+
+if [[ ! -v NO_VKD3D ]]; then
+  # VKD3D Proton - compile (& install)
+  pkg_install_main "${WINE_ADDONS_ROOT}/../debdata/vkd3d_proton.debdata"
 fi
 
 # Clean buildtime dependencies

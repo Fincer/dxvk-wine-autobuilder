@@ -1,24 +1,28 @@
 ########################################################
 # Common properties
 
-pkg_name="glslang"
-pkg_license="bsd"
+pkg_name="vkd3d-proton-git"
+pkg_license="custom --copyrightfile ../LICENSE"
 pkg_maintainer="${USER} <${USER}@unknown>"
-pkg_section="devel"
+pkg_section="otherosfs"
 pkg_priority="optional"
 pkg_arch="all"
 
-pkg_commondesc="Khronos OpenGL and OpenGL ES shader front end and validator."
+pkg_relative_builddir="debian/source/vkd3d-proton-master"
+
+pkg_commondesc="Fork of VKD3D. Development branches for Proton's Direct3D 12 implementation."
 pkg_longdesc="
-Khronos reference front-end for GLSL and ESSL, and sample SPIR-V generator
+Fork of VKD3D, which aims to implement the full Direct3D 12
+API on top of Vulkan. The project serves as the development
+effort for Direct3D 12 support in Proton.
 "
 
-pkg_giturl="${git_source_glslang}"
-pkg_homeurl="https://www.khronos.org/opengles/sdk/tools/Reference-Compiler/"
-pkg_gitbranch=${git_branch_glslang}
+pkg_giturl="${git_source_vkd3dproton_debian}"
+pkg_homeurl="https://github.com/HansKristian-Work/vkd3d-proton"
+pkg_gitbranch=${git_branch_vkd3dproton}
 
-git_commithash=${git_commithash_glslang}
-pkg_gitver="git describe --long | sed 's/\-[a-z].*//; s/\-/\./; s/[a-z]//g'"
+git_commithash=${git_commithash_vkd3dproton}
+pkg_gitver="git describe --long --always | sed 's/\-[a-z].*//; s/\-/\./g; s/[a-z]//g'"
 
 pkg_installfile="./debian/install"
 pkg_controlfile="./debian/control"
@@ -39,25 +43,34 @@ pkg_debrules="\
 %:
 	dh \$@
 
+override_dh_auto_configure:
+
 override_dh_usrlocal:
 
-override_dh_auto_configure:
-	mkdir obj-x86_64-linux-gnu
-	cd obj-x86_64-linux-gnu && cmake .. \
--DCMAKE_INSTALL_PREFIX=/usr \
--DCMAKE_VERBOSE_MAKEFILE=ON \
--DCMAKE_BUILD_TYPE=None \
--DCMAKE_INSTALL_SYSCONFDIR=/etc \
--DCMAKE_INSTALL_LOCALSTATEDIR=/var \
--DCMAKE_EXPORT_NO_PACKAGE_REGISTRY=ON \
--DCMAKE_FIND_PACKAGE_NO_PACKAGE_REGISTRY=ON \
--DENABLE_CTEST=OFF
+override_dh_install:
+
+	# Compile VKD3D Proton
+	bash ./package-release.sh master debian/source/ --no-package
+
+	# Tell deb builder to create VKD3D Proton x86 & x64 subfolders
+	for arch in 86 64; do mkdir -p ${pkg_relative_builddir}/x${arch}; done 
+
+	# Make a proper executable script folder for setup_dxvk.sh file
+	mkdir -p ${pkg_relative_builddir}/bin
+
+	printf '%s\n%s\n%s %s' \"#!/bin/sh\" \"cd /usr/share/vkd3d_proton/\" \"./setup_vkd3d_proton.sh\" \"\${@}\" > \"${pkg_relative_builddir}/bin/setup_vkd3d_proton\"
+	chmod +x "${pkg_relative_builddir}/bin/setup_vkd3d_proton"
+	dh_install
 "
 
 ########################################################
 # Debian install file section
 
-pkg_debinstall="empty"
+pkg_debinstall="\
+${pkg_relative_builddir}/setup_vkd3d_proton.sh usr/share/vkd3d_proton/
+${pkg_relative_builddir}/bin/* usr/bin/
+$(for arch in 86 64; do echo -e ${pkg_relative_builddir}/x${arch}/* usr/share/vkd3d_proton/x${arch}/; done)
+"
 
 ########################################################
 # Debian control file subfields
@@ -97,30 +110,44 @@ empty
 # Build time dependencies
 pkg_deps_build=(
 #${_coredeps[*]}
-'cmake'
-'python3'
+'meson'
+'glslang'
+'ninja-build (>= 1.5)'
+'gcc-mingw-w64-base'
+#'binutils-common'
+'mingw-w64-common'
+'binutils-mingw-w64-x86-64'
+'binutils-mingw-w64-i686'
+
+'mingw-w64-x86-64-dev'
+'gcc-mingw-w64-x86-64'
+'g++-mingw-w64-x86-64'
+
+'mingw-w64-i686-dev'
+'gcc-mingw-w64-i686'
+'g++-mingw-w64-i686'
 )
 
 # Runtime dependencies
 pkg_deps_runtime=(
-empty
+'wine'
 )
 
-# Extra fields for Debian control file Source (start) section
+# Extra fields for Debian control file Source section
 pkg_extra_1=(
 empty
 )
 
-# Extra fields for Debian control file Package (end) section
+# Extra fields for Debian control file Package section
 pkg_extra_2=(
 empty
 )
 
-########################################################
+############################
 
 # Deb builder execution field
-# Do not build either debug symbols
-pkg_debbuilder="DEB_BUILD_OPTIONS=\"strip nodocs noddebs\" dpkg-buildpackage -rfakeroot -b -us -uc -d"
+# Do not build either debug symbols or doc files
+pkg_debbuilder="DEB_BUILD_OPTIONS=\"strip nodocs noddebs\" dpkg-buildpackage -us -uc -b -d --source-option=--include-binaries"
 
 ########################################################
 # Contents of Debian control file

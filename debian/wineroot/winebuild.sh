@@ -60,7 +60,7 @@ wine_deps_build_common=(
 'dctrl-tools'
 'khronos-api'
 'unicode-data'
-'freebsd-glue'
+# 'freebsd-glue' # Not available anymore
 'icoutils'
 'librsvg2-bin'
 'imagemagick'
@@ -92,13 +92,13 @@ wine_deps_build_amd64=(
 'libxml2-dev:amd64'
 'libgsm1-dev:amd64'
 'libjpeg-dev:amd64'
-'libkrb5-dev:amd64'
+# 'libkrb5-dev:amd64'
 'libtiff-dev:amd64'
 'libsane-dev:amd64'
 'libudev-dev:amd64'
 'libpulse-dev:amd64'
 'liblcms2-dev:amd64'
-'libldap2-dev:amd64'
+# 'libldap2-dev:amd64'
 'libxslt1-dev:amd64'
 'unixodbc-dev:amd64'
 'libcups2-dev:amd64'
@@ -145,12 +145,12 @@ wine_deps_build_i386=(
 'libv4l-dev:i386'
 'libgsm1-dev:i386'
 'libjpeg-dev:i386'
-'libkrb5-dev:i386'
+# 'libkrb5-dev:i386'
 'libsane-dev:i386'
 'libudev-dev:i386'
 'libpulse-dev:i386'
 'liblcms2-dev:i386'
-'libldap2-dev:i386'
+# 'libldap2-dev:i386'
 'unixodbc-dev:i386'
 'libcapi20-dev:i386'
 'libopenal-dev:i386'
@@ -202,7 +202,7 @@ wine_deps_runtime_i386=(
 'libgphoto2-6:i386'
 'libgphoto2-port12:i386'
 'liblcms2-2:i386'
-'libldap-2.4-2:i386'
+# 'libldap-2.4-2:i386'
 'libmpg123-0:i386'
 'libncurses5:i386'
 'libopenal1:i386'
@@ -236,7 +236,7 @@ wine_deps_runtime_amd64=(
 'libgphoto2-6:amd64'
 'libgphoto2-port12:amd64'
 'liblcms2-2:amd64'
-'libldap-2.4-2:amd64'
+# 'libldap-2.4-2:amd64'
 'libmpg123-0:amd64'
 'libncurses5:amd64'
 'libopenal1:amd64'
@@ -313,11 +313,11 @@ done
 # array in ../updatewine.sh, make sure to update these
 # variables!
 #
-git_commithash_wine=${params[3]}
-git_branch_wine=${params[7]}
+git_commithash_wine=${params[5]}
+git_branch_wine=${params[11]}
 
-git_source_wine=${params[11]}
-git_source_winestaging=${params[12]}
+git_source_wine_debian=${params[22]}
+git_source_winestaging_debian=${params[23]}
 
 ########################################################
 
@@ -409,8 +409,8 @@ function getWine() {
   local winesrc_url
   local winestagingsrc_url
 
-  winesrc_url="${git_source_wine}"
-  winestagingsrc_url="${git_source_winestaging}"
+  winesrc_url="${git_source_wine_debian}"
+  winestagingsrc_url="${git_source_winestaging_debian}"
 
   function cleanOldBuilds() {
     if [[ $(find "${BUILDROOT}" -type d -name "winebuild_*" | wc -l) -ne 0 ]]; then
