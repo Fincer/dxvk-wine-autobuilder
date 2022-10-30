@@ -102,8 +102,13 @@ package() {
   mkdir -p "${pkgdir}"/usr/{bin,share/dxvk}
   cp -r "${srcdir}"/build/${_pkgname}-${pkgver}/* "${pkgdir}/usr/share/dxvk/"
 
-  echo -e "#!/bin/sh\n/usr/share/dxvk/setup_dxvk.sh \${@}" \
-  > "${pkgdir}/usr/bin/setup_dxvk"
+  echo -e "#!/bin/sh" > "${pkgdir}/usr/bin/setup_dxvk"
+  echo -e "
+export dxvk_lib32=/usr/share/dxvk/x32/
+export dxvk_lib64=/usr/share/dxvk/x64/
+
+/usr/share/dxvk/setup_dxvk.sh \${@}
+" >> "${pkgdir}/usr/bin/setup_dxvk"
 
   chmod +x "${pkgdir}/usr/bin/setup_dxvk"
 }

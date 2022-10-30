@@ -88,11 +88,16 @@ build() {
 
 # Bundle the compiled files
 package() {
-  mkdir -p "${pkgdir}"/usr/{bin,share/vkd3d}
-  cp -r "${srcdir}"/build/${_pkgname}-${pkgver}/* "${pkgdir}/usr/share/vkd3d/"
+  mkdir -p "${pkgdir}"/usr/{bin,share/vkd3d_proton}
+  cp -r "${srcdir}"/build/${_pkgname}-${pkgver}/* "${pkgdir}/usr/share/vkd3d_proton/"
 
-  echo -e "#!/bin/sh\n/usr/share/dxvk/setup_vkd3d_proton.sh \${@}" \
-  > "${pkgdir}/usr/bin/setup_vkd3d_proton"
+  echo -e "#!/bin/sh" > "${pkgdir}/usr/bin/setup_vkd3d_proton"
+  echo -e "
+export vkd3d_lib32=/usr/share/vkd3d/x86/
+export vkd3d_lib64=/usr/share/vkd3d/x64/
+
+/usr/share/vkd3d_proton/setup_vkd3d_proton.sh \${@}
+" >> "${pkgdir}/usr/bin/setup_vkd3d_proton"
 
   chmod +x "${pkgdir}/usr/bin/setup_vkd3d_proton"
 }
