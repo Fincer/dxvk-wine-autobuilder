@@ -149,6 +149,10 @@ for arg in ${@}; do
       # Skip VKD3D Proton build & installation process all together
       NO_VKD3D=
       ;;
+    --no-nvapi)
+      # Skip DXVK NVAPI build & installation process all together
+      NO_NVAPI=
+      ;;
     --no-pol)
       # Skip PlayOnLinux Wine prefixes update process
       ;;
@@ -160,6 +164,7 @@ Usage:\n\nbash updatewine.sh\n\nArguments:\n\n\
 --no-install\tDo not install Wine or DXVK. Just compile them. Wine, meson & glslang must be installed for DXVK compilation.\n\
 --no-dxvk\tDo not compile or install DXVK\n\
 --no-vkd3d\tDo not compile or install VKD3D Proton\n\
+--no-nvapi\tDo not compile or install DXVK NVAPI\n\
 --no-pol\tDo not update PlayOnLinux Wine prefixes\n\n\
 --no-staging\tCompile Wine instead of Wine Staging\n\
 --no-wine\tDo not compile or install Wine/Wine Staging\n\n\
@@ -187,34 +192,37 @@ datesuffix=$(echo $(date '+%Y-%m-%d-%H%M%S'))
 # Pass them to subscripts, as well.
 
 githash_overrides=(
-  "${git_commithash_vkd3dproton}" # 0  
-  "${git_commithash_dxvk}"        # 1
-  "${git_commithash_glslang}"     # 2
-  "${git_commithash_meson}"       # 3
-  "${git_commithash_wine}"        # 4
+  "${git_commithash_dxvknvapi}"   # 0  
+  "${git_commithash_vkd3dproton}" # 1  
+  "${git_commithash_dxvk}"        # 2
+  "${git_commithash_glslang}"     # 3
+  "${git_commithash_meson}"       # 4
+  "${git_commithash_wine}"        # 5
 )
 
 # Add git branches to argument list
 # Pass them to subscripts, as well.
 
 gitbranch_overrides=(
-  "${git_branch_vkd3dproton}"  # 5
-  "${git_branch_dxvk}"         # 6
-  "${git_branch_glslang}"      # 7
-  "${git_branch_meson}"        # 8
-  "${git_branch_wine}"         # 9
+  "${git_branch_dxvknvapi}"    # 6
+  "${git_branch_vkd3dproton}"  # 7
+  "${git_branch_dxvk}"         # 8
+  "${git_branch_glslang}"      # 9
+  "${git_branch_meson}"        # 10
+  "${git_branch_wine}"         # 11
 )
 
 # Add git sources to argument list
 # Pass them to subscripts, as well.
 
 gitsources=(
-  "${git_source_vkd3dproton}"  # 10
-  "${git_source_dxvk}"         # 11
-  "${git_source_glslang}"      # 12
-  "${git_source_meson}"        # 13
-  "${git_source_wine}"         # 14
-  "${git_source_winestaging}"  # 15
+  "${git_source_dxvknvapi}"    # 12
+  "${git_source_vkd3dproton}"  # 13
+  "${git_source_dxvk}"         # 14
+  "${git_source_glslang}"      # 15
+  "${git_source_meson}"        # 16
+  "${git_source_wine}"         # 17
+  "${git_source_winestaging}"  # 18
 )
 
 #############################
@@ -386,7 +394,7 @@ function determineDistroFamily() {
   esac
 }
 
-if [[ ! -v NO_WINE ]] || [[ ! -v NO_DXVK ]] || [[ ! -v NO_VKD3D ]]; then
+if [[ ! -v NO_WINE ]] || [[ ! -v NO_DXVK ]] || [[ ! -v NO_VKD3D ]] || [[ ! -v NO_NVAPI ]]; then
   echo -e "\n${SCRIPT_TITLE}\n\nBuild identifier:\t${datesuffix}\n"
 else
   echo ""
@@ -403,7 +411,7 @@ echo -e "\e[1mNOTE: \e[0mDXVK requires very latest Nvidia/AMD drivers to work.\n
 This script comes with GPU driver installation scripts for Debian-based Linux distributions.\n"
 INFO_SEP
 
-if [[ ! -v NO_WINE ]] || [[ ! -v NO_DXVK ]]|| [[ ! -v NO_VKD3D ]]; then
+if [[ ! -v NO_WINE ]] || [[ ! -v NO_DXVK ]] || [[ ! -v NO_VKD3D ]] || [[ ! -v NO_NVAPI ]]; then
   reqsCheck
   sudoQuestion
   echo ""
