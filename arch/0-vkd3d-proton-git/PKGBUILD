@@ -94,10 +94,8 @@ package() {
 
   echo -e "#!/bin/sh" > "${pkgdir}/usr/bin/setup_vkd3d_proton"
   echo -e "
-export vkd3d_lib32=/usr/share/vkd3d/x86/
-export vkd3d_lib64=/usr/share/vkd3d/x64/
-
-/usr/share/vkd3d_proton/setup_vkd3d_proton.sh \${@}
+cd /usr/share/vkd3d_proton/
+./setup_vkd3d_proton.sh \${@}
 " >> "${pkgdir}/usr/bin/setup_vkd3d_proton"
 
   chmod +x "${pkgdir}/usr/bin/setup_vkd3d_proton"
