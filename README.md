@@ -1,8 +1,8 @@
-# Wine/Wine Staging + DXVK package builder & auto-installer
+# Wine/Wine Staging, DXVK, DXVK NVAPI, VKD3D Proton package bundle builder & auto-installer
 
 ![](https://i.imgur.com/5WCPioZ.png)
 
-Boost up your Wine experience with a taste of DXVK and automate installation of [DXVK](https://github.com/doitsujin/dxvk) + [Wine](https://www.winehq.org/)/[Wine Staging](https://github.com/wine-staging/wine-staging/) on Debian/Ubuntu/Mint/Arch Linux/Manjaro. Additionally, update your GPU drivers + PlayonLinux wineprefixes to use the latest Wine & DXVK combination available.
+Boost up your Wine experience with a taste of DXVK and automate installation of [DXVK](https://github.com/doitsujin/dxvk), [VKD3D Proton](https://github.com/HansKristian-Work/vkd3d-proton), [DXVK NVAPI](https://github.com/jp7677/dxvk-nvapi) & [Wine](https://www.winehq.org/)/[Wine Staging](https://github.com/wine-staging/wine-staging/) on Debian/Ubuntu/Mint/Arch Linux/Manjaro. Additionally, update your GPU drivers + PlayonLinux wineprefixes to use the latest Wine & DXVK combination available.
 
 ## About
 
@@ -102,6 +102,10 @@ All supported arguments are:
 
 - `--no-dxvk` = Do not compile or install DXVK
 
+- `--no-vkd3d` = Do not compile or install VKD3D Proton
+
+- `--no-nvapi` = Do not compile or install DXVK NVAPI
+
 - `--no-pol` = Do not update current user's PlayOnLinux Wine prefixes
 
 ### Force/Lock package versions
@@ -114,11 +118,11 @@ This is handy if you encounter issues during package compilation (DXVK/glslang o
 
 - Git commit:
 
-    - `git_commithash_dxvk`, `git_commithash_wine`, `git_commithash_glslang`, `git_commithash_meson`
+    - `git_commithash_vkd3dproton`, `git_commithash_dxvknvapi`, `git_commithash_dxvk`, `git_commithash_wine`, `git_commithash_glslang`, `git_commithash_meson`
 
 - Git branch:
 
-    - `git_branch_dxvk`, `git_branch_wine`, `git_branch_glslang`, `git_branch_meson`
+    - `git_branch_vkd3dproton`, `git_branch_dxvknvapi`, `git_branch_dxvk`, `git_branch_wine`, `git_branch_glslang`, `git_branch_meson`
 
 **These settings apply only on Debian/Ubuntu/Mint:**
 
@@ -136,7 +140,19 @@ Each variable applies values which must be match package git commit tree. The va
 
 - **A)** 40 characters long commit hash. Use this if you want this commit to be the latest to be used in package compilation, not anything after it.
 
-    - defined in git commit tree: [DXVK commit tree](https://github.com/doitsujin/dxvk/commits/master), [Wine commit tree](https://source.winehq.org/git/wine.git/) (or [GitHub mirror](https://github.com/wine-mirror/wine)), [glslang commit tree](https://github.com/KhronosGroup/glslang/commits/master), [meson commit tree](https://github.com/mesonbuild/meson/commits/master)
+    - defined in git commit trees:
+
+      - [VKD3D Proton commit tree](https://github.com/HansKristian-Work/vkd3d-proton/commits/master)
+    
+      - [DXVK NVAPI commit tree](https://github.com/jp7677/dxvk-nvapi/commits/master)
+    
+      - [DXVK commit tree](https://github.com/doitsujin/dxvk/commits/master)
+      
+      - [Wine commit tree](https://source.winehq.org/git/wine.git/) (or [GitHub mirror](https://github.com/wine-mirror/wine))
+      
+      - [glslang commit tree](https://github.com/KhronosGroup/glslang/commits/master)
+      
+      - [meson commit tree](https://github.com/mesonbuild/meson/commits/master)
 
     - You can obtain proper hash by opening the commit. Hash syntax is: `654544e96bfcd1bbaf4a0fc639ef655299276a39` etc...
 
@@ -168,11 +184,23 @@ Since Debian doesn't provide winetricks package on official repositories, it is 
 
 ----------------
 
-## Custom patches for Wine & DXVK
+## Custom patches for Wine, DXVK, DXVK NVAPI & VKD3D Proton
 
-You can apply your own patches for DXVK & Wine by dropping valid `.patch` or `.diff` files into `dxvk_custom_patches` (DXVK) or `wine_custom_patches` (Wine) folder.
+You can apply your own patches for DXVK & Wine by dropping valid `.patch` or `.diff` files into the following folders:
 
-Folders `dxvk_disabled_patches` and `wine_disabled_patches` are just for management purposes, they do not have a role in script logic at all.
+- VKD3D Proton: `vkd3d-proton_custom_patches`
+
+- DXVK NVAPI: `dxvk-nvapi_custom_patches`
+
+- DXVK: `dxvk_custom_patches`
+
+- Wine: `wine_custom_patches`
+
+Only patch files prefixed with `.diff` or `.patch` are applied.
+
+## Disabled patches
+
+Folders `vkd3d-proton_disabled_patches`, `dxvk-nvapi_disabled_patches`, `dxvk_disabled_patches` and `wine_disabled_patches` are just for management purposes, they do not have a role in script logic at all.
 
 Wine patches are not related to Wine Staging patchset. You can use your custom Wine patches either with Wine Staging or vanilla Wine.
 
@@ -200,10 +228,32 @@ The actual subfolders which hold compiled programs are generated according to bu
 
 **NOTE:** DXVK must be installed before applying these steps.
 
-To enable DXVK on existing wineprefixes, just run
+To enable DXVK on an existing wineprefix, run
 
 ```
-WINEPREFIX=/path/to/my/wineprefix setup_dxvk
+WINEPREFIX=/path/to/my/wineprefix setup_dxvk install --symlink
+```
+
+## DXVK NVAPI usage
+
+**NOTE:** DXVK & DXVK NVAPI must be installed before applying these steps.
+
+**NOTE:** DXVK NVAPI requires DXVK to be installed on the same wineprefix. Therefore you need to apply `setup_dxvk` _before_ `setup_dxvk_nvapi` to the target wineprefix.
+
+Once you have applied `setup_dxvk` to your wineprefix, apply `setup_dxvk_nvapi`, as well. Run
+
+```
+WINEPREFIX=/path/to/my/wineprefix setup_dxvk_nvapi install --symlink
+```
+
+## VKD3D Proton usage
+
+**NOTE:** VKD3D Proton must be installed before applying these steps.
+
+To enable VKD3D Proton on an existing wineprefix, run
+
+```
+WINEPREFIX=/path/to/my/wineprefix setup_vkd3d_proton install --symlink
 ```
 
 ## Add DXVK to PlayOnLinux Wine prefixes
@@ -211,10 +261,24 @@ WINEPREFIX=/path/to/my/wineprefix setup_dxvk
 To install DXVK on specific PlayOnLinux wineprefix which uses a different than `system` version of Wine, apply the following command syntax:
 
 ```
-WINEPREFIX="$HOME/.PlayOnLinux/wineprefix/myprefix" WINEPATH=$HOME/.PlayOnLinux/wine/{linux-amd64,linux-x86}/wineversion/bin" setup_dxvk
+WINEPREFIX="$HOME/.PlayOnLinux/wineprefix/<myprefix>" WINEPATH=$HOME/.PlayOnLinux/wine/{linux-amd64,linux-x86}/<wineversion>/bin" setup_dxvk install --symlink
 ```
 
-where you need to set either `linux-amd64` or `linux-x86`, and `wineversion` + `myprefix` to match real ones, obviously.
+With the same logic, you can install DXVK NVAPI and VKD3D Proton, as well.
+
+### DXVK NVAPI
+
+```
+WINEPREFIX="$HOME/.PlayOnLinux/wineprefix/<myprefix>" WINEPATH=$HOME/.PlayOnLinux/wine/{linux-amd64,linux-x86}/<wineversion>/bin" setup_dxvk_nvapi install --symlink
+```
+
+### VKD3D Proton
+
+```
+WINEPREFIX="$HOME/.PlayOnLinux/wineprefix/<myprefix>" WINEPATH=$HOME/.PlayOnLinux/wine/{linux-amd64,linux-x86}/<wineversion>/bin" setup_vkd3d_proton install --symlink
+```
+
+You need to set either `linux-amd64` or `linux-x86`, and `wineversion` + `myprefix` to match real ones, obviously.
 
 ### Manually uninstall temporary development packages (Debian/Ubuntu/Mint):
 
@@ -230,41 +294,45 @@ bash debian_cleanup_devpkgs.sh
 
 ### EXAMPLES:
 
-**NOTE:** If `--no-install` option is given, the script doesn't check for PlayOnLinux Wine prefixes.
+**NOTE:** If `--no-install` or `--no-pol` option is given, the script doesn't check for PlayOnLinux Wine prefixes. `--no-install` additionally skips system-wide installation of compiled packages.
 
 **NOTE:** PlayOnLinux Wine prefixes are checked for current user only.
 
-**1)** Compile Wine Staging & DXVK, and make installable packages for them. Install the packages:
+**1)** Compile Wine Staging, DXVK, DXVK NVAPI & VKD3D Proton, and make installable packages for them. Install the packages:
 
 `bash updatewine.sh`
 
-**2)** Compile DXVK and make an installable package for it. Do not install:
+**2)** Compile DXVK, DXVK NVAPI & VKD3D Proton and make an installable package for them. Do not install these packages.
 
 `bash updatewine.sh --no-wine --no-install`
 
-**3)** Compile Wine Staging and make an installable package for it. Do not install:
+**3)** Compile and install VKD3D Proton only. Do not install it.
 
-`bash updatewine.sh --no-dxvk --no-install`
+`bash updatewine.sh --no-wine --no-dxvk --no-nvapi --no-install`
 
-**4)** Compile Wine and make an installable package for it. Do not install:
+**4)** Compile Wine Staging and VKD3D Proton, and make an installable package for them. Do not install them.
 
-`bash updatewine.sh --no-staging --no-dxvk --no-install`
+`bash updatewine.sh --no-dxvk --no-nvapi --no-install`
 
-**5)** Compile Wine & DXVK, and make installable packages for them. Do not install:
+**5)** Compile vanilla Wine and make an installable package for it. Do not install it.
 
-`bash updatewine.sh --no-staging --no-install`
+`bash updatewine.sh --no-staging --no-dxvk --no-nvapi --no-vkd3d --no-install`
 
-**6)** Compile Wine Staging & DXVK, and make installable packages for them. Do not install:
+**6)** Compile vanilla Wine, DXVK & DXVK NVAPI, and make installable packages for them. Do not install them.
 
-`bash updatewine.sh --no-install`
+`bash updatewine.sh --no-staging --no-vkd3d --no-install`
 
-**7)** Compile Wine & DXVK, and make installable packages for them. Install the packages:
+**6)** Compile Wine Staging & DXVK, and make installable packages for them. Do not install them.
 
-`bash updatewine.sh --no-staging`
+`bash updatewine.sh --no-nvapi --no-vkd3d --no-install`
 
-**8)** Compile Wine, and make an installable package for it. Install the package, do not check PlayOnLinux wineprefixes:
+**7)** Compile vanilla Wine & DXVK, and make installable packages for them. Install the packages.
 
-`bash updatewine.sh --no-staging --no-dxvk --no-pol`
+`bash updatewine.sh --no-staging --no-nvapi --no-vkd3d`
+
+**8)** Compile vanilla Wine & VKD3D Proton, and make an installable package for them. Install the packages, do not check PlayOnLinux wineprefixes.
+
+`bash updatewine.sh --no-staging --no-nvapi --no-dxvk --no-pol`
 
 ----------------
 
