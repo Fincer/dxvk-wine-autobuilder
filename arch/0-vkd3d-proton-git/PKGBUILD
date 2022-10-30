@@ -1,0 +1,98 @@
+# Maintainer: Pekka Helenius (~Fincer) <fincer89 at hotmail dot com>
+
+# Override /etc/makepkg.conf PKGDEST variable if it's enabled
+PKGDEST="${PWD}"
+
+pkgname=vkd3d-proton-git
+_pkgname=vkd3d-proton
+pkgver=3.1.1.2967
+pkgrel=1
+pkgdesc="Fork of VKD3D. Development branches for Proton's Direct3D 12 implementation."
+url="https://github.com/HansKristian-Work/vkd3d-proton"
+license=('LGPL2.1')
+
+arch=('x86_64')
+conflicts=(
+  'vkd3d-proton'
+)
+depends=('wine' 'vulkan-icd-loader' 'lib32-vulkan-icd-loader')
+makedepends=(
+  'ninja'
+  'meson>=0.49'
+  'glslang'
+  'mingw-w64-gcc'
+  'git'
+  'wine'
+)
+
+_vkd3d_gitsrc=
+_git_branch_vkd3d=master
+_vkd3d_commit=HEAD
+
+provides=('vkd3d-proton')
+options=(!strip !buildflags staticlibs)
+source=(${pkgname}::"${_vkd3d_gitsrc}#commit=${_vkd3d_commit}")
+sha256sums=('SKIP')
+
+##############################
+
+# Copy custom patches to correct location
+if [[ $(find "${startdir}/vkd3d-proton-patches" -mindepth 1 -maxdepth 1 -regex ".*\.\(patch\|diff\)$") ]]; then
+    cp -r "${startdir}/vkd3d-proton-patches/"*.{patch,diff} "${startdir}"/
+    p=0
+    for patch in $(find . -mindepth 1 -maxdepth 1 -regex ".*\.\(patch\|diff\)$"); do
+        patches[$p]="$(basename ${patch})"
+        let p++
+    done
+    unset p
+    source+=(${source[@]} ${patches[@]})
+fi
+
+# Reset git tree and apply custom patches
+prepare() {
+
+  cd "${srcdir}/vkd3d-proton-git"
+  git checkout ${_git_branch_vkd3d}
+  git reset --hard ${_vkd3d_commit} # Restore tracked files
+  git clean -d -x -f         # Delete untracked files
+  git submodule update --init --recursive
+
+  # Apply patches, if present
+  if [[ $(ls "${srcdir}"/*.{patch,diff} 2>/dev/null | wc -w) -ne 0 ]]; then
+
+  # Apply all custom patches
+  msg2 "Applying custom patches..."
+
+    for i in "${srcdir}"/*.{patch,diff}; do
+      if [[ -f ${i} ]]; then
+        patch -Np1 < ${i}
+      fi
+    done
+
+  fi
+
+}
+
+##############################
+
+# Retrieve VKD3D version tag
+pkgver() {
+  cd "${pkgname}"
+  printf '%s' $(git describe --long --always | sed 's/\-[a-z].*//; s/\-/\./g; s/[a-z]//g')
+}
+
+# Launch VKD3D build script
+build() {
+  "${srcdir}/${pkgname}"/package-release.sh ${pkgver} "${srcdir}"/build --no-package
+}
+
+# Bundle the compiled files
+package() {
+  mkdir -p "${pkgdir}"/usr/{bin,share/vkd3d}
+  cp -r "${srcdir}"/build/${_pkgname}-${pkgver}/* "${pkgdir}/usr/share/vkd3d/"
+
+  echo -e "#!/bin/sh\n/usr/share/dxvk/setup_vkd3d_proton.sh \${@}" \
+  > "${pkgdir}/usr/bin/setup_vkd3d_proton"
+
+  chmod +x "${pkgdir}/usr/bin/setup_vkd3d_proton"
+}

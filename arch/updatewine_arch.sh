@@ -45,15 +45,18 @@ done
 # array in ../updatewine.sh, make sure to update these
 # variables!
 #
-git_commithash_dxvk=${params[0]}
-git_commithash_wine=${params[3]}
+git_commithash_vkd3dproton=${params[0]}
+git_commithash_dxvk=${params[1]}
+git_commithash_wine=${params[4]}
 
-git_branch_dxvk=${params[4]}
-git_branch_wine=${params[7]}
+git_branch_vkd3dproton=${params[5]}
+git_branch_dxvk=${params[6]}
+git_branch_wine=${params[9]}
 
-git_source_dxvk=${params[8]}
-git_source_wine=${params[11]}
-git_source_winestaging=${params[12]}
+git_source_vkd3dproton=${params[10]}
+git_source_dxvk=${params[11]}
+git_source_wine=${params[14]}
+git_source_winestaging=${params[15]}
 
 ########################################################
 
@@ -86,6 +89,9 @@ for check in ${args[@]}; do
       ;;
     --no-dxvk)
       NO_DXVK=
+      ;;
+    --no-vkd3d)
+      NO_VKD3D=
       ;;
     --no-pol)
       NO_POL=
@@ -129,9 +135,11 @@ function checkFiles() {
 
   local wine_files
   local dxvk_files
+  local vkd3dproton_files
 
   wine_files=('30-win32-aliases.conf' 'PKGBUILD')
   dxvk_files=('PKGBUILD')
+  vkd3dproton_files=('PKGBUILD')
 
   function validatefiles() {
 
@@ -158,6 +166,10 @@ function checkFiles() {
 
   if [[ ! -v NO_DXVK ]]; then
     validatefiles "${dxvk_files[*]}" DXVK "${ARCH_BUILDROOT}/0-dxvk-git"
+  fi
+
+  if [[ ! -v NO_VKD3D ]]; then
+    validatefiles "${vkd3dproton_files[*]}" "VKD3D Proton" "${ARCH_BUILDROOT}/0-vkd3d-proton-git"
   fi
 
 }
@@ -266,10 +278,12 @@ function prepare_env() {
   # Remove old Wine & DXVK patch files
   rm -rf ${ARCH_BUILDROOT}/0-wine-staging-git/wine-patches
   rm -rf ${ARCH_BUILDROOT}/0-dxvk-git/dxvk-patches
+  rm -rf ${ARCH_BUILDROOT}/0-vkd3d-proton-git/vkd3d-proton-patches
   
   mkdir -p ${ARCH_BUILDROOT}/0-wine-staging-git/wine-patches
   mkdir -p ${ARCH_BUILDROOT}/0-dxvk-git/dxvk-patches
-
+  mkdir -p ${ARCH_BUILDROOT}/0-vkd3d-proton-git/vkd3d-proton-patches
+  
   # Copy new Wine & DXVK patch files
   find ${ARCH_BUILDROOT}/../wine_custom_patches \
     -mindepth 1 -maxdepth 1 -type f \( -iname "*.patch" -or -iname "*.diff" \) \
@@ -277,7 +291,11 @@ function prepare_env() {
 
   find ${ARCH_BUILDROOT}/../dxvk_custom_patches \
     -mindepth 1 -maxdepth 1 -type f \( -iname "*.patch" -or -iname "*.diff" \) \
-    -exec cp {} ${ARCH_BUILDROOT}/0-dxvk-git/dxvk-patches \;
+    -exec cp {} ${ARCH_BUILDROOT}/0-dxvk-git/dxvk-patches/ \;
+
+  find ${ARCH_BUILDROOT}/../vkd3d-proton_custom_patches \
+    -mindepth 1 -maxdepth 1 -type f \( -iname "*.patch" -or -iname "*.diff" \) \
+    -exec cp {} ${ARCH_BUILDROOT}/0-vkd3d-proton-git/vkd3d-proton-patches/ \;
 
   # Create identifiable directory for this build
   mkdir -p ${ARCH_BUILDROOT}/compiled_pkg/"${datedir}"
@@ -433,26 +451,34 @@ function build_pkg() {
     if [[ ${pkgname} == wine ]]; then
       check_gitOverride_wine
 
-      git_source_wine=$(echo ${git_source_wine} | sed 's/\//\\\//g; s/\./\\\./g')
+      git_source_wine=$(echo ${git_source_wine} | sed 's/\//\\\//g; s/\./\\\./g; s/^git:/git+https:/')
       sed -i "s/\(^_wine_gitsrc=\).*/\1\"${git_source_wine}\"/" ${pkgbuild_file}
 
       sed -i "s/\(^_wine_commit=\).*/\1${git_commithash_wine}/" ${pkgbuild_file}
       sed -i "s/\(^_git_branch_wine=\).*/\1${git_branch_wine}/" ${pkgbuild_file}
 
       if [[ ! -v NO_STAGING ]]; then
-        git_source_winestaging=$(echo ${git_source_winestaging} | sed 's/\//\\\//g; s/\./\\\./g')
+        git_source_winestaging=$(echo ${git_source_winestaging} | sed 's/\//\\\//g; s/\./\\\./g; s/^git:/git+https:/')
         sed -i "s/\(^_staging_gitsrc=\).*/\1\"${git_source_winestaging}\"/" ${pkgbuild_file}
 
         sed -i "s/\(^_staging_commit=\).*/\1${git_commithash_winestaging}/" ${pkgbuild_file}
       fi
 
     elif [[ ${pkgname} == dxvk ]]; then
-      git_source_dxvk=$(echo ${git_source_dxvk} | sed 's/\//\\\//g; s/\./\\\./g')
+      git_source_dxvk=$(echo ${git_source_dxvk} | sed 's/\//\\\//g; s/\./\\\./g; s/^git:/git+https:/')
       sed -i "s/\(^_dxvk_gitsrc=\).*/\1\"${git_source_dxvk}\"/" ${pkgbuild_file}
 
       sed -i "s/\(^_git_branch_dxvk=\).*/\1${git_branch_dxvk}/" ${pkgbuild_file}
       sed -i "s/\(^_dxvk_commit=\).*/\1${git_commithash_dxvk}/" ${pkgbuild_file}
+
+    elif [[ ${pkgname} == vkd3d-proton ]]; then
+      git_source_vkd3dproton=$(echo ${git_source_vkd3dproton} | sed 's/\//\\\//g; s/\./\\\./g; s/^git:/git+https:/')
+      sed -i "s/\(^_vkd3d_gitsrc=\).*/\1\"${git_source_vkd3dproton}\"/" ${pkgbuild_file}
+
+      sed -i "s/\(^_git_branch_vkd3d=\).*/\1${git_branch_vkd3dproton}/" ${pkgbuild_file}
+      sed -i "s/\(^_vkd3d_commit=\).*/\1${git_commithash_vkd3dproton}/" ${pkgbuild_file}
     fi
+
   fi
 
   if [[ $? -eq 0 ]]; then bash -c "updpkgsums && makepkg -Cf"; else exit 1; fi
@@ -520,6 +546,16 @@ function updatePOL() {
       fi
     done
   fi
+
+  # TODO remove duplicate functionality
+  if [[ ! -v NO_VKD3D ]]; then
+    for wineprefix in $(find $HOME/.PlayOnLinux/wineprefix -mindepth 1 -maxdepth 1 -type d); do
+      if [[ -d ${wineprefix}/dosdevices ]]; then
+        WINEPREFIX=${wineprefix} setup_vkd3d_proton
+      fi
+    done
+  fi
+
 }
 
 ##########################################################
@@ -554,6 +590,10 @@ if [[ ! -v NO_DXVK ]]; then
   checkDepends "0-dxvk-git" "dxvk-git" depends makedepends
 fi
 
+if [[ ! -v NO_VKD3D ]]; then
+  checkDepends "0-vkd3d-proton-git" "vkd3d-proton-git" depends makedepends
+fi
+
 check_alldeps
 
 #########################
@@ -568,6 +608,10 @@ fi
 
 if [[ ! -v NO_DXVK ]]; then
   build_pkg dxvk DXVK "0-dxvk-git" "${dxvk_wine_cleanlist[*]}" gitcheck
+fi
+
+if [[ ! -v NO_VKD3D ]]; then
+  build_pkg vkd3d-proton "VKD3D Proton" "0-vkd3d-proton-git" "${dxvk_wine_cleanlist[*]}" gitcheck
 fi
 
 #########################
