@@ -281,8 +281,8 @@ if [[ ! -v NO_DXVK ]] || [[ ! -v NO_NVAPI ]] || [[ ! -v NO_VKD3D ]]; then
 
   addons=()
   [[ ! -v NO_DXVK ]] && addons+=("DXVK")
-  [[ ! -v NO_NVAPI ]] && addons+=("DXVK NVAPI")
-  [[ ! -v NO_VKD3D ]] && addons+=("VKD3D Proton")
+  [[ ! -v NO_NVAPI ]] && addons+=("DXVK_NVAPI")
+  [[ ! -v NO_VKD3D ]] && addons+=("VKD3D_Proton")
 
   wine_addons_install_main ${addons[@]}
 else
