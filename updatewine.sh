@@ -219,13 +219,20 @@ gitbranch_overrides=(
 # Pass them to subscripts, as well.
 
 gitsources=(
-  "${git_source_dxvknvapi}"    # 12
-  "${git_source_vkd3dproton}"  # 13
-  "${git_source_dxvk}"         # 14
-  "${git_source_glslang}"      # 15
-  "${git_source_meson}"        # 16
-  "${git_source_wine}"         # 17
-  "${git_source_winestaging}"  # 18
+  "${git_source_dxvknvapi}"      # 12
+  "${git_source_vkd3dproton}"    # 13
+  "${git_source_dxvk}"           # 14
+  "${git_source_glslang_debian}" # 15
+  "${git_source_meson_debian}"   # 16
+  "${git_source_wine}"           # 17
+  "${git_source_winestaging}"    # 18
+
+  # Debian
+  "${git_source_dxvknvapi_debian}"   # 19
+  "${git_source_vkd3dproton_debian}" # 20
+  "${git_source_dxvk_debian}"        # 21
+  "${git_source_wine_debian}"        # 22
+  "${git_source_winestaging_debian}" # 23
 )
 
 #############################
