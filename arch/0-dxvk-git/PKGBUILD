@@ -89,7 +89,7 @@ prepare() {
 # Retrieve DXVK version tag
 pkgver() {
   cd "${pkgname}"
-  printf '%s' $(git describe --long --always | sed 's/\-[a-z].*//; s/\-/\./; s/[a-z]//g')
+  printf '%s' $(git describe --long --always | sed 's/\-[a-z].*//; s/\-/\./g; s/[a-z]//g')
 }
 
 # Launch DXVK build script
