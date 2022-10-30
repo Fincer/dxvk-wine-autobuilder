@@ -45,17 +45,23 @@ done
 # array in ../updatewine.sh, make sure to update these
 # variables!
 #
+git_commithash_dxvknvapi=${params[0]}
+git_commithash_vkd3dproton=${params[1]}
 git_commithash_dxvk=${params[2]}
 git_commithash_glslang=${params[3]}
 git_commithash_meson=${params[4]}
 
+git_branch_dxvknvapi=${params[6]}
+git_branch_vkd3dproton=${params[7]}
 git_branch_dxvk=${params[8]}
 git_branch_glslang=${params[9]}
 git_branch_meson=${params[10]}
 
+git_source_dxvknvapi=${params[12]}
+git_source_vkd3dproton=${params[13]}
 git_source_dxvk=${params[14]}
-git_source_glslang=${params[15]}
-git_source_meson=${params[16]}
+git_source_glslang_debian=${params[15]}
+git_source_meson_debian=${params[16]}
 
 ########################################################
 
@@ -67,7 +73,7 @@ git_source_meson=${params[16]}
 # Filter all but <args>, i.e. the first 0-8 arguments
 
 i=0
-for arg in ${params[@]:8}; do
+for arg in ${params[@]:24}; do
   args[$i]="${arg}"
   let i++
 done
@@ -522,8 +528,8 @@ function compile_and_install_deb() {
     local b
     local _validlist
     local IFS
-  
-    _pkg_list="${1}"
+
+    _pkg_list=("${1}")
     _pkg_type="${2}"
 
     IFS=$'\n'
@@ -546,13 +552,13 @@ function compile_and_install_deb() {
     # Generate a list of missing dependencies
     a=0
     for p in ${_pkg_list[@]}; do
-      if [[ $(pkg_installcheck ${p})$? -eq 0 ]]; then
-        _validlist[$a]=${p}
+      if [[ $(pkg_installcheck ${p%% *})$? -ne 0 ]]; then
+        _validlist[$a]=${p%% *}
         let a++
 
         # Global array to track installed build dependencies
         if [[ ${_pkg_type} == "buildtime" ]]; then
-          _buildpkglist[$z]="${p}"
+          _buildpkglist[$z]=${p%% *}
           let z++
         fi
       fi
