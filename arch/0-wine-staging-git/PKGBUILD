@@ -162,7 +162,6 @@ if [[ -d ${PWD}/wine-patches ]]; then
 fi
 
 if [[ enable_staging -eq 1 ]]; then
-  _staging_gitsrc=$(echo ${_staging_gitsrc} | sed 's/^git/git+https/')
   stagingsrc=wine-staging-git::"${_staging_gitsrc}#commit=${_staging_commit}"
   source+=($stagingsrc)
 fi
