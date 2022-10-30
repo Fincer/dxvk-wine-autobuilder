@@ -132,10 +132,12 @@ for arg in ${@}; do
   case ${arg} in
     --no-staging)
       # Do not build Wine staging version, just Wine
+      NO_STAGING=
       ;;
     --no-install)
       # Just build, do not install DXVK or Wine-Staging
       # Note that some version of Wine is required for DXVK compilation, though!
+      NO_INSTALL=
       ;;
     --no-wine)
       # Skip Wine build & installation process all together
@@ -155,6 +157,7 @@ for arg in ${@}; do
       ;;
     --no-pol)
       # Skip PlayOnLinux Wine prefixes update process
+      NO_POL=
       ;;
     *)
       echo -e "\n\
