@@ -94,7 +94,8 @@ pkgver() {
 
 # Launch DXVK build script
 build() {
-  "${srcdir}/${pkgname}"/package-release.sh ${pkgver} "${srcdir}"/build --no-package
+  cd "${pkgname}"
+  ./package-release.sh ${pkgver} "${srcdir}"/build --no-package
 }
 
 # Bundle the compiled files
