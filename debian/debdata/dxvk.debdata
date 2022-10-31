@@ -112,8 +112,9 @@ pkg_deps_build=(
 'meson'
 'glslang'
 'ninja-build (>= 1.5)'
-'gcc-mingw-w64-base'
 #'binutils-common'
+'libisl22'
+'gcc-mingw-w64-base'
 'mingw-w64-common'
 'binutils-mingw-w64-x86-64'
 'binutils-mingw-w64-i686'
@@ -145,8 +146,9 @@ empty
 ############################
 
 # Deb builder execution field
+# Exclude -z flag from LDFLAGS because it does not work with meson
 # Do not build either debug symbols or doc files
-pkg_debbuilder="DEB_BUILD_OPTIONS=\"strip nodocs noddebs\" dpkg-buildpackage -us -uc -b -d --source-option=--include-binaries"
+pkg_debbuilder="LDFLAGS=\"-Wl,-Bsymbolic-functions -flto=auto -ffat-lto-objects -flto=auto\" DEB_BUILD_OPTIONS=\"strip nodocs noddebs\" dpkg-buildpackage -us -uc -b -d --source-option=--include-binaries"
 
 ########################################################
 # Contents of Debian control file
