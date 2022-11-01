@@ -478,8 +478,8 @@ function addon_install_custom() {
   function addon_custom_patches() {
 
     local CURDIR
-    local dxvk_builddir_name
-    local dxvk_builddir_path
+    local addon_builddir_name
+    local addon_builddir_path
 
     # Get our current directory, since we will change it during patching process below
     # We want to go back here after having applied the patches
@@ -487,19 +487,19 @@ function addon_install_custom() {
 
     # Check if the following folder exists, and proceed.
     if [[ -d "${WINE_ADDONS_ROOT}/../../${PATCHDIR}" ]]; then
-      cp -r "${WINE_ADDONS_ROOT}/../../${PATCHDIR}/"*.{patch,diff} "${WINE_ADDONS_ROOT}/${pkg_name}/" 2>/dev/null
+      find "${WINE_ADDONS_ROOT}/../../${PATCHDIR}/" \( -iname "*.patch" -or -iname "*.diff" \) -exec cp -f {} "${WINE_ADDONS_ROOT}/${pkg_name}/" 2>/dev/null \;
 
-      dxvk_builddir_name=$(ls -l "${WINE_ADDONS_ROOT}/${pkg_name}" | grep ^d | awk '{print $NF}')
+      addon_builddir_name=$(ls -l "${WINE_ADDONS_ROOT}/${pkg_name}" | grep ^d | awk '{print $NF}')
 
       # TODO Expecting just one folder here. This method doesn't work with multiple dirs present
-      if [[ $(echo ${dxvk_builddir_name} | wc -l) -gt 1 ]]; then
+      if [[ $(echo ${addon_builddir_name} | wc -l) -gt 1 ]]; then
         echo -e "\e[1mERROR:\e[0m Multiple entries in addon build directory detected. Can't decide which one to use. Aborting\n"
         exit 1
       fi
 
-      dxvk_builddir_path="${WINE_ADDONS_ROOT}/${pkg_name}/${dxvk_builddir_name}"
+      addon_builddir_path="${WINE_ADDONS_ROOT}/${pkg_name}/${addon_builddir_name}"
 
-      cd "${dxvk_builddir_path}"
+      cd "${addon_builddir_path}"
       for pfile in ../*.{patch,diff}; do
         if [[ -f ${pfile} ]]; then
           echo -e "Applying addon's patch: ${pfile}\n"
@@ -577,7 +577,7 @@ function compile_and_install_deb() {
   local _pkg_debcompat="${16}"
   local _pkg_compatfile="${17}"
 
-  local extra_files_dir=$(find "../../extra_files/" -type d -iname "${_pkg_name%-git}")
+  local extra_files_dir=$(find "../../extra_files/" -type d -iname "${_pkg_name%-*}")
 
   if [[ -d ${extra_files_dir} ]]; then
     [[ ! -d "debian/source" ]] && mkdir -p "debian/source"
@@ -949,13 +949,13 @@ function get_locked_packages() {
   pkg_folderprepare
 
   # TODO use package name or separate override switch here?
-  if [[ "${_pkg_name%-git}" == "dxvk" ]]; then
+  if [[ "${_pkg_name%-*}" == "dxvk" ]]; then
     addon_install_custom "dxvk_custom_patches"
 
-  elif [[ "${_pkg_name%-git}" == "dxvk-nvapi" ]]; then
+  elif [[ "${_pkg_name%-*}" == "dxvk-nvapi" ]]; then
     addon_install_custom "dxvk-nvapi_custom_patches"
 
-  elif [[ "${_pkg_name%-git}" == "vkd3d-proton" ]]; then
+  elif [[ "${_pkg_name%-*}" == "vkd3d-proton" ]]; then
     addon_install_custom "vkd3d-proton_custom_patches"
 
   fi
