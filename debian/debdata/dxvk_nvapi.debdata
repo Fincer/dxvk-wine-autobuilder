@@ -21,7 +21,7 @@ pkg_homeurl="https://github.com/jp7677/dxvk-nvapi"
 pkg_gitbranch=${git_branch_dxvknvapi}
 
 git_commithash=${git_commithash_dxvknvapi}
-pkg_gitver="printf '%s.%s' $(git rev-list --count HEAD) $(git rev-parse --short HEAD | sed 's/\-[a-z].*//; s/\-/\./g; s/[a-z]//g')"
+pkg_gitver=$(printf '%s.%s' $(git rev-list --count HEAD) $(git rev-parse --short HEAD | sed 's/\-[a-z].*//; s/\-/\./g; s/[a-z]//g'))
 
 pkg_installfile="./debian/install"
 pkg_controlfile="./debian/control"
@@ -129,6 +129,8 @@ pkg_deps_build=(
 'mingw-w64-i686-dev'
 'gcc-mingw-w64-i686'
 'g++-mingw-w64-i686'
+
+'directx-headers-dev'
 )
 
 # Runtime dependencies
