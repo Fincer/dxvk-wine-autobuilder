@@ -143,15 +143,15 @@ Each variable applies values which must be match package git commit tree. The va
     - defined in git commit trees:
 
       - [VKD3D Proton commit tree](https://github.com/HansKristian-Work/vkd3d-proton/commits/master)
-    
+
       - [DXVK NVAPI commit tree](https://github.com/jp7677/dxvk-nvapi/commits/master)
-    
+
       - [DXVK commit tree](https://github.com/doitsujin/dxvk/commits/master)
-      
+
       - [Wine commit tree](https://source.winehq.org/git/wine.git/) (or [GitHub mirror](https://github.com/wine-mirror/wine))
-      
+
       - [glslang commit tree](https://github.com/KhronosGroup/glslang/commits/master)
-      
+
       - [meson commit tree](https://github.com/mesonbuild/meson/commits/master)
 
     - You can obtain proper hash by opening the commit. Hash syntax is: `654544e96bfcd1bbaf4a0fc639ef655299276a39` etc...
@@ -368,21 +368,28 @@ The following section contains important notes about the script usage.
 
 Runtime test done for the script to ensure it works as expected. Occasional test-runs are mandatory due to rapid development of the packages (Wine/DXVK) it handles.
 
-**Latest test-run:** 29th July, 2020
+```
+Compilation & installation status
 
-**Linux Distributions:** 
+2th November, 2022
 
-- Success: Arch Linux 64-bit, Xubuntu 20.04 LTS 64-bit
+Distribution | Package              Status
+-----------------------------------------
+Arch Linux   | vkd3d-proton       | Success
+             | wine               | Success
+             | dxvk               | Success
+             | dxvk-nvapi         | Success
+_____________|____________________|
+Linux Mint   | vkd3d-proton       | Success
+             | wine               | Success
+             | dxvk               | Build failure. Too old MinGW available (>= 11 required)
+             | dxvk-nvapi         | Build failure. Failure with directx-headers-dev
 
-- Failure: N/A
-
-#### Failure reasons:
-
-N/A
+```
 
 #### Notes:
 
-N/A
+Linux Mint build failures are likely trivial to fix with custom patches.
 
 ---------------------------
 
