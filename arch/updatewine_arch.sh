@@ -482,11 +482,20 @@ function build_pkg() {
   local pkgdir
   local cleanlist
   local pkgbuild_file
+  local pkg_archive
+  local arch_pkg_validsuffixes
 
   pkgname=${1}
   pkgname_friendly=${2}
   pkgdir=${3}
   cleanlist=${4}
+
+  arch_pkg_validsuffixes=(
+    'tar.gz'
+    'tar.xz'
+    'tar.lz'
+    'tar.zst'
+  )
 
   # Fetch extra files if any defined
   fetch_extra_pkg_files ${pkgname} ${pkgdir}
@@ -548,13 +557,24 @@ function build_pkg() {
   fi
 
   # After successful compilation...
-  if [[ $(ls ./${pkgname}-*tar.xz 2>/dev/null | wc -l) -ne 0 ]]; then
+  pkg_archive=
+  for pkg_suffix in "${arch_pkg_validsuffixes[@]}"; do
+    find_suffix=$(find . -mindepth 1 -maxdepth 1 -iname "${pkgname}-*${pkg_suffix}")
 
-    if [[ ! -v NO_INSTALL ]]; then
-      yes | sudo pacman -U ${pkgname}-*.tar.xz
+    if [[ ${find_suffix} ]]; then
+      pkg_archive=${find_suffix}
+      break 1
     fi
 
-    mv ${pkgname}-*.tar.xz ${ARCH_BUILDROOT}/compiled_pkg/${datedir}/ && \
+  done
+
+  if [[ -f ${pkg_archive} ]]; then
+
+    if [[ ! -v NO_INSTALL ]]; then
+      yes | sudo pacman -U ${pkg_archive}
+    fi
+
+    mv ${pkg_archive} ${ARCH_BUILDROOT}/compiled_pkg/${datedir}/ && \
     echo -e "\nCompiled ${pkgname_friendly} is stored at '$(readlink -f ${ARCH_BUILDROOT}/compiled_pkg/${datedir}/)/'\n"
     for rml in ${cleanlist[*]}; do
       rm -rf  "${ARCH_BUILDROOT}/${pkgdir}/${rml}"
