@@ -38,8 +38,8 @@ fi
 
 # Just a title & author for this script, used in initialization and help page
 
-SCRIPT_TITLE="\e[1mWine/Wine Staging & DXVK package builder & auto-installer\e[0m"
-SCRIPT_AUTHOR="Pekka Helenius (~Fincer), 2019"
+SCRIPT_TITLE="\e[1mWine/Wine Staging, DXVK, DXVK NVAPI, VKD3D Proton package bundle builder & auto-installer\e[0m"
+SCRIPT_AUTHOR="Pekka Helenius (~Fincer), 2019-2022"
 
 ###########################################################
 # Allow interruption of the script at any time (Ctrl + C)
