@@ -35,7 +35,7 @@ BUILDROOT="${PWD}"
 
 # Staging patchsets. Default: all patchsets.
 # Applies only if Wine Staging is set to be compiled
-# Please see Wine Staging patchinstall.sh file for individual patchset names.
+# Please see Wine Staging 'patchset' directory contents for individual patchset names.
 staging_patchsets=(--all)
 
 ########################################################
@@ -762,7 +762,8 @@ function refreshWineGIT() {
 
     if [[ ${git_commithash_wine} == HEAD ]]; then
       # Change back to the wine upstream commit that this version of wine-staging is based on
-      git checkout $(bash "${WINEDIR_STAGING}"/patches/patchinstall.sh --upstream-commit)
+      chmod u+x "${WINEDIR_STAGING}"/staging/patchinstall.py
+      git checkout $("${WINEDIR_STAGING}"/staging/patchinstall.py --upstream-commit)
 
     else
       cd "${WINEDIR_STAGING}"
@@ -791,7 +792,7 @@ function wine_version() {
 function patchWineSource() {
 
   if [[ ! -v NO_STAGING ]]; then
-    bash "${WINEDIR_STAGING}/patches/patchinstall.sh" DESTDIR="${WINEDIR}" ${staging_patchsets[*]}
+    "${WINEDIR_STAGING}/staging/patchinstall.py" DESTDIR="${WINEDIR}" ${staging_patchsets[*]}
   fi
 
   cp -r ${WINEROOT}/../../../wine_custom_patches/* "${WINEDIR_PATCHES}/"

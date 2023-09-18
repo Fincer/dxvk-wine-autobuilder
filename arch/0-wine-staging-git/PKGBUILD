@@ -7,7 +7,7 @@ PKGDEST="${PWD}"
 # Enable Wine Staging? 1 = yes
 enable_staging=1
 
-# Staging patchsets. Default: all patchsets. Please see Wine Staging patchinstall.sh file for individual patchset names.
+# Staging patchsets. Default: all patchsets. Please see Wine Staging 'patchset' directory contents for individual patchset names.
 staging_patchsets=(--all) # In order to disable all patchsets, use #(--all) and add desired patchsets individually here
 
 # Enable 32-bit compilation? 1 = yes
@@ -208,7 +208,8 @@ prepare() {
 
   if [[ ${_wine_commit} == HEAD ]] && [[ enable_staging -eq 1 ]]; then
     # Change back to the wine upstream commit that this version of wine-staging is based on
-    git checkout $(../"$pkgname"/patches/patchinstall.sh --upstream-commit)
+    chmod u+x ../"$pkgname"/staging/patchinstall.py
+    git checkout $(../"$pkgname"/staging/patchinstall.py --upstream-commit)
   fi
 
   # Restore the wine tree to its git origin state, without wine-staging patches
@@ -228,7 +229,7 @@ build() {
   if [[ enable_staging -eq 1 ]]; then
     # Apply all wine-staging patches
     msg2 "Applying wine-staging patches..."
-    ./wine-staging-git/patches/patchinstall.sh DESTDIR="${srcdir}/wine-git" \
+    ./wine-staging-git/staging/patchinstall.py DESTDIR="${srcdir}/wine-git" \
     ${staging_patchsets[*]}
   fi
 
